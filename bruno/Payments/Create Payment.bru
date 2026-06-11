@@ -1,0 +1,28 @@
+meta {
+  name: Create Payment
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/payments
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "payerId": {{tenantId}},
+    "payeeId": {{landlordId}},
+    "propertyId": {{propertyId}},
+    "leaseId": {{leaseId}},
+    "amount": 600,
+    "currency": "USD",
+    "provider": "manual",
+    "purpose": "Monthly rent"
+  }
+}

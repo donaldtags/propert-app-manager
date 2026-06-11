@@ -1,0 +1,26 @@
+meta {
+  name: Add Role
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/users/{{tenantId}}/roles
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "role": "LANDLORD",
+    "password": "AfricaProp123!"
+  }
+}

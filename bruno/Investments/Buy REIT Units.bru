@@ -1,0 +1,24 @@
+meta {
+  name: Buy REIT Units
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/investments
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "investorId": {{investorId}},
+    "reitId": {{reitId}},
+    "units": 25,
+    "currency": "USD"
+  }
+}

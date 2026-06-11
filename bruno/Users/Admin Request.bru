@@ -1,0 +1,15 @@
+meta {
+  name: Admin Request
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/users/{{tenantId}}/admin-request
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

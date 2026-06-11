@@ -1,0 +1,15 @@
+meta {
+  name: List Investments
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/investments
+  body: none
+  auth: none
+}
+
+params:query {
+  investorId: {{investorId}}
+}

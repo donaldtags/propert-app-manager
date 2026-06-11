@@ -1,0 +1,19 @@
+meta {
+  name: Search Properties
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/properties
+  body: none
+  auth: none
+}
+
+params:query {
+  listingType: RENT
+  city: Harare
+  suburb: Borrowdale
+  maxPrice: 600
+  bedrooms: 2
+}

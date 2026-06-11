@@ -1,0 +1,29 @@
+meta {
+  name: Start Conversation
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/messages/conversations
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "recipientId": {{landlordId}},
+    "subject": "Reference request",
+    "content": "Please confirm my rental history.",
+    "messageType": "REFERENCE_REQUEST",
+    "propertyId": {{propertyId}}
+  }
+}

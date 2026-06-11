@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "property-app-manager",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

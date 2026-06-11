@@ -1,0 +1,21 @@
+meta {
+  name: Property Search
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/ai/property-search
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "query": "Find me a 2-bedroom apartment in Borrowdale under $600 near schools"
+  }
+}

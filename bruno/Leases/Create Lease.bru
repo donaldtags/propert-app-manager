@@ -1,0 +1,29 @@
+meta {
+  name: Create Lease
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/leases
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "propertyId": {{propertyId}},
+    "tenantId": {{tenantId}},
+    "landlordId": {{landlordId}},
+    "startDate": "2026-07-01",
+    "endDate": "2027-06-30",
+    "monthlyRent": 600,
+    "depositAmount": 600,
+    "currency": "USD",
+    "terms": "Rent due on the first day of each month. Deposit held in escrow."
+  }
+}

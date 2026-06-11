@@ -1,0 +1,11 @@
+meta {
+  name: Tenant Dashboard
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/dashboards/tenants/{{tenantId}}
+  body: none
+  auth: none
+}

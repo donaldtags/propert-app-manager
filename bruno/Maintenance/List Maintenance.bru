@@ -1,0 +1,15 @@
+meta {
+  name: List Maintenance
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/maintenance
+  body: none
+  auth: none
+}
+
+params:query {
+  propertyId: {{propertyId}}
+}

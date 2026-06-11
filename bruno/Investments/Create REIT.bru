@@ -1,0 +1,27 @@
+meta {
+  name: Create REIT
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/investments/reits
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Harare Residential REIT",
+    "description": "Diversified residential rentals in northern Harare.",
+    "market": "Zimbabwe",
+    "unitPrice": 10,
+    "projectedAnnualYield": 8.5,
+    "riskLevel": "MEDIUM",
+    "vexEligible": true
+  }
+}

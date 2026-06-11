@@ -1,0 +1,22 @@
+meta {
+  name: Verify Property
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/properties/{{propertyId}}/verify
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "verifierId": {{agentId}},
+    "note": "Documents and photos reviewed."
+  }
+}

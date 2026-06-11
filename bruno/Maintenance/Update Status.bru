@@ -1,0 +1,15 @@
+meta {
+  name: Update Status
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/maintenance/1/status
+  body: none
+  auth: none
+}
+
+params:query {
+  status: RESOLVED
+}

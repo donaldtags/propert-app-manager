@@ -1,0 +1,30 @@
+meta {
+  name: Create Rating
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/ratings
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "landlordId": {{landlordId}},
+    "tenantId": {{tenantId}},
+    "propertyId": {{propertyId}},
+    "leaseId": {{leaseId}},
+    "rating": 5,
+    "comment": "Responsive landlord."
+  }
+}

@@ -1,0 +1,40 @@
+meta {
+  name: Create Property
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/properties
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Borrowdale Garden Flat",
+    "description": "Secure 2-bedroom apartment close to schools and shops.",
+    "listingType": "RENT",
+    "city": "Harare",
+    "suburb": "Borrowdale",
+    "address": "12 Borrowdale Road",
+    "country": "Zimbabwe",
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "price": 600,
+    "currency": "USD",
+    "latitude": -17.7569,
+    "longitude": 31.0862,
+    "diasporaFriendly": true,
+    "escrowRequired": true,
+    "landlordId": {{landlordId}},
+    "agentId": {{agentId}},
+    "photoUrls": [
+      "https://example.com/photos/borrowdale-flat-1.jpg"
+    ]
+  }
+}

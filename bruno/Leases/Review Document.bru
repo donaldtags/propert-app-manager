@@ -1,0 +1,26 @@
+meta {
+  name: Review Document
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/leases/{{leaseId}}/documents/{{documentId}}/review
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "status": "APPROVED",
+    "reviewNote": "Document accepted."
+  }
+}

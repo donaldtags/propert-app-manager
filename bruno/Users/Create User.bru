@@ -1,0 +1,26 @@
+meta {
+  name: Create User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/users
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fullName": "Tariro Moyo",
+    "email": "tariro@example.com",
+    "phone": "+263771234567",
+    "password": "AfricaProp123!",
+    "country": "Zimbabwe",
+    "roles": ["LANDLORD"]
+  }
+}

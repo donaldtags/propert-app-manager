@@ -1,0 +1,25 @@
+meta {
+  name: Create Maintenance
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/maintenance
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "propertyId": {{propertyId}},
+    "requesterId": {{tenantId}},
+    "category": "Plumbing",
+    "priority": "HIGH",
+    "description": "Kitchen sink is leaking under the cabinet."
+  }
+}

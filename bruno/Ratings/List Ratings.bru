@@ -1,0 +1,15 @@
+meta {
+  name: List Ratings
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/ratings
+  body: none
+  auth: none
+}
+
+params:query {
+  landlordId: {{landlordId}}
+}

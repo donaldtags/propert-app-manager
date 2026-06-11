@@ -1,0 +1,26 @@
+meta {
+  name: Create Escrow
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/escrows
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "propertyId": {{propertyId}},
+    "leaseId": {{leaseId}},
+    "payerId": {{tenantId}},
+    "amount": 600,
+    "currency": "USD",
+    "purpose": "Security deposit"
+  }
+}

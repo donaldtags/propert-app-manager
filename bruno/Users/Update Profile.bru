@@ -1,0 +1,33 @@
+meta {
+  name: Update Profile
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/users/{{tenantId}}/profile
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fullName": "Nadia Ncube",
+    "phone": "+263771000002",
+    "country": "Zimbabwe",
+    "city": "Harare",
+    "preferredCurrency": "USD",
+    "bio": "Tenant looking for verified rentals with escrow protection.",
+    "occupation": "Software developer",
+    "diasporaLocation": "United Kingdom",
+    "emergencyContactName": "Tariro Ncube",
+    "emergencyContactPhone": "+263772000000",
+    "emailNotifications": true,
+    "smsNotifications": true,
+    "twoFactorEnabled": false
+  }
+}

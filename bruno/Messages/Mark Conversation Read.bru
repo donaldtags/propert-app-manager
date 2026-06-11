@@ -1,0 +1,15 @@
+meta {
+  name: Mark Conversation Read
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/messages/conversations/{{conversationId}}/read
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

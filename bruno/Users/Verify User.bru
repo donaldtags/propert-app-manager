@@ -1,0 +1,11 @@
+meta {
+  name: Verify User
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/users/{{tenantId}}/verify
+  body: none
+  auth: none
+}

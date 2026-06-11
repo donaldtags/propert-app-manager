@@ -1,0 +1,26 @@
+meta {
+  name: Send Message
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/messages
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "conversationId": {{conversationId}},
+    "content": "Thanks, I have attached the requested details."
+  }
+}

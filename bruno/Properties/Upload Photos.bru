@@ -1,0 +1,15 @@
+meta {
+  name: Upload Photos
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/properties/{{propertyId}}/photos
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  files: @/absolute/path/to/property-photo.jpg
+}

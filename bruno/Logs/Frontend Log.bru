@@ -1,0 +1,28 @@
+meta {
+  name: Frontend Log
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/logs/frontend
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "level": "info",
+    "event": "property_viewed",
+    "route": "/properties/3",
+    "userId": 12,
+    "message": "User opened property details",
+    "metadata": {
+      "propertyId": 3
+    }
+  }
+}

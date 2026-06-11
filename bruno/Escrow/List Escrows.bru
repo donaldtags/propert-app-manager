@@ -1,0 +1,15 @@
+meta {
+  name: List Escrows
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/escrows
+  body: none
+  auth: none
+}
+
+params:query {
+  userId: {{tenantId}}
+}

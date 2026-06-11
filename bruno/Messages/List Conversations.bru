@@ -1,0 +1,19 @@
+meta {
+  name: List Conversations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/messages/conversations
+  body: none
+  auth: bearer
+}
+
+params:query {
+  userId: {{tenantId}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
