@@ -1,0 +1,23 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: primenest-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_ROOT_HOST: "%"
+      MARIADB_DATABASE: primenest_prop
+      MARIADB_USER: primenest
+      MARIADB_PASSWORD: primenest_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - primenest_mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  primenest_mariadb_data:
