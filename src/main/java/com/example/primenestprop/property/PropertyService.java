@@ -4,6 +4,8 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -22,8 +24,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class PropertyService {
+    private static final Logger log = LoggerFactory.getLogger(PropertyService.class);
     private static final long MAX_PHOTO_SIZE = 8L * 1024L * 1024L;
     private static final Set<String> ALLOWED_PHOTO_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
+    private static final Set<UserRole> LISTING_ROLES = Set.of(
+            UserRole.LANDLORD, UserRole.AGENT, UserRole.DEVELOPER, UserRole.PRIVATE
+    );
 
     private final PropertyRepository properties;
     private final PropertyPhotoRepository photos;
@@ -48,8 +54,8 @@ public class PropertyService {
     @Transactional
     public Property create(PropertyDtos.CreatePropertyRequest request) {
         AppUser landlord = users.require(request.landlordId());
-        if (!landlord.getRoles().contains(UserRole.LANDLORD)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "landlordId must belong to a landlord user");
+        if (landlord.getRoles().stream().noneMatch(LISTING_ROLES::contains)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "landlordId must belong to a landlord, agent, developer, or private seller");
         }
 
         Property property = new Property();
@@ -94,6 +100,12 @@ public class PropertyService {
 
     public List<Property> forLandlord(Long landlordId) {
         return properties.findByLandlord(users.require(landlordId));
+    }
+
+    public void submitInquiry(Long id, PropertyDtos.InquiryRequest request) {
+        Property property = require(id);
+        log.info("Inquiry for property '{}' (id={}): from {} <{}> phone={} - {}",
+                property.getTitle(), id, request.name(), request.email(), request.phone(), request.message());
     }
 
     @Transactional

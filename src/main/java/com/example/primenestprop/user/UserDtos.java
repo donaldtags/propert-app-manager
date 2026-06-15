@@ -13,7 +13,7 @@ public final class UserDtos {
     public record CreateUserRequest(
             @NotBlank String fullName,
             @Email @NotBlank String email,
-            @NotBlank String phone,
+            String phone,
             @Size(min = 8) String password,
             String country,
             @NotEmpty Set<UserRole> roles

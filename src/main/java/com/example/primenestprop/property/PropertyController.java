@@ -58,6 +58,11 @@ public class PropertyController {
         return PropertyResponse.from(service.verify(id, request));
     }
 
+    @PostMapping("/{id}/inquiries")
+    void submitInquiry(@PathVariable Long id, @Valid @RequestBody PropertyDtos.InquiryRequest request) {
+        service.submitInquiry(id, request);
+    }
+
     public record UploadPhotosRequest(List<MultipartFile> files) {
     }
 }

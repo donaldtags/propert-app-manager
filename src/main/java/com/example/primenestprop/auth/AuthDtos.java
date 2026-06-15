@@ -15,7 +15,7 @@ public final class AuthDtos {
     public record RegisterRequest(
             @NotBlank String fullName,
             @Email @NotBlank String email,
-            @NotBlank String phone,
+            String phone,
             @Size(min = 8) String password,
             String country,
             @NotEmpty Set<UserRole> roles

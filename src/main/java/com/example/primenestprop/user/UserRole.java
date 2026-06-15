@@ -6,5 +6,7 @@ public enum UserRole {
     AGENT,
     DIASPORA,
     INVESTOR,
-    ADMIN
+    ADMIN,
+    DEVELOPER,
+    PRIVATE
 }
