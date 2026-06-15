@@ -39,6 +39,14 @@ public final class PropertyDtos {
     public record VerifyPropertyRequest(@NotNull Long verifierId, String note) {
     }
 
+    public record InquiryRequest(
+            @NotBlank String name,
+            @NotBlank String email,
+            String phone,
+            @NotBlank String message
+    ) {
+    }
+
     public record PropertyResponse(
             Long id,
             String title,
@@ -60,6 +68,9 @@ public final class PropertyDtos {
             boolean escrowRequired,
             Long landlordId,
             Long agentId,
+            String landlordName,
+            String agentName,
+            String agentPhone,
             Instant createdAt,
             Instant verifiedAt,
             List<String> photoUrls,
@@ -71,6 +82,9 @@ public final class PropertyDtos {
                     .map(PropertyPhoto::getPhotoUrl)
                     .filter(url -> url != null && !url.isBlank())
                     .toList();
+            String landlordName = property.getLandlord() != null ? property.getLandlord().getFullName() : null;
+            String agentName = property.getAgent() != null ? property.getAgent().getFullName() : null;
+            String agentPhone = property.getAgent() != null ? property.getAgent().getPhone() : null;
             return new PropertyResponse(
                     property.getId(),
                     property.getTitle(),
@@ -92,6 +106,9 @@ public final class PropertyDtos {
                     property.isEscrowRequired(),
                     property.getLandlord().getId(),
                     property.getAgent() == null ? null : property.getAgent().getId(),
+                    landlordName,
+                    agentName,
+                    agentPhone,
                     property.getCreatedAt(),
                     property.getVerifiedAt(),
                     urls,
