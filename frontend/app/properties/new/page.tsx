@@ -1,24 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { properties as propertiesApi } from "@/lib/api";
-import { Home, Plus, CheckCircle, AlertCircle, Image as ImageIcon, X } from "lucide-react";
+import { properties as propertiesApi, ai as aiApi } from "@/lib/api";
+import { Home, Plus, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X, Sparkles } from "lucide-react";
+import { settingsRoleUrl } from "@/lib/roleGate";
+import type { UserRole } from "@/lib/types";
+import { ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
 
 const LISTING_TYPES = [
   { value: "RENT", label: "For Rent", desc: "Monthly rental property" },
   { value: "SALE", label: "For Sale", desc: "Buy outright" },
-  { value: "SHORT_STAY", label: "Short Stay", desc: "Nightly / holiday rental" },
+  { value: "SHORT_STAY", label: "Short Stay (BnB)", desc: "Nightly / holiday rental" },
 ] as const;
 
-const ZIMBABWE_SUBURBS: Record<string, string[]> = {
-  Harare: ["Borrowdale", "Avondale", "Mount Pleasant", "Highlands", "Greendale", "Hatfield", "Mabelreign", "Strathaven", "Msasa", "Dzivarasekwa"],
-  Bulawayo: ["Suburbs", "Hillside", "Burnside", "Selborne Park", "Matsheumhlope"],
-  Mutare: ["Greenside", "Palmerstone", "Morningside"],
-  Gweru: ["Ridgemont", "Nehosho", "Mkoba"],
-};
+const LISTING_ROLES: UserRole[] = ["LANDLORD", "AGENT", "DEVELOPER", "PRIVATE"];
 
 export default function NewPropertyPage() {
   const { user, token, loading } = useAuth();
@@ -40,10 +38,51 @@ export default function NewPropertyPage() {
     longitude: "",
     diasporaFriendly: false,
     escrowRequired: true,
+    solarInstalled: false,
+    backupPower: false,
+    waterSource: "" as "" | "MUNICIPAL" | "BOREHOLE" | "WELL" | "TANKER" | "OTHER",
+    furnished: false,
+    internetAvailable: false,
+    securityFeatures: false,
+    parkingAvailable: false,
+    petsAllowed: false,
+    virtualTourUrl: "",
     photoUrls: [] as string[],
   });
 
+  const [rentSuggestion, setRentSuggestion] = useState<{
+    suggestedPrice: number | null;
+    priceRangeLow: number | null;
+    priceRangeHigh: number | null;
+    comparableCount: number;
+    basis: string;
+  } | null>(null);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionError, setSuggestionError] = useState("");
+
+  const handleGetPriceSuggestion = async () => {
+    if (!form.city || !form.bedrooms) return;
+    setSuggestionError("");
+    setSuggestionLoading(true);
+    setRentSuggestion(null);
+    try {
+      const result = await aiApi.rentSuggestion({
+        listingType: form.listingType,
+        city: form.city,
+        suburb: form.suburb || undefined,
+        bedrooms: form.bedrooms,
+      });
+      setRentSuggestion(result);
+    } catch (err: unknown) {
+      setSuggestionError(err instanceof Error ? err.message : "Could not compute a pricing suggestion.");
+    } finally {
+      setSuggestionLoading(false);
+    }
+  };
+
   const [photoInput, setPhotoInput] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -62,7 +101,25 @@ export default function NewPropertyPage() {
     setForm((f) => ({ ...f, photoUrls: f.photoUrls.filter((_, idx) => idx !== i) }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const addFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setPhotoFiles((prev) => [...prev, ...Array.from(files)]);
+  };
+
+  const removeFile = (i: number) => {
+    setPhotoFiles((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
+  const filePreviews = useMemo(
+    () => photoFiles.map((file) => URL.createObjectURL(file)),
+    [photoFiles]
+  );
+
+  useEffect(() => {
+    return () => filePreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [filePreviews]);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user || !token) {
       router.push("/login?redirect=/properties/new");
@@ -92,11 +149,27 @@ export default function NewPropertyPage() {
           longitude: form.longitude ? Number(form.longitude) : undefined,
           diasporaFriendly: form.diasporaFriendly,
           escrowRequired: form.escrowRequired,
+          solarInstalled: form.solarInstalled,
+          backupPower: form.backupPower,
+          waterSource: form.waterSource || undefined,
+          furnished: form.furnished,
+          internetAvailable: form.internetAvailable,
+          securityFeatures: form.securityFeatures,
+          parkingAvailable: form.parkingAvailable,
+          petsAllowed: form.petsAllowed,
+          virtualTourUrl: form.virtualTourUrl || undefined,
           landlordId: user.id,
           photoUrls: form.photoUrls.length > 0 ? form.photoUrls : undefined,
         },
         token
       );
+
+      if (photoFiles.length > 0) {
+        const formData = new FormData();
+        photoFiles.forEach((file) => formData.append("files", file));
+        await propertiesApi.uploadPhotos(property.id, formData, token);
+      }
+
       setCreatedId(property.id);
       setSuccess(true);
     } catch (err: unknown) {
@@ -108,6 +181,32 @@ export default function NewPropertyPage() {
 
   if (loading) {
     return <div className="flex-1 flex items-center justify-center text-gray-400">Loading...</div>;
+  }
+
+  if (!user) {
+    router.push("/login?redirect=/properties/new");
+    return null;
+  }
+
+  const canList = user.roles?.some((r) => LISTING_ROLES.includes(r));
+  if (!canList) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center max-w-md">
+          <Home className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Add a listing role to continue</h2>
+          <p className="text-gray-500 mb-6 text-sm">
+            Listing a property requires the Landlord, Agent, Developer, or Private Seller role on your account.
+          </p>
+          <Link
+            href={settingsRoleUrl(LISTING_ROLES, "listing a property needs one of these roles")}
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
+          >
+            Add a Role in Settings
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (success && createdId) {
@@ -127,7 +226,7 @@ export default function NewPropertyPage() {
               View Listing
             </Link>
             <button
-              onClick={() => { setSuccess(false); setCreatedId(null); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, photoUrls: [] }); }}
+              onClick={() => { setSuccess(false); setCreatedId(null); setPhotoFiles([]); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, solarInstalled: false, backupPower: false, waterSource: "", furnished: false, internetAvailable: false, securityFeatures: false, parkingAvailable: false, petsAllowed: false, virtualTourUrl: "", photoUrls: [] }); }}
               className="border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold px-6 py-3 rounded-xl transition-colors"
             >
               List Another
@@ -243,10 +342,21 @@ export default function NewPropertyPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Price ({form.listingType === "RENT" ? "/mo" : form.listingType === "SHORT_STAY" ? "/night" : ""}) *
-              </label>
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Price ({form.listingType === "RENT" ? "/mo" : form.listingType === "SHORT_STAY" ? "/night" : ""}) *
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGetPriceSuggestion}
+                  disabled={suggestionLoading || !form.city}
+                  className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-700 disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {suggestionLoading ? "Checking market…" : "Suggest a price"}
+                </button>
+              </div>
               <input
                 type="number"
                 min={0}
@@ -256,6 +366,31 @@ export default function NewPropertyPage() {
                 placeholder="e.g. 550"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
+              {suggestionError && <p className="text-xs text-red-600 mt-1.5">{suggestionError}</p>}
+              {rentSuggestion && (
+                <div className="mt-2 bg-purple-50 border border-purple-100 rounded-xl px-3.5 py-2.5 text-xs text-purple-900">
+                  {rentSuggestion.suggestedPrice != null ? (
+                    <>
+                      <p className="font-semibold">
+                        Suggested: {form.currency} {rentSuggestion.suggestedPrice}
+                        {" "}(range {rentSuggestion.priceRangeLow}–{rentSuggestion.priceRangeHigh})
+                      </p>
+                      <p className="text-purple-700 mt-0.5">
+                        Based on {rentSuggestion.comparableCount} comparable listing{rentSuggestion.comparableCount === 1 ? "" : "s"}: {rentSuggestion.basis}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, price: String(rentSuggestion.suggestedPrice) }))}
+                        className="mt-1.5 text-purple-700 font-semibold underline"
+                      >
+                        Use this price
+                      </button>
+                    </>
+                  ) : (
+                    <p>{rentSuggestion.basis}</p>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Currency</label>
@@ -359,15 +494,56 @@ export default function NewPropertyPage() {
           <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-blue-600" /> Photos
           </h2>
-          <p className="text-xs text-gray-500 mb-3">Paste image URLs (Unsplash, Imgur, etc.). Photos make your listing stand out.</p>
+          <p className="text-xs text-gray-500 mb-3">Upload photos from your device, or paste image URLs. Photos make your listing stand out.</p>
 
+          {/* Upload from device */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl px-4 py-6 text-sm font-semibold text-gray-600 hover:text-blue-700 transition-colors mb-4"
+          >
+            <Upload className="w-5 h-5" />
+            Upload photos
+            <span className="text-xs font-normal text-gray-400">PNG, JPEG or WEBP — click to choose files</span>
+          </button>
+
+          {photoFiles.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+              {photoFiles.map((file, i) => (
+                <div key={i} className="relative group aspect-video bg-gray-100 rounded-xl overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={filePreviews[i]} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="absolute bottom-1 left-1 right-1 text-[10px] text-white bg-black/50 rounded px-1.5 py-0.5 truncate">
+                    {file.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Or paste a URL */}
           <div className="flex gap-2 mb-4">
             <input
               type="url"
               value={photoInput}
               onChange={(e) => setPhotoInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPhoto(); } }}
-              placeholder="https://images.unsplash.com/photo-..."
+              placeholder="Or paste an image URL..."
               className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
             <button
@@ -441,6 +617,96 @@ export default function NewPropertyPage() {
               </div>
               <span className="text-sm font-medium text-gray-700">Diaspora Friendly (remotely manageable)</span>
             </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setForm((f) => ({ ...f, solarInstalled: !f.solarInstalled }))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.solarInstalled ? "bg-green-600" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.solarInstalled ? "translate-x-7" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Solar Installed</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setForm((f) => ({ ...f, backupPower: !f.backupPower }))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.backupPower ? "bg-green-600" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.backupPower ? "translate-x-7" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Backup Power</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setForm((f) => ({ ...f, furnished: !f.furnished }))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.furnished ? "bg-blue-600" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.furnished ? "translate-x-7" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Furnished</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setForm((f) => ({ ...f, internetAvailable: !f.internetAvailable }))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.internetAvailable ? "bg-blue-600" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.internetAvailable ? "translate-x-7" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Internet / Fibre</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setForm((f) => ({ ...f, securityFeatures: !f.securityFeatures }))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.securityFeatures ? "bg-blue-600" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.securityFeatures ? "translate-x-7" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Security (guarded/gated)</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setForm((f) => ({ ...f, parkingAvailable: !f.parkingAvailable }))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.parkingAvailable ? "bg-blue-600" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.parkingAvailable ? "translate-x-7" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Parking</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div
+                onClick={() => setForm((f) => ({ ...f, petsAllowed: !f.petsAllowed }))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.petsAllowed ? "bg-blue-600" : "bg-gray-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.petsAllowed ? "translate-x-7" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Pets Allowed</span>
+            </label>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Water Source</label>
+            <select
+              value={form.waterSource}
+              onChange={(e) => setForm((f) => ({ ...f, waterSource: e.target.value as typeof f.waterSource }))}
+              className="w-full sm:w-64 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 bg-white"
+            >
+              <option value="">Not specified</option>
+              <option value="MUNICIPAL">Municipal</option>
+              <option value="BOREHOLE">Borehole</option>
+              <option value="WELL">Well</option>
+              <option value="TANKER">Tanker delivery</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Virtual Tour URL (optional)</label>
+            <input
+              type="url"
+              value={form.virtualTourUrl}
+              onChange={(e) => setForm((f) => ({ ...f, virtualTourUrl: e.target.value }))}
+              placeholder="YouTube, Vimeo, or Matterport embed link"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+            />
           </div>
         </div>
 

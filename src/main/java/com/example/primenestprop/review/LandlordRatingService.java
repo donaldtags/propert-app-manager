@@ -65,4 +65,16 @@ public class LandlordRatingService {
     public List<LandlordRating> forLandlord(Long landlordId) {
         return ratings.findByLandlordOrderByCreatedAtDesc(users.require(landlordId));
     }
+
+    public SatisfactionSummary satisfactionSummary(Long landlordId) {
+        List<LandlordRating> landlordRatings = forLandlord(landlordId);
+        if (landlordRatings.isEmpty()) {
+            return new SatisfactionSummary(null, 0);
+        }
+        double average = landlordRatings.stream().mapToInt(LandlordRating::getRating).average().orElse(0);
+        return new SatisfactionSummary(average, landlordRatings.size());
+    }
+
+    public record SatisfactionSummary(Double averageRating, long ratingCount) {
+    }
 }

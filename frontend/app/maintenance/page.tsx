@@ -3,15 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { maintenance as maintenanceApi } from "@/lib/api";
-import type { MaintenanceRequest } from "@/lib/types";
-import { Wrench, AlertCircle, CheckCircle, Plus } from "lucide-react";
+import { maintenance as maintenanceApi, properties as propertiesApi, leases as leasesApi, vendors as vendorsApi } from "@/lib/api";
+import type { MaintenanceRequest, Property, Vendor } from "@/lib/types";
+import { Wrench, AlertCircle, CheckCircle, Plus, Camera, Sparkles } from "lucide-react";
+import EntityPicker from "@/components/EntityPicker";
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     OPEN: "bg-red-100 text-red-700",
+    ASSIGNED: "bg-blue-100 text-blue-700",
     IN_PROGRESS: "bg-amber-100 text-amber-700",
     RESOLVED: "bg-green-100 text-green-700",
+    CANCELLED: "bg-gray-100 text-gray-500",
   };
   return (
     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colors[status] ?? "bg-gray-100 text-gray-700"}`}>
@@ -30,34 +33,77 @@ export default function MaintenancePage() {
   const [success, setSuccess] = useState("");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
-    propertyId: "",
+    propertyId: null as number | null,
     category: "Plumbing",
-    priority: "NORMAL",
+    priority: "",
     description: "",
   });
+
+  const [myProperties, setMyProperties] = useState<Property[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(true);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [vendorList, setVendorList] = useState<Vendor[]>([]);
+  const [selectedVendor, setSelectedVendor] = useState<Record<number, number | undefined>>({});
+  const [assigningId, setAssigningId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login?redirect=/maintenance");
   }, [user, loading, router]);
 
+  useEffect(() => {
+    if (!user || !token) return;
+    setPickerLoading(true);
+    propertiesApi.list()
+      .then(async (all) => {
+        if (user.roles?.includes("LANDLORD")) {
+          setMyProperties(all.filter((p) => p.landlordId === user.id));
+        } else {
+          const tenantLeases = await leasesApi.listByTenant(user.id, token).catch(() => []);
+          const propertyIds = new Set(tenantLeases.map((l) => l.propertyId));
+          setMyProperties(all.filter((p) => propertyIds.has(p.id)));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPickerLoading(false));
+    if (user.roles?.includes("LANDLORD")) {
+      vendorsApi.list().then(setVendorList).catch(() => {});
+    }
+  }, [user, token]);
+
+  const loadForProperty = async (propertyId: number) => {
+    if (!token) return;
+    setReqLoading(true);
+    try {
+      const list = await maintenanceApi.list(propertyId, token);
+      setRequests(list);
+    } catch {}
+    setReqLoading(false);
+  };
+
+  useEffect(() => {
+    if (form.propertyId) loadForProperty(form.propertyId);
+  }, [form.propertyId]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !token) return;
+    if (!user || !token || !form.propertyId) return;
     setError(""); setSuccess(""); setCreating(true);
     try {
-      await maintenanceApi.create({
-        propertyId: Number(form.propertyId),
-        requestedById: user.id,
+      const created = await maintenanceApi.create({
+        propertyId: form.propertyId,
         category: form.category,
-        priority: form.priority,
+        priority: form.priority || undefined,
         description: form.description,
       }, token);
-      setSuccess("Maintenance request submitted!");
-      // Reload requests for this property
-      if (form.propertyId) {
-        const list = await maintenanceApi.list(Number(form.propertyId), token);
-        setRequests(list);
+      if (photoFiles.length > 0) {
+        const formData = new FormData();
+        photoFiles.forEach((file) => formData.append("files", file));
+        await maintenanceApi.uploadPhotos(created.id, formData, token);
       }
+      setSuccess(`Maintenance request submitted! AI classified this as ${created.priority} priority.`);
+      setForm((f) => ({ ...f, description: "" }));
+      setPhotoFiles([]);
+      await loadForProperty(form.propertyId);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to submit request.");
     } finally {
@@ -77,14 +123,20 @@ export default function MaintenancePage() {
     }
   };
 
-  const loadForProperty = async () => {
-    if (!form.propertyId || !token) return;
-    setReqLoading(true);
+  const handleAssignVendor = async (id: number) => {
+    const vendorId = selectedVendor[id];
+    if (!token || !vendorId) return;
+    setError(""); setSuccess("");
+    setAssigningId(id);
     try {
-      const list = await maintenanceApi.list(Number(form.propertyId), token);
-      setRequests(list);
-    } catch {}
-    setReqLoading(false);
+      const updated = await maintenanceApi.assignVendor(id, vendorId, token);
+      setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      setSuccess("Vendor assigned!");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to assign vendor.");
+    } finally {
+      setAssigningId(null);
+    }
   };
 
   if (loading) return null;
@@ -115,15 +167,16 @@ export default function MaintenancePage() {
           <Plus className="w-5 h-5 text-amber-600" /> Report an Issue
         </h2>
         <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Property ID</label>
-            <input
-              type="number"
+          <div className="sm:col-span-2">
+            <EntityPicker
+              label="Property"
+              loading={pickerLoading}
+              options={myProperties.map((p) => ({ id: p.id, label: p.title, sublabel: `${p.suburb}, ${p.city}` }))}
               value={form.propertyId}
-              onChange={(e) => setForm((f) => ({ ...f, propertyId: e.target.value }))}
+              onChange={(id) => setForm((f) => ({ ...f, propertyId: id }))}
+              placeholder="Choose a property"
+              emptyMessage="No properties found"
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="e.g. 1"
             />
           </div>
           <div>
@@ -137,6 +190,16 @@ export default function MaintenancePage() {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+            {(form.category === "Plumbing" || form.category === "Electrical") && (
+              <a
+                href={`/services?category=${form.category === "Plumbing" ? "PLUMBING" : "ELECTRICAL"}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-blue-600 hover:underline mt-1.5 inline-block"
+              >
+                Need it fixed sooner? Find local {form.category.toLowerCase()} services →
+              </a>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Priority</label>
@@ -145,10 +208,14 @@ export default function MaintenancePage() {
               onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 bg-white"
             >
+              <option value="">Auto (AI-detected)</option>
               {["LOW", "NORMAL", "HIGH", "URGENT"].map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
+            <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Leave as Auto and our AI will triage urgency for you
+            </p>
           </div>
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
@@ -161,20 +228,28 @@ export default function MaintenancePage() {
               placeholder="Describe the issue..."
             />
           </div>
-          <div className="sm:col-span-2 flex gap-3">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+              <Camera className="w-3.5 h-3.5" /> Photos (optional)
+            </label>
+            <input
+              type="file"
+              multiple
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(e) => setPhotoFiles(Array.from(e.target.files ?? []))}
+              className="text-sm text-gray-600"
+            />
+            {photoFiles.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1.5">{photoFiles.length} photo(s) selected</p>
+            )}
+          </div>
+          <div className="sm:col-span-2">
             <button
               type="submit"
-              disabled={creating}
+              disabled={creating || !form.propertyId}
               className="bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
             >
               {creating ? "Submitting..." : "Submit Request"}
-            </button>
-            <button
-              type="button"
-              onClick={loadForProperty}
-              className="border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium px-6 py-2.5 rounded-xl text-sm transition-colors"
-            >
-              Load Requests
             </button>
           </div>
         </form>
@@ -190,7 +265,9 @@ export default function MaintenancePage() {
       ) : requests.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <Wrench className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No maintenance requests. Enter a property ID and click Load Requests.</p>
+          <p className="text-sm">
+            {form.propertyId ? "No maintenance requests for this property yet." : "Choose a property above to see its maintenance history."}
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -210,10 +287,47 @@ export default function MaintenancePage() {
                 </div>
                 <p className="text-sm text-gray-600">{req.description}</p>
                 <p className="text-xs text-gray-400 mt-1">{new Date(req.createdAt).toLocaleDateString()}</p>
+                {req.assignedVendorName && (
+                  <p className="text-xs text-blue-700 font-medium mt-1">Assigned to {req.assignedVendorName}</p>
+                )}
+                {req.photos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {req.photos.map((photo) => (
+                      <a key={photo.id} href={photo.photoUrl} target="_blank" rel="noreferrer">
+                        <img
+                          src={photo.photoUrl}
+                          alt="Maintenance issue"
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {user?.roles?.includes("LANDLORD") && req.status !== "RESOLVED" && req.status !== "CANCELLED" && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <select
+                      value={selectedVendor[req.id] ?? ""}
+                      onChange={(e) => setSelectedVendor((s) => ({ ...s, [req.id]: e.target.value ? Number(e.target.value) : undefined }))}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-blue-500"
+                    >
+                      <option value="">{req.assignedVendorName ? "Reassign vendor…" : "Assign a vendor…"}</option>
+                      {vendorList.map((v) => (
+                        <option key={v.id} value={v.id}>{v.businessName} ({v.category})</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => handleAssignVendor(req.id)}
+                      disabled={!selectedVendor[req.id] || assigningId === req.id}
+                      className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      {assigningId === req.id ? "Assigning…" : "Assign"}
+                    </button>
+                  </div>
+                )}
               </div>
               {req.status !== "RESOLVED" && user?.roles?.includes("LANDLORD") && (
                 <div className="flex gap-2">
-                  {req.status === "OPEN" && (
+                  {(req.status === "OPEN" || req.status === "ASSIGNED") && (
                     <button
                       onClick={() => handleStatusUpdate(req.id, "IN_PROGRESS")}
                       className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl font-medium transition-colors"

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { Home, Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -22,18 +24,16 @@ export default function Navbar() {
     { href: "/properties?listingType=SALE", label: "Buy" },
     { href: "/properties?listingType=RENT", label: "Rent" },
     { href: "/investments", label: "Invest" },
+    { href: "/services", label: "Services" },
     { href: "/ai", label: "AI Search" },
   ];
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-screen-2xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-            <Home className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-xl font-bold text-blue-600 hidden sm:block">PrimeNest</span>
+        <Link href="/" className="flex items-center shrink-0">
+          <Image src="/homestead_logo.png" alt="Homestead" width={912} height={273} className="h-16 w-auto" preload />
         </Link>
 
         {/* Desktop nav links */}
@@ -61,6 +61,8 @@ export default function Navbar() {
         {loading ? (
             <div className="w-24 h-8 bg-gray-100 rounded animate-pulse" />
           ) : user ? (
+            <>
+            <NotificationBell />
             <div className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
@@ -90,6 +92,9 @@ export default function Navbar() {
                   {user.roles?.includes("INVESTOR") && (
                     <Link href="/investments" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Investments</Link>
                   )}
+                  {user.roles?.includes("ADMIN") && (
+                    <Link href="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50">Admin Portal</Link>
+                  )}
                   <Link href="/messages" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Messages</Link>
                   <Link href="/settings/security" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</Link>
                   <hr className="my-1 border-gray-100" />
@@ -99,6 +104,7 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             <>
               <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors hidden sm:block">

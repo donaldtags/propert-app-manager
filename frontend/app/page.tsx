@@ -185,7 +185,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 text-sm py-8 px-4">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} PrimeNest. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Homestead. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="/properties" className="hover:text-white">Browse</Link>
             <Link href="/investments" className="hover:text-white">Invest</Link>

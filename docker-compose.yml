@@ -4,13 +4,13 @@ services:
     container_name: primenest-mariadb
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: root
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
       MARIADB_ROOT_HOST: "%"
-      MARIADB_DATABASE: primenest_prop
-      MARIADB_USER: primenest
-      MARIADB_PASSWORD: primenest_password
+      MARIADB_DATABASE: ${DB_NAME:-primenest_prop}
+      MARIADB_USER: ${DB_USERNAME:-primenest}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-primenest_password}
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - primenest_mariadb_data:/var/lib/mysql
     healthcheck:
@@ -19,5 +19,55 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: primenest-backend
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mariadb://mariadb:3306/${DB_NAME:-primenest_prop}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8
+      DB_USERNAME: ${DB_USERNAME:-primenest}
+      DB_PASSWORD: ${DB_PASSWORD:-primenest_password}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8081}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@primenest.local}
+    ports:
+      - "8081:8081"
+    volumes:
+      - primenest_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/v1/investments/reits"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8081/api/v1}
+    container_name: primenest-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
 volumes:
   primenest_mariadb_data:
+  primenest_storage:

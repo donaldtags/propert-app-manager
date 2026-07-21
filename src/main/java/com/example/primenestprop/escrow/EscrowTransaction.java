@@ -11,9 +11,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,4 +52,11 @@ public class EscrowTransaction {
     private Instant createdAt = Instant.now();
     private Instant fundedAt;
     private Instant releasedAt;
+
+    @Enumerated(EnumType.STRING)
+    private FundingMethod fundingMethod;
+    private String fundingProvider;
+
+    @OneToMany(mappedBy = "escrow", fetch = FetchType.LAZY)
+    private List<EscrowReleaseApproval> releaseApprovals = new ArrayList<>();
 }

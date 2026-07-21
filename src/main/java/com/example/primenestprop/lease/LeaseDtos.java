@@ -3,6 +3,7 @@ package com.example.primenestprop.lease;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 
 public final class LeaseDtos {
@@ -22,9 +23,6 @@ public final class LeaseDtos {
     ) {
     }
 
-    public record SignLeaseRequest(@NotNull Long userId) {
-    }
-
     public record ReviewDocumentRequest(@NotNull LeaseDocumentStatus status, String reviewNote) {
     }
 
@@ -39,7 +37,10 @@ public final class LeaseDtos {
             BigDecimal monthlyRent,
             BigDecimal depositAmount,
             String currency,
-            String terms
+            String terms,
+            boolean signedByTenant,
+            boolean signedByLandlord,
+            Instant createdAt
     ) {
         public static LeaseResponse from(Lease lease) {
             return new LeaseResponse(
@@ -53,7 +54,10 @@ public final class LeaseDtos {
                     lease.getMonthlyRent(),
                     lease.getDepositAmount(),
                     lease.getCurrency(),
-                    lease.getTerms()
+                    lease.getTerms(),
+                    lease.getTenantSignedAt() != null,
+                    lease.getLandlordSignedAt() != null,
+                    lease.getCreatedAt()
             );
         }
     }

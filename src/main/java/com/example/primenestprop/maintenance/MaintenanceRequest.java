@@ -2,6 +2,7 @@ package com.example.primenestprop.maintenance;
 
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.user.AppUser;
+import com.example.primenestprop.vendor.Vendor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -43,6 +44,9 @@ public class MaintenanceRequest {
 
     @Column(length = 2000)
     private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Vendor assignedVendor;
 
     private Instant createdAt = Instant.now();
     private Instant updatedAt;

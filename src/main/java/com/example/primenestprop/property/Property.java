@@ -70,6 +70,16 @@ public class Property {
     private BigDecimal longitude;
     private boolean diasporaFriendly;
     private boolean escrowRequired = true;
+    private boolean solarInstalled;
+    private boolean backupPower;
+    @Enumerated(EnumType.STRING)
+    private WaterSource waterSource;
+    private boolean furnished;
+    private boolean internetAvailable;
+    private boolean securityFeatures;
+    private boolean parkingAvailable;
+    private boolean petsAllowed;
+    private String virtualTourUrl;
     private Instant createdAt = Instant.now();
     private Instant verifiedAt;
 

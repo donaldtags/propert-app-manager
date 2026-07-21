@@ -13,22 +13,28 @@ public final class AuthDtos {
     }
 
     public record RegisterRequest(
-            @NotBlank String fullName,
-            @Email @NotBlank String email,
-            String phone,
-            @Size(min = 8) String password,
-            String country,
+            @NotBlank @Size(max = 255) String fullName,
+            @Email @NotBlank @Size(max = 255) String email,
+            @Size(max = 32) String phone,
+            @Size(min = 8, max = 72) String password,
+            @Size(max = 100) String country,
             @NotEmpty Set<UserRole> roles
     ) {
     }
 
-    public record LoginRequest(@Email @NotBlank String email, @NotBlank String password) {
+    public record LoginRequest(
+            @NotBlank @Size(max = 255) String identifier,
+            @NotBlank @Size(max = 72) String password
+    ) {
     }
 
-    public record ForgotPasswordRequest(@Email @NotBlank String email) {
+    public record ForgotPasswordRequest(@Email @NotBlank @Size(max = 255) String email) {
     }
 
-    public record ResetPasswordRequest(@NotBlank String token, @NotBlank String password) {
+    public record ResetPasswordRequest(
+            @NotBlank @Size(max = 255) String token,
+            @NotBlank @Size(min = 8, max = 72) String password
+    ) {
     }
 
     public record MessageResponse(String message) {

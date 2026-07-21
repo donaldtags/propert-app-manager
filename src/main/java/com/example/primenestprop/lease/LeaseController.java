@@ -11,6 +11,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,31 +29,54 @@ import org.springframework.web.multipart.MultipartFile;
 public class LeaseController {
     private final LeaseService service;
     private final LeaseDocumentService documentService;
+    private final LeaseExtractionService extractionService;
     private final AuthService authService;
+    private final LeaseActionService actionService;
 
-    public LeaseController(LeaseService service, LeaseDocumentService documentService, AuthService authService) {
+    public LeaseController(
+            LeaseService service,
+            LeaseDocumentService documentService,
+            LeaseExtractionService extractionService,
+            AuthService authService,
+            LeaseActionService actionService
+    ) {
         this.service = service;
         this.documentService = documentService;
+        this.extractionService = extractionService;
         this.authService = authService;
+        this.actionService = actionService;
     }
 
     @PostMapping
-    LeaseResponse create(@Valid @RequestBody LeaseDtos.CreateLeaseRequest request) {
-        return LeaseResponse.from(service.create(request));
+    LeaseResponse create(@Valid @RequestBody LeaseDtos.CreateLeaseRequest request, @AuthenticationPrincipal AppUser currentUser) {
+        return LeaseResponse.from(service.create(request, currentUser));
+    }
+
+    @PostMapping(value = "/extract", consumes = "multipart/form-data")
+    LeaseExtractionResult extract(@RequestPart("file") MultipartFile file) {
+        return extractionService.extract(file);
     }
 
     @PatchMapping("/{id}/sign")
-    LeaseResponse sign(@PathVariable Long id, @Valid @RequestBody LeaseDtos.SignLeaseRequest request) {
-        return LeaseResponse.from(service.sign(id, request.userId()));
+    LeaseResponse sign(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
+        return LeaseResponse.from(service.sign(id, currentUser));
     }
 
     @GetMapping
-    List<LeaseResponse> list(@RequestParam(required = false) Long tenantId, @RequestParam(required = false) Long landlordId) {
+    List<LeaseResponse> list(
+            @RequestParam(required = false) Long tenantId,
+            @RequestParam(required = false) Long landlordId,
+            @RequestParam(required = false) Long agentId,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
         if (tenantId != null) {
-            return service.forTenant(tenantId).stream().map(LeaseResponse::from).toList();
+            return service.forTenant(tenantId, currentUser).stream().map(LeaseResponse::from).toList();
         }
         if (landlordId != null) {
-            return service.forLandlord(landlordId).stream().map(LeaseResponse::from).toList();
+            return service.forLandlord(landlordId, currentUser).stream().map(LeaseResponse::from).toList();
+        }
+        if (agentId != null) {
+            return service.forAgent(agentId, currentUser).stream().map(LeaseResponse::from).toList();
         }
         return List.of();
     }
@@ -107,5 +131,33 @@ public class LeaseController {
     ) {
         AppUser currentUser = authService.currentUser(authorization);
         return LeaseDocumentResponse.from(documentService.review(leaseId, documentId, currentUser, request));
+    }
+
+    @PostMapping("/{leaseId}/actions")
+    LeaseActionDtos.LeaseActionResponse requestAction(
+            @PathVariable Long leaseId,
+            @Valid @RequestBody LeaseActionDtos.CreateLeaseActionRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return LeaseActionDtos.LeaseActionResponse.from(actionService.create(leaseId, currentUser, request));
+    }
+
+    @PatchMapping("/actions/{id}/review")
+    LeaseActionDtos.LeaseActionResponse reviewAction(
+            @PathVariable Long id,
+            @Valid @RequestBody LeaseActionDtos.ReviewLeaseActionRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return LeaseActionDtos.LeaseActionResponse.from(actionService.review(id, currentUser, request));
+    }
+
+    @GetMapping("/actions/mine")
+    List<LeaseActionDtos.LeaseActionResponse> myActions(@AuthenticationPrincipal AppUser currentUser) {
+        return actionService.mine(currentUser).stream().map(LeaseActionDtos.LeaseActionResponse::from).toList();
+    }
+
+    @GetMapping("/actions/received")
+    List<LeaseActionDtos.LeaseActionResponse> receivedActions(@AuthenticationPrincipal AppUser currentUser) {
+        return actionService.received(currentUser).stream().map(LeaseActionDtos.LeaseActionResponse::from).toList();
     }
 }

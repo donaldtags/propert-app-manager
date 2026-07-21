@@ -5,7 +5,6 @@ import com.example.primenestprop.review.RatingDtos.LandlordRatingResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -37,8 +36,4 @@ public class LandlordRatingController {
         return service.forLandlord(landlordId).stream().map(LandlordRatingResponse::from).toList();
     }
 
-    @GetMapping("/landlords/{landlordId}")
-    List<LandlordRatingResponse> forLandlord(@PathVariable Long landlordId) {
-        return service.forLandlord(landlordId).stream().map(LandlordRatingResponse::from).toList();
-    }
 }

@@ -1,6 +1,8 @@
 package com.example.primenestprop.user;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.common.PasswordPolicy;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,7 @@ public class UserService {
     private final RoleLookupRepository roleLookups;
     private final UserRoleAssignmentRepository roleAssignments;
     private final PasswordEncoder passwordEncoder;
+    private final TrustScoreService trustScoreService;
 
     public UserService(
             UserRepository users,
@@ -23,7 +26,8 @@ public class UserService {
             AdminRequestRepository adminRequestRecords,
             RoleLookupRepository roleLookups,
             UserRoleAssignmentRepository roleAssignments,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            TrustScoreService trustScoreService
     ) {
         this.users = users;
         this.adminRequests = adminRequests;
@@ -31,6 +35,7 @@ public class UserService {
         this.roleLookups = roleLookups;
         this.roleAssignments = roleAssignments;
         this.passwordEncoder = passwordEncoder;
+        this.trustScoreService = trustScoreService;
     }
 
     @Transactional
@@ -38,13 +43,20 @@ public class UserService {
         users.findByEmailIgnoreCase(request.email()).ifPresent(existing -> {
             throw new ApiException(HttpStatus.CONFLICT, "A user with this email already exists");
         });
+
+
+        String phone = request.phone() == null || request.phone().isBlank() ? null : request.phone().trim();
+        if (phone != null) {
+            users.findFirstByPhone(phone).ifPresent(existing -> {
+                throw new ApiException(HttpStatus.CONFLICT, "A user with this phone number already exists");
+            });
+        }
+        PasswordPolicy.validate(request.password());
         AppUser user = new AppUser();
         user.setFullName(request.fullName());
         user.setEmail(request.email());
-        user.setPhone(request.phone());
-        user.setPasswordHash(passwordEncoder.encode(request.password() == null || request.password().isBlank()
-                ? "AfricaProp123!"
-                : request.password()));
+        user.setPhone(phone);
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setCountry(request.country() == null || request.country().isBlank() ? "Zimbabwe" : request.country());
         user.getRoles().addAll(request.roles());
         AppUser saved = users.save(user);
@@ -61,12 +73,39 @@ public class UserService {
         return users.findByEmailIgnoreCase(email);
     }
 
+    /**
+     * Resolves a login identifier that may be either an email address or a phone number.
+     */
+    public AppUser requireByIdentifier(String identifier) {
+        return findByIdentifier(identifier)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+    }
+
+    public Optional<AppUser> findByIdentifier(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            return Optional.empty();
+        }
+        String trimmed = identifier.trim();
+        return users.findByEmailIgnoreCase(trimmed).or(() -> users.findFirstByPhone(trimmed));
+    }
+
     public AppUser require(Long id) {
-        return users.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        AppUser user = users.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        trustScoreService.recompute(user);
+        return user;
     }
 
     public List<AppUser> list(UserRole role) {
         return role == null ? users.findAll() : users.findByRolesContaining(role);
+    }
+
+    public List<AppUser> search(UserRole role, String query) {
+        List<AppUser> candidates = list(role);
+        String needle = query == null ? "" : query.trim().toLowerCase();
+        return candidates.stream()
+                .filter(user -> needle.isBlank() || user.getFullName().toLowerCase().contains(needle))
+                .limit(20)
+                .toList();
     }
 
     @Transactional
@@ -124,6 +163,31 @@ public class UserService {
                 });
     }
 
+    @Transactional(readOnly = true)
+    public List<AdminAccessRequest> listAdminRequests(AdminRequestStatus status) {
+        return status == null ? adminRequests.findAll() : adminRequests.findByStatusOrderByRequestedAtDesc(status);
+    }
+
+    @Transactional
+    public AdminAccessRequest decideAdminRequest(Long requestId, boolean approve, AppUser currentAdmin) {
+        AdminAccessRequest request = adminRequests.findById(requestId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Admin request not found"));
+        if (request.getStatus() != AdminRequestStatus.PENDING) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This request has already been reviewed");
+        }
+        request.setStatus(approve ? AdminRequestStatus.APPROVED : AdminRequestStatus.REJECTED);
+        request.setReviewedAt(Instant.now());
+        request.setReviewedBy(currentAdmin.getId());
+        if (approve) {
+            AppUser user = request.getUser();
+            user.getRoles().add(UserRole.ADMIN);
+            syncRoleAssignments(user);
+        }
+        adminRequestRecords.findByUserIdAndStatus(request.getUser().getId(), AdminRequestStatus.PENDING)
+                .ifPresent(record -> record.setStatus(request.getStatus()));
+        return request;
+    }
+
     @Transactional
     public AppUser updatePassword(Long id, String password) {
         AppUser user = require(id);
@@ -136,8 +200,31 @@ public class UserService {
         AppUser user = require(id);
         user.setVerified(true);
         user.setIdentityVerified(true);
-        user.setTrustScore(Math.max(user.getTrustScore(), 80));
+        trustScoreService.recompute(user);
         return user;
+    }
+
+    @Transactional
+    public AppUser applyKycApproval(Long id) {
+        AppUser user = require(id);
+        user.setVerified(true);
+        user.setIdentityVerified(true);
+        user.setFaceVerified(true);
+        trustScoreService.recompute(user);
+        return user;
+    }
+
+    @Transactional
+    public AppUser verifyBusiness(Long id) {
+        AppUser user = require(id);
+        user.setBusinessVerified(true);
+        trustScoreService.recompute(user);
+        return user;
+    }
+
+    @Transactional(readOnly = true)
+    public long countPendingAdminRequests() {
+        return adminRequests.countByStatus(AdminRequestStatus.PENDING);
     }
 
     @Transactional

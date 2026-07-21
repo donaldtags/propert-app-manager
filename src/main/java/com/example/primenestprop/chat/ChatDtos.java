@@ -45,6 +45,28 @@ public final class ChatDtos {
         }
     }
 
+    public record AdminConversationResponse(
+            Long id,
+            List<Long> participantIds,
+            List<String> participantNames,
+            Long propertyId,
+            String subject,
+            String lastMessage,
+            Instant lastMessageAt
+    ) {
+        public static AdminConversationResponse from(Conversation conversation) {
+            return new AdminConversationResponse(
+                    conversation.getId(),
+                    List.of(conversation.getParticipantOne().getId(), conversation.getParticipantTwo().getId()),
+                    List.of(conversation.getParticipantOne().getFullName(), conversation.getParticipantTwo().getFullName()),
+                    conversation.getProperty() == null ? null : conversation.getProperty().getId(),
+                    conversation.getSubject(),
+                    conversation.getLastMessage(),
+                    conversation.getLastMessageAt()
+            );
+        }
+    }
+
     public record MessageResponse(
             Long id,
             Long conversationId,

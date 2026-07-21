@@ -3,6 +3,7 @@ package com.example.primenestprop.chat;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
+import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -83,6 +84,26 @@ public class ChatService {
 
     public long unreadCount(Conversation conversation, AppUser currentUser) {
         return messages.countByConversationAndSenderNotAndReadAtIsNull(conversation, currentUser);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Conversation> allConversationsForAdmin(AppUser currentUser) {
+        requireAdmin(currentUser);
+        return conversations.findAllOrderByLastMessageAtDesc();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessage> adminThread(Long conversationId, AppUser currentUser) {
+        requireAdmin(currentUser);
+        Conversation conversation = conversations.findWithParticipantsById(conversationId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Conversation not found"));
+        return messages.findByConversationOrderByCreatedAtAsc(conversation);
+    }
+
+    private void requireAdmin(AppUser user) {
+        if (!user.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can view all conversations");
+        }
     }
 
     private ChatMessage addMessage(Conversation conversation, AppUser sender, String content, MessageType messageType) {

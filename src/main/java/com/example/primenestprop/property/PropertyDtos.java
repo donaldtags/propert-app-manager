@@ -28,11 +28,20 @@ public final class PropertyDtos {
             BigDecimal longitude,
             boolean diasporaFriendly,
             boolean escrowRequired,
+            boolean solarInstalled,
+            boolean backupPower,
+            WaterSource waterSource,
+            boolean furnished,
+            boolean internetAvailable,
+            boolean securityFeatures,
+            boolean parkingAvailable,
+            boolean petsAllowed,
             @NotNull Long landlordId,
             Long agentId,
             List<String> photoUrls,
             List<String> imageUrls,
-            List<String> photos
+            List<String> photos,
+            String virtualTourUrl
     ) {
     }
 
@@ -45,6 +54,30 @@ public final class PropertyDtos {
             String phone,
             @NotBlank String message
     ) {
+    }
+
+    public record InquiryResponse(
+            Long id,
+            Long propertyId,
+            String propertyTitle,
+            String name,
+            String email,
+            String phone,
+            String message,
+            Instant createdAt
+    ) {
+        public static InquiryResponse from(PropertyInquiry inquiry) {
+            return new InquiryResponse(
+                    inquiry.getId(),
+                    inquiry.getProperty().getId(),
+                    inquiry.getProperty().getTitle(),
+                    inquiry.getName(),
+                    inquiry.getEmail(),
+                    inquiry.getPhone(),
+                    inquiry.getMessage(),
+                    inquiry.getCreatedAt()
+            );
+        }
     }
 
     public record PropertyResponse(
@@ -66,11 +99,24 @@ public final class PropertyDtos {
             BigDecimal longitude,
             boolean diasporaFriendly,
             boolean escrowRequired,
+            boolean solarInstalled,
+            boolean backupPower,
+            WaterSource waterSource,
+            boolean furnished,
+            boolean internetAvailable,
+            boolean securityFeatures,
+            boolean parkingAvailable,
+            boolean petsAllowed,
+            String virtualTourUrl,
             Long landlordId,
             Long agentId,
             String landlordName,
+            String landlordCompanyName,
+            Integer landlordTrustScore,
             String agentName,
             String agentPhone,
+            String agentCompanyName,
+            Integer agentTrustScore,
             Instant createdAt,
             Instant verifiedAt,
             List<String> photoUrls,
@@ -83,8 +129,12 @@ public final class PropertyDtos {
                     .filter(url -> url != null && !url.isBlank())
                     .toList();
             String landlordName = property.getLandlord() != null ? property.getLandlord().getFullName() : null;
+            String landlordCompanyName = property.getLandlord() != null ? property.getLandlord().getCompanyName() : null;
+            Integer landlordTrustScore = property.getLandlord() != null ? property.getLandlord().getTrustScore() : null;
             String agentName = property.getAgent() != null ? property.getAgent().getFullName() : null;
             String agentPhone = property.getAgent() != null ? property.getAgent().getPhone() : null;
+            String agentCompanyName = property.getAgent() != null ? property.getAgent().getCompanyName() : null;
+            Integer agentTrustScore = property.getAgent() != null ? property.getAgent().getTrustScore() : null;
             return new PropertyResponse(
                     property.getId(),
                     property.getTitle(),
@@ -104,11 +154,24 @@ public final class PropertyDtos {
                     property.getLongitude(),
                     property.isDiasporaFriendly(),
                     property.isEscrowRequired(),
+                    property.isSolarInstalled(),
+                    property.isBackupPower(),
+                    property.getWaterSource(),
+                    property.isFurnished(),
+                    property.isInternetAvailable(),
+                    property.isSecurityFeatures(),
+                    property.isParkingAvailable(),
+                    property.isPetsAllowed(),
+                    property.getVirtualTourUrl(),
                     property.getLandlord().getId(),
                     property.getAgent() == null ? null : property.getAgent().getId(),
                     landlordName,
+                    landlordCompanyName,
+                    landlordTrustScore,
                     agentName,
                     agentPhone,
+                    agentCompanyName,
+                    agentTrustScore,
                     property.getCreatedAt(),
                     property.getVerifiedAt(),
                     urls,

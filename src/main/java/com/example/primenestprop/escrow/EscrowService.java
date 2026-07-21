@@ -7,6 +7,7 @@ import com.example.primenestprop.lease.LeaseStatus;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
+import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -16,22 +17,31 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EscrowService {
+    private static final int REQUIRED_RELEASE_APPROVALS = 2;
+
     private final EscrowRepository escrows;
     private final PropertyService properties;
     private final LeaseService leases;
     private final UserService users;
+    private final EscrowReleaseApprovalRepository releaseApprovals;
 
-    public EscrowService(EscrowRepository escrows, PropertyService properties, LeaseService leases, UserService users) {
+    public EscrowService(
+            EscrowRepository escrows,
+            PropertyService properties,
+            LeaseService leases,
+            UserService users,
+            EscrowReleaseApprovalRepository releaseApprovals
+    ) {
         this.escrows = escrows;
         this.properties = properties;
         this.leases = leases;
         this.users = users;
+        this.releaseApprovals = releaseApprovals;
     }
 
     @Transactional
-    public EscrowTransaction create(EscrowDtos.CreateEscrowRequest request) {
+    public EscrowTransaction create(EscrowDtos.CreateEscrowRequest request, AppUser payer) {
         Property property = properties.require(request.propertyId());
-        AppUser payer = users.require(request.payerId());
         EscrowTransaction escrow = new EscrowTransaction();
         escrow.setProperty(property);
         escrow.setPayer(payer);
@@ -46,31 +56,59 @@ public class EscrowService {
         return escrows.save(escrow);
     }
 
+    @Transactional(readOnly = true)
     public EscrowTransaction require(Long id) {
-        return escrows.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Escrow transaction not found"));
+        return escrows.findWithDetailsById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Escrow transaction not found"));
     }
 
-    public List<EscrowTransaction> forUser(Long userId) {
+    @Transactional(readOnly = true)
+    public List<EscrowTransaction> forUser(Long userId, AppUser currentUser) {
+        if (!userId.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own escrow transactions");
+        }
         AppUser user = users.require(userId);
-        List<EscrowTransaction> payer = escrows.findByPayer(user);
-        List<EscrowTransaction> beneficiary = escrows.findByBeneficiary(user);
-        payer.addAll(beneficiary);
-        return payer;
+        List<EscrowTransaction> result = new java.util.ArrayList<>(escrows.findByPayer(user));
+        result.addAll(escrows.findByBeneficiary(user));
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EscrowTransaction> allForAdmin(AppUser currentUser) {
+        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can view all escrow transactions");
+        }
+        return escrows.findAllForAdmin();
     }
 
     @Transactional
-    public EscrowTransaction fund(Long id) {
+    public EscrowTransaction fund(Long id, EscrowDtos.FundEscrowRequest request, AppUser currentUser) {
         EscrowTransaction escrow = require(id);
+        requirePartyOrAdmin(escrow, currentUser, escrow.getPayer());
         if (escrow.getStatus() != EscrowStatus.CREATED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only created escrow transactions can be funded");
         }
+        if (request.method() == FundingMethod.BANK_TRANSFER && (request.provider() == null || request.provider().isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Select a bank to continue");
+        }
         escrow.setStatus(EscrowStatus.FUNDED);
         escrow.setFundedAt(Instant.now());
+        escrow.setFundingMethod(request.method());
+        escrow.setFundingProvider(request.provider() == null || request.provider().isBlank()
+                ? request.method().displayName()
+                : request.provider());
         return escrow;
     }
 
+    /**
+     * Maker-checker control: releasing funds requires {@value #REQUIRED_RELEASE_APPROVALS} distinct
+     * admins to approve. The escrow stays FUNDED (with a growing approval count) until enough
+     * distinct admins have signed off, at which point it flips to RELEASED.
+     */
     @Transactional
-    public EscrowTransaction release(Long id) {
+    public EscrowTransaction release(Long id, AppUser currentUser) {
+        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can approve escrow release");
+        }
         EscrowTransaction escrow = require(id);
         if (escrow.getStatus() != EscrowStatus.FUNDED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only funded escrow transactions can be released");
@@ -79,18 +117,81 @@ public class EscrowService {
                 && escrow.getLease().getStatus() != LeaseStatus.ACTIVE) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Escrow can only be released after the lease is signed");
         }
+        if (releaseApprovals.existsByEscrowAndApprover(escrow, currentUser)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "You have already approved release of this escrow");
+        }
+        releaseApprovals.save(new EscrowReleaseApproval(escrow, currentUser));
+        long approvals = releaseApprovals.countByEscrow(escrow);
+        if (approvals < REQUIRED_RELEASE_APPROVALS) {
+            return escrow;
+        }
         escrow.setStatus(EscrowStatus.RELEASED);
         escrow.setReleasedAt(Instant.now());
         return escrow;
     }
 
+    @Transactional(readOnly = true)
+    public int releaseApprovalCount(EscrowTransaction escrow) {
+        return (int) releaseApprovals.countByEscrow(escrow);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasApprovedRelease(EscrowTransaction escrow, AppUser user) {
+        return releaseApprovals.existsByEscrowAndApprover(escrow, user);
+    }
+
     @Transactional
-    public EscrowTransaction dispute(Long id) {
+    public EscrowTransaction dispute(Long id, AppUser currentUser) {
         EscrowTransaction escrow = require(id);
+        requirePartyOrAdmin(escrow, currentUser, escrow.getPayer(), escrow.getBeneficiary());
         if (escrow.getStatus() != EscrowStatus.FUNDED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only funded escrow transactions can be disputed");
         }
         escrow.setStatus(EscrowStatus.DISPUTED);
         return escrow;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasDisputedEscrow(AppUser user) {
+        return escrows.existsByPayerAndStatus(user, EscrowStatus.DISPUTED)
+                || escrows.existsByBeneficiaryAndStatus(user, EscrowStatus.DISPUTED);
+    }
+
+    @Transactional(readOnly = true)
+    public EscrowBalanceSummary balanceSummary(String currency) {
+        java.math.BigDecimal totalBalance = escrows.sumAmountByStatusAndCurrency(EscrowStatus.FUNDED, currency);
+        long activeCount = escrows.countByStatus(EscrowStatus.FUNDED);
+        long disputedCount = escrows.countByStatus(EscrowStatus.DISPUTED);
+        return new EscrowBalanceSummary(totalBalance, activeCount, disputedCount);
+    }
+
+    public record EscrowBalanceSummary(java.math.BigDecimal totalBalance, long activeCount, long disputedCount) {
+    }
+
+    @Transactional(readOnly = true)
+    public List<EscrowTransaction> recentlyReleased() {
+        return escrows.findTop10ByStatusOrderByReleasedAtDesc(EscrowStatus.RELEASED);
+    }
+
+    @Transactional(readOnly = true)
+    public LandlordEscrowSummary landlordBalanceSummary(AppUser landlord, String currency) {
+        java.math.BigDecimal balance = escrows.sumAmountByBeneficiaryAndStatusAndCurrency(landlord, EscrowStatus.FUNDED, currency);
+        long activeCount = escrows.countByBeneficiaryAndStatus(landlord, EscrowStatus.FUNDED);
+        return new LandlordEscrowSummary(balance, activeCount, currency);
+    }
+
+    public record LandlordEscrowSummary(java.math.BigDecimal balance, long activeCount, String currency) {
+    }
+
+    private void requirePartyOrAdmin(EscrowTransaction escrow, AppUser currentUser, AppUser... allowedParties) {
+        if (currentUser.getRoles().contains(UserRole.ADMIN)) {
+            return;
+        }
+        for (AppUser party : allowedParties) {
+            if (party != null && party.getId().equals(currentUser.getId())) {
+                return;
+            }
+        }
+        throw new ApiException(HttpStatus.FORBIDDEN, "You are not a party to this escrow transaction");
     }
 }

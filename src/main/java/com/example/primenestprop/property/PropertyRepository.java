@@ -25,8 +25,22 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             where (:listingType is null or p.listingType = :listingType)
               and (:city is null or lower(p.city) = lower(:city))
               and (:suburb is null or lower(p.suburb) like lower(concat('%', :suburb, '%')))
+              and (:minPrice is null or p.price >= :minPrice)
               and (:maxPrice is null or p.price <= :maxPrice)
               and (:bedrooms is null or p.bedrooms >= :bedrooms)
+              and (:bathrooms is null or p.bathrooms >= :bathrooms)
+              and (:diasporaFriendly is null or p.diasporaFriendly = :diasporaFriendly)
+              and (:solarInstalled is null or p.solarInstalled = :solarInstalled)
+              and (:backupPower is null or p.backupPower = :backupPower)
+              and (:waterSource is null or p.waterSource = :waterSource)
+              and (:furnished is null or p.furnished = :furnished)
+              and (:internetAvailable is null or p.internetAvailable = :internetAvailable)
+              and (:securityFeatures is null or p.securityFeatures = :securityFeatures)
+              and (:parkingAvailable is null or p.parkingAvailable = :parkingAvailable)
+              and (:petsAllowed is null or p.petsAllowed = :petsAllowed)
+              and (:verifiedOnly is null or :verifiedOnly = false
+                   or p.verificationStatus = com.example.primenestprop.property.VerificationStatus.VERIFIED)
+              and (:escrowAvailable is null or p.escrowRequired = :escrowAvailable)
               and p.status = com.example.primenestprop.property.PropertyStatus.AVAILABLE
             order by case when p.verificationStatus = com.example.primenestprop.property.VerificationStatus.VERIFIED then 0 else 1 end,
                      p.createdAt desc
@@ -35,7 +49,24 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             @Param("listingType") ListingType listingType,
             @Param("city") String city,
             @Param("suburb") String suburb,
+            @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
-            @Param("bedrooms") Integer bedrooms
+            @Param("bedrooms") Integer bedrooms,
+            @Param("bathrooms") Integer bathrooms,
+            @Param("diasporaFriendly") Boolean diasporaFriendly,
+            @Param("solarInstalled") Boolean solarInstalled,
+            @Param("backupPower") Boolean backupPower,
+            @Param("waterSource") WaterSource waterSource,
+            @Param("furnished") Boolean furnished,
+            @Param("internetAvailable") Boolean internetAvailable,
+            @Param("securityFeatures") Boolean securityFeatures,
+            @Param("parkingAvailable") Boolean parkingAvailable,
+            @Param("petsAllowed") Boolean petsAllowed,
+            @Param("verifiedOnly") Boolean verifiedOnly,
+            @Param("escrowAvailable") Boolean escrowAvailable
     );
+
+    long countByStatus(PropertyStatus status);
+
+    List<Property> findTop10ByOrderByCreatedAtDesc();
 }

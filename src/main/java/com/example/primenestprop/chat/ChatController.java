@@ -1,6 +1,7 @@
 package com.example.primenestprop.chat;
 
 import com.example.primenestprop.auth.AuthService;
+import com.example.primenestprop.chat.ChatDtos.AdminConversationResponse;
 import com.example.primenestprop.chat.ChatDtos.ConversationResponse;
 import com.example.primenestprop.chat.ChatDtos.MessageResponse;
 import com.example.primenestprop.user.AppUser;
@@ -65,6 +66,23 @@ public class ChatController {
     ) {
         service.markRead(conversationId, authService.currentUser(authorization));
         return Map.of("read", true);
+    }
+
+    @GetMapping("/admin/conversations")
+    List<AdminConversationResponse> adminConversations(
+            @RequestHeader(name = "Authorization", required = false) String authorization
+    ) {
+        AppUser currentUser = authService.currentUser(authorization);
+        return service.allConversationsForAdmin(currentUser).stream().map(AdminConversationResponse::from).toList();
+    }
+
+    @GetMapping("/admin/conversations/{conversationId}")
+    List<MessageResponse> adminThread(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable Long conversationId
+    ) {
+        AppUser currentUser = authService.currentUser(authorization);
+        return service.adminThread(conversationId, currentUser).stream().map(MessageResponse::from).toList();
     }
 
     @PostMapping

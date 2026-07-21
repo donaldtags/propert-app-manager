@@ -11,15 +11,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.primenestprop.user.UserDtos;
+import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.UserService;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.mock.web.MockMultipartFile;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -30,44 +34,62 @@ class ApiIntegrationTests {
     @Autowired
     private MockMvc mvc;
 
-    private int sequence;
+    @Autowired
+    private UserService userService;
+
+    private static final java.util.concurrent.atomic.AtomicInteger sequence = new java.util.concurrent.atomic.AtomicInteger();
+
+    private record Registered(long id, String token) {
+    }
 
     @Test
     void apiCreatedDataSupportsFrontendCoreLists() throws Exception {
-        long landlordId = registerUser("Landlord User", "LANDLORD");
-        long tenantId = registerUser("Tenant User", "TENANT");
-        long agentId = registerUser("Agent User", "AGENT");
-        long investorId = registerUser("Investor User", "INVESTOR");
+        Registered admin = bootstrapAdmin();
+        Registered landlord = registerUser("Landlord User", "LANDLORD");
+        Registered tenant = registerUser("Tenant User", "TENANT");
+        Registered agent = registerUser("Agent User", "AGENT");
+        Registered investor = registerUser("Investor User", "INVESTOR");
 
-        mvc.perform(patch("/api/v1/users/{id}/verify", landlordId))
+        mvc.perform(patch("/api/v1/users/{id}/verify", landlord.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verified").value(true));
-        mvc.perform(patch("/api/v1/users/{id}/verify", agentId))
+        mvc.perform(patch("/api/v1/users/{id}/verify", agent.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verified").value(true));
 
-        long propertyId = createProperty(landlordId, agentId, "Borrowdale API Apartment");
+        long propertyId = createProperty(landlord.id(), agent.id(), "Borrowdale API Apartment", landlord.token());
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "verifierId": %s,
                                   "note": "Verified after API creation"
                                 }
-                                """.formatted(agentId)))
+                                """.formatted(agent.id())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"));
 
-        long leaseId = createLease(propertyId, tenantId);
-        long escrowId = createEscrow(propertyId, leaseId, tenantId);
-        mvc.perform(patch("/api/v1/escrows/{id}/fund", escrowId))
+        long leaseId = createLease(propertyId, tenant.id(), landlord.token());
+        long escrowId = createEscrow(propertyId, leaseId, tenant.token());
+        mvc.perform(patch("/api/v1/escrows/{id}/fund", escrowId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "method": "ECOCASH"
+                                }
+                                """))
                 .andExpect(status().isOk());
-        long reitId = createReit();
-        createInvestment(investorId, reitId);
-        createPayment(tenantId, landlordId, propertyId, leaseId);
-        createMaintenance(propertyId, tenantId);
+        long reitId = createReit(admin.token());
+        createInvestment(reitId, investor.token());
+        createPayment(landlord.id(), propertyId, leaseId, tenant.token());
+        createMaintenance(propertyId, tenant.token());
 
-        mvc.perform(get("/api/v1/users"))
+        mvc.perform(get("/api/v1/users")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(4))));
         mvc.perform(get("/api/v1/properties")
@@ -77,40 +99,47 @@ class ApiIntegrationTests {
                         .param("bedrooms", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
-        mvc.perform(get("/api/v1/leases").param("tenantId", String.valueOf(tenantId)))
+        mvc.perform(get("/api/v1/leases").param("tenantId", String.valueOf(tenant.id()))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
-        mvc.perform(get("/api/v1/escrows").param("userId", String.valueOf(tenantId)))
+        mvc.perform(get("/api/v1/escrows").param("userId", String.valueOf(tenant.id()))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
-        mvc.perform(get("/api/v1/payments").param("userId", String.valueOf(tenantId)))
+        mvc.perform(get("/api/v1/payments").param("userId", String.valueOf(tenant.id()))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
-        mvc.perform(get("/api/v1/maintenance").param("propertyId", String.valueOf(propertyId)))
+        mvc.perform(get("/api/v1/maintenance").param("propertyId", String.valueOf(propertyId))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
         mvc.perform(get("/api/v1/investments/reits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
-        mvc.perform(get("/api/v1/investments").param("investorId", String.valueOf(investorId)))
+        mvc.perform(get("/api/v1/investments").param("investorId", String.valueOf(investor.id()))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + investor.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
-        mvc.perform(get("/api/v1/dashboards/landlords/{landlordId}", landlordId))
+        mvc.perform(get("/api/v1/dashboards/landlords/{landlordId}", landlord.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlord.token()))
                 .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/dashboards/tenants/{tenantId}", tenantId))
+        mvc.perform(get("/api/v1/dashboards/tenants/{tenantId}", tenant.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token()))
                 .andExpect(status().isOk());
     }
 
     @Test
     void authAndProfileEndpointsWorkForApiCreatedUsers() throws Exception {
         String email = uniqueEmail("tenant");
-        long tenantId = registerUser("Tenant Auth", email, "TENANT");
+        long tenantId = registerUser("Tenant Auth", email, "TENANT").id();
 
         String loginResponse = mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "email": "%s",
+                                  "identifier": "%s",
                                   "password": "%s"
                                 }
                                 """.formatted(email, PASSWORD)))
@@ -129,6 +158,7 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.email").value(email));
 
         mvc.perform(patch("/api/v1/users/{id}/profile", tenantId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -147,51 +177,57 @@ class ApiIntegrationTests {
 
     @Test
     void writeEndpointsSupportFrontendMutationsWithApiCreatedData() throws Exception {
+        Registered admin = bootstrapAdmin();
         String landlordEmail = uniqueEmail("mutation-landlord");
         String tenantEmail = uniqueEmail("mutation-tenant");
-        long landlordId = registerUser("Mutation Landlord", landlordEmail, "LANDLORD");
-        long tenantId = registerUser("Mutation Tenant", tenantEmail, "TENANT");
-        long agentId = registerUser("Mutation Agent", "AGENT");
-        long propertyId = createProperty(landlordId, agentId, "Mount Pleasant API Studio");
+        Registered landlord = registerUser("Mutation Landlord", landlordEmail, "LANDLORD");
+        Registered tenant = registerUser("Mutation Tenant", tenantEmail, "TENANT");
+        Registered agent = registerUser("Mutation Agent", "AGENT");
+        long propertyId = createProperty(landlord.id(), agent.id(), "Mount Pleasant API Studio", landlord.token());
 
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "verifierId": %s,
                                   "note": "Verified in integration test"
                                 }
-                                """.formatted(agentId)))
+                                """.formatted(agent.id())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"));
 
-        long leaseId = createLease(propertyId, tenantId);
+        long leaseId = createLease(propertyId, tenant.id(), landlord.token());
         mvc.perform(patch("/api/v1/leases/{id}/sign", leaseId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token()))
+                .andExpect(status().isOk());
+
+        long escrowId = createEscrow(propertyId, leaseId, tenant.token());
+        mvc.perform(patch("/api/v1/escrows/{id}/fund", escrowId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "userId": %s
+                                  "method": "ECOCASH"
                                 }
-                                """.formatted(tenantId)))
-                .andExpect(status().isOk());
-
-        long escrowId = createEscrow(propertyId, leaseId, tenantId);
-        mvc.perform(patch("/api/v1/escrows/{id}/fund", escrowId))
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FUNDED"));
 
-        long paymentId = createPayment(tenantId, landlordId, propertyId, leaseId);
-        mvc.perform(patch("/api/v1/payments/{id}/success", paymentId))
+        long paymentId = createPayment(landlord.id(), propertyId, leaseId, tenant.token());
+        mvc.perform(patch("/api/v1/payments/{id}/success", paymentId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlord.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESSFUL"));
 
-        long maintenanceId = createMaintenance(propertyId, tenantId);
+        long maintenanceId = createMaintenance(propertyId, tenant.token());
         mvc.perform(patch("/api/v1/maintenance/{id}/status", maintenanceId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlord.token())
                         .param("status", "RESOLVED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("RESOLVED"));
 
-        String tenantToken = loginToken(tenantEmail);
+        String tenantToken = tenant.token();
         MockMultipartFile payslip = new MockMultipartFile(
                 "files",
                 "payslip.pdf",
@@ -220,7 +256,7 @@ class ApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/pdf"));
 
-        String landlordToken = loginToken(landlordEmail);
+        String landlordToken = landlord.token();
         mvc.perform(patch("/api/v1/leases/{leaseId}/documents/{documentId}/review", leaseId, documentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlordToken)
@@ -234,7 +270,7 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.status").value("APPROVED"))
                 .andExpect(jsonPath("$.reviewNote").value("Verified"));
 
-        mvc.perform(post("/api/v1/users/{id}/roles", tenantId)
+        mvc.perform(post("/api/v1/users/{id}/roles", tenant.id())
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenantToken)
                         .content("""
@@ -246,10 +282,10 @@ class ApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.roles").isArray());
 
-        mvc.perform(post("/api/v1/users/{id}/admin-request", tenantId)
+        mvc.perform(post("/api/v1/users/{id}/admin-request", tenant.id())
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenantToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value((int) tenantId))
+                .andExpect(jsonPath("$.userId").value((int) tenant.id()))
                 .andExpect(jsonPath("$.status").value("PENDING"));
 
         mvc.perform(post("/api/v1/ratings")
@@ -264,12 +300,12 @@ class ApiIntegrationTests {
                                   "rating": 5,
                                   "comment": "Responsive landlord"
                                 }
-                                """.formatted(landlordId, tenantId, propertyId, leaseId)))
+                                """.formatted(landlord.id(), tenant.id(), propertyId, leaseId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rating").value(5))
                 .andExpect(jsonPath("$.comment").value("Responsive landlord"));
 
-        mvc.perform(get("/api/v1/ratings").param("landlordId", String.valueOf(landlordId)))
+        mvc.perform(get("/api/v1/ratings").param("landlordId", String.valueOf(landlord.id())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
 
@@ -284,7 +320,7 @@ class ApiIntegrationTests {
                                   "messageType": "REFERENCE_REQUEST",
                                   "propertyId": %s
                                 }
-                                """.formatted(landlordId, propertyId)))
+                                """.formatted(landlord.id(), propertyId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subject").value("Reference request"))
                 .andReturn()
@@ -293,7 +329,7 @@ class ApiIntegrationTests {
         long conversationId = extractLong(conversationResponse, "id");
 
         mvc.perform(get("/api/v1/messages/conversations")
-                        .param("userId", String.valueOf(tenantId))
+                        .param("userId", String.valueOf(tenant.id()))
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenantToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
@@ -330,11 +366,24 @@ class ApiIntegrationTests {
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://127.0.0.1:3001"));
     }
 
-    private long registerUser(String fullName, String role) throws Exception {
+    private Registered bootstrapAdmin() throws Exception {
+        String email = uniqueEmail("admin");
+        userService.create(new UserDtos.CreateUserRequest(
+                "Platform Admin",
+                email,
+                "+26377" + String.format("%06d", sequence.incrementAndGet()),
+                PASSWORD,
+                "Zimbabwe",
+                Set.of(UserRole.ADMIN)
+        ));
+        return new Registered(0L, loginToken(email));
+    }
+
+    private Registered registerUser(String fullName, String role) throws Exception {
         return registerUser(fullName, uniqueEmail(role.toLowerCase()), role);
     }
 
-    private long registerUser(String fullName, String email, String role) throws Exception {
+    private Registered registerUser(String fullName, String email, String role) throws Exception {
         String response = mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -346,17 +395,18 @@ class ApiIntegrationTests {
                                   "country": "Zimbabwe",
                                   "roles": ["%s"]
                                 }
-                                """.formatted(fullName, email, ++sequence, PASSWORD, role)))
+                                """.formatted(fullName, email, sequence.incrementAndGet(), PASSWORD, role)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.id").isNumber())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        return extractLong(response, "id");
+        return new Registered(extractLong(response, "id"), extractString(response, "token"));
     }
 
-    private long createProperty(long landlordId, long agentId, String title) throws Exception {
+    private long createProperty(long landlordId, long agentId, String title, String landlordToken) throws Exception {
         String response = mvc.perform(post("/api/v1/properties")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlordToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -386,8 +436,9 @@ class ApiIntegrationTests {
         return extractLong(response, "id");
     }
 
-    private long createLease(long propertyId, long tenantId) throws Exception {
+    private long createLease(long propertyId, long tenantId, String landlordToken) throws Exception {
         String response = mvc.perform(post("/api/v1/leases")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlordToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -409,19 +460,19 @@ class ApiIntegrationTests {
         return extractLong(response, "id");
     }
 
-    private long createEscrow(long propertyId, long leaseId, long payerId) throws Exception {
+    private long createEscrow(long propertyId, long leaseId, String payerToken) throws Exception {
         String response = mvc.perform(post("/api/v1/escrows")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + payerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "propertyId": %s,
                                   "leaseId": %s,
-                                  "payerId": %s,
                                   "amount": 550,
                                   "currency": "USD",
                                   "purpose": "Deposit"
                                 }
-                                """.formatted(propertyId, leaseId, payerId)))
+                                """.formatted(propertyId, leaseId)))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -429,12 +480,12 @@ class ApiIntegrationTests {
         return extractLong(response, "id");
     }
 
-    private long createPayment(long payerId, long payeeId, long propertyId, long leaseId) throws Exception {
+    private long createPayment(long payeeId, long propertyId, long leaseId, String payerToken) throws Exception {
         String response = mvc.perform(post("/api/v1/payments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + payerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "payerId": %s,
                                   "payeeId": %s,
                                   "propertyId": %s,
                                   "leaseId": %s,
@@ -443,7 +494,7 @@ class ApiIntegrationTests {
                                   "provider": "manual",
                                   "purpose": "Rent payment"
                                 }
-                                """.formatted(payerId, payeeId, propertyId, leaseId)))
+                                """.formatted(payeeId, propertyId, leaseId)))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -451,18 +502,18 @@ class ApiIntegrationTests {
         return extractLong(response, "id");
     }
 
-    private long createMaintenance(long propertyId, long requesterId) throws Exception {
+    private long createMaintenance(long propertyId, String requesterToken) throws Exception {
         String response = mvc.perform(post("/api/v1/maintenance")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requesterToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "propertyId": %s,
-                                  "requesterId": %s,
                                   "category": "Electrical",
                                   "priority": "HIGH",
                                   "description": "Socket needs inspection"
                                 }
-                                """.formatted(propertyId, requesterId)))
+                                """.formatted(propertyId)))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -470,18 +521,20 @@ class ApiIntegrationTests {
         return extractLong(response, "id");
     }
 
-    private long createReit() throws Exception {
+    private long createReit(String adminToken) throws Exception {
         String response = mvc.perform(post("/api/v1/investments/reits")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "name": "API Residential REIT",
                                   "description": "API-created investment product.",
-                                  "country": "Zimbabwe",
+                                  "market": "Zimbabwe",
                                   "unitPrice": 10,
-                                  "projectedYield": 8.5,
+                                  "projectedAnnualYield": 8.5,
                                   "riskLevel": "MEDIUM",
-                                  "vexEligible": true
+                                  "vexEligible": true,
+                                  "totalUnits": 50000
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -491,17 +544,17 @@ class ApiIntegrationTests {
         return extractLong(response, "id");
     }
 
-    private long createInvestment(long investorId, long reitId) throws Exception {
+    private long createInvestment(long reitId, String investorToken) throws Exception {
         String response = mvc.perform(post("/api/v1/investments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + investorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "investorId": %s,
                                   "reitId": %s,
                                   "units": 25,
                                   "currency": "USD"
                                 }
-                                """.formatted(investorId, reitId)))
+                                """.formatted(reitId)))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -514,7 +567,7 @@ class ApiIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "email": "%s",
+                                  "identifier": "%s",
                                   "password": "%s"
                                 }
                                 """.formatted(email, PASSWORD)))
@@ -527,7 +580,7 @@ class ApiIntegrationTests {
     }
 
     private String uniqueEmail(String prefix) {
-        return prefix + "-" + System.nanoTime() + "-" + (++sequence) + "@example.com";
+        return prefix + "-" + System.nanoTime() + "-" + sequence.incrementAndGet() + "@example.com";
     }
 
     private long extractLong(String json, String field) {

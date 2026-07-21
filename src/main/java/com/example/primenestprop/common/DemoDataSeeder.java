@@ -2,6 +2,7 @@ package com.example.primenestprop.common;
 
 import com.example.primenestprop.escrow.EscrowDtos;
 import com.example.primenestprop.escrow.EscrowService;
+import com.example.primenestprop.escrow.FundingMethod;
 import com.example.primenestprop.investment.InvestmentDtos;
 import com.example.primenestprop.investment.InvestmentService;
 import com.example.primenestprop.lease.Lease;
@@ -15,6 +16,8 @@ import com.example.primenestprop.property.ListingType;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyDtos;
 import com.example.primenestprop.property.PropertyService;
+import com.example.primenestprop.property.WaterSource;
+import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserDtos;
 import com.example.primenestprop.user.UserRepository;
 import com.example.primenestprop.user.UserRole;
@@ -66,7 +69,7 @@ class DemoDataSeeder implements CommandLineRunner {
             return;
         }
 
-        userService.create(new UserDtos.CreateUserRequest(
+        AppUser landlord = userService.create(new UserDtos.CreateUserRequest(
                 "Tariro Moyo",
                 "landlord@primenest.africa",
                 "+263771000001",
@@ -74,7 +77,7 @@ class DemoDataSeeder implements CommandLineRunner {
                 "Zimbabwe",
                 Set.of(UserRole.LANDLORD)
         ));
-        userService.create(new UserDtos.CreateUserRequest(
+        AppUser tenant = userService.create(new UserDtos.CreateUserRequest(
                 "Nadia Ncube",
                 "tenant@primenest.africa",
                 "+263771000002",
@@ -82,7 +85,7 @@ class DemoDataSeeder implements CommandLineRunner {
                 "Zimbabwe",
                 Set.of(UserRole.TENANT)
         ));
-        userService.create(new UserDtos.CreateUserRequest(
+        AppUser agent = userService.create(new UserDtos.CreateUserRequest(
                 "Simba Dube",
                 "agent@primenest.africa",
                 "+263771000003",
@@ -90,13 +93,21 @@ class DemoDataSeeder implements CommandLineRunner {
                 "Zimbabwe",
                 Set.of(UserRole.AGENT)
         ));
-        userService.create(new UserDtos.CreateUserRequest(
+        AppUser diasporaInvestor = userService.create(new UserDtos.CreateUserRequest(
                 "Rudo Chikowore",
                 "diaspora@primenest.africa",
                 "+447700900004",
                 DEMO_PASSWORD,
                 "Zimbabwe",
                 Set.of(UserRole.DIASPORA, UserRole.INVESTOR)
+        ));
+        AppUser admin = userService.create(new UserDtos.CreateUserRequest(
+                "PrimeNest Ops",
+                "admin@primenest.africa",
+                "+263771000005",
+                DEMO_PASSWORD,
+                "Zimbabwe",
+                Set.of(UserRole.ADMIN)
         ));
 
         userService.updateProfile(1L, new UserDtos.UpdateProfileRequest(
@@ -142,9 +153,18 @@ class DemoDataSeeder implements CommandLineRunner {
                 null,
                 true,
                 true,
+                true,
+                true,
+                WaterSource.MUNICIPAL,
+                true,
+                true,
+                true,
+                true,
+                false,
                 1L,
                 3L,
                 List.of("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2"),
+                null,
                 null,
                 null
         ));
@@ -166,53 +186,60 @@ class DemoDataSeeder implements CommandLineRunner {
                 null,
                 true,
                 false,
+                false,
+                false,
+                WaterSource.BOREHOLE,
+                false,
+                false,
+                true,
+                true,
+                false,
                 1L,
                 3L,
                 List.of("https://images.unsplash.com/photo-1564013799919-ab600027ffc6"),
+                null,
                 null,
                 null
         ));
 
         Lease lease = leaseService.create(new LeaseDtos.CreateLeaseRequest(
                 borrowdaleApartment.getId(),
-                2L,
-                1L,
+                tenant.getId(),
+                landlord.getId(),
                 LocalDate.now().plusDays(7),
                 LocalDate.now().plusYears(1),
                 new BigDecimal("550.00"),
                 new BigDecimal("550.00"),
                 "USD",
                 "Standard demo lease with escrow-protected deposit."
-        ));
-        leaseService.sign(lease.getId(), 1L);
+        ), landlord);
+        leaseService.sign(lease.getId(), landlord);
+        leaseService.sign(lease.getId(), tenant);
 
         escrowService.fund(escrowService.create(new EscrowDtos.CreateEscrowRequest(
                 borrowdaleApartment.getId(),
                 lease.getId(),
-                2L,
                 new BigDecimal("550.00"),
                 "USD",
                 "Deposit protection"
-        )).getId());
+        ), tenant).getId(), new EscrowDtos.FundEscrowRequest(FundingMethod.ECOCASH, null), tenant);
 
         paymentService.markSuccessful(paymentService.create(new PaymentDtos.CreatePaymentRequest(
-                2L,
-                1L,
+                landlord.getId(),
                 borrowdaleApartment.getId(),
                 lease.getId(),
                 new BigDecimal("550.00"),
                 "USD",
                 "manual",
                 "First month rent"
-        )).getId());
+        ), tenant).getId(), landlord);
 
         maintenanceService.create(new MaintenanceDtos.CreateMaintenanceRequest(
                 borrowdaleApartment.getId(),
-                2L,
                 "Plumbing",
                 "NORMAL",
                 "Kitchen tap needs inspection."
-        ));
+        ), tenant);
 
         var reit = investmentService.createReit(new InvestmentDtos.CreateReitRequest(
                 "Harare Residential REIT",
@@ -221,13 +248,16 @@ class DemoDataSeeder implements CommandLineRunner {
                 new BigDecimal("10.00"),
                 new BigDecimal("8.50"),
                 "MEDIUM",
-                true
-        ));
+                true,
+                new BigDecimal("50000"),
+                "RESIDENTIAL",
+                null,
+                null
+        ), admin);
         investmentService.invest(new InvestmentDtos.CreateInvestmentRequest(
-                4L,
-                reit.getId(),
+                reit.id(),
                 new BigDecimal("25.00"),
                 "USD"
-        ));
+        ), diasporaInvestor);
     }
 }
