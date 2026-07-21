@@ -18,4 +18,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
     @EntityGraph(attributePaths = {"participantOne", "participantTwo", "property"})
     java.util.Optional<Conversation> findWithParticipantsById(Long id);
+
+    @EntityGraph(attributePaths = {"participantOne", "participantTwo", "property"})
+    @Query("select c from Conversation c order by c.lastMessageAt desc")
+    List<Conversation> findAllOrderByLastMessageAtDesc();
 }

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Home, CheckCircle } from "lucide-react";
+import Image from "next/image";
+import { CheckCircle } from "lucide-react";
 import { auth } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
@@ -27,11 +28,8 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-              <Home className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-blue-600">PrimeNest</span>
+          <Link href="/" className="inline-flex items-center mb-6">
+            <Image src="/homestead_logo.png" alt="Homestead" width={912} height={273} className="h-11 w-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Reset your password</h1>
           <p className="text-gray-500 mt-1">We&apos;ll send a reset link if your email exists</p>

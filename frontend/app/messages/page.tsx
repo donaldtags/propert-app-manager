@@ -11,7 +11,7 @@ function MessagesContent() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const propertyId = searchParams.get("propertyId");
+  const conversationId = searchParams.get("conversationId");
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
@@ -45,6 +45,13 @@ function MessagesContent() {
     } catch {}
   };
 
+  useEffect(() => {
+    if (!conversationId || !conversations.length || activeConv) return;
+    const match = conversations.find((c) => c.id === Number(conversationId));
+    if (match) openConversation(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, conversations]);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeConv || !token || !newMessage.trim()) return;
@@ -65,7 +72,7 @@ function MessagesContent() {
   }
 
   return (
-    <div className="flex flex-1 h-[calc(100vh-64px)]">
+    <div className="flex flex-1 h-[calc(100vh-80px)]">
       {/* Sidebar: conversation list */}
       <div className={`w-full sm:w-72 border-r border-gray-200 flex flex-col ${activeConv ? "hidden sm:flex" : "flex"}`}>
         <div className="p-4 border-b border-gray-200">

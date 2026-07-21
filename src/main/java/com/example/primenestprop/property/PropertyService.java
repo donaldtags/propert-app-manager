@@ -33,6 +33,7 @@ public class PropertyService {
 
     private final PropertyRepository properties;
     private final PropertyPhotoRepository photos;
+    private final PropertyInquiryRepository inquiries;
     private final UserService users;
     private final Path photoStorageRoot;
     private final String publicBaseUrl;
@@ -40,12 +41,14 @@ public class PropertyService {
     public PropertyService(
             PropertyRepository properties,
             PropertyPhotoRepository photos,
+            PropertyInquiryRepository inquiries,
             UserService users,
             @Value("${app.storage.property-photos:storage/property-photos}") String photoStorageRoot,
             @Value("${app.public-base-url:http://localhost:8081}") String publicBaseUrl
     ) {
         this.properties = properties;
         this.photos = photos;
+        this.inquiries = inquiries;
         this.users = users;
         this.photoStorageRoot = Path.of(photoStorageRoot);
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
@@ -76,6 +79,15 @@ public class PropertyService {
         property.setLongitude(coordinates.longitude());
         property.setDiasporaFriendly(request.diasporaFriendly());
         property.setEscrowRequired(request.escrowRequired());
+        property.setSolarInstalled(request.solarInstalled());
+        property.setBackupPower(request.backupPower());
+        property.setWaterSource(request.waterSource());
+        property.setFurnished(request.furnished());
+        property.setInternetAvailable(request.internetAvailable());
+        property.setSecurityFeatures(request.securityFeatures());
+        property.setParkingAvailable(request.parkingAvailable());
+        property.setPetsAllowed(request.petsAllowed());
+        property.setVirtualTourUrl(request.virtualTourUrl());
         property.setLandlord(landlord);
         if (request.agentId() != null) {
             AppUser agent = users.require(request.agentId());
@@ -94,18 +106,86 @@ public class PropertyService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Property not found"));
     }
 
-    public List<Property> search(ListingType listingType, String city, String suburb, BigDecimal maxPrice, Integer bedrooms) {
-        return properties.search(listingType, blankToNull(city), blankToNull(suburb), maxPrice, bedrooms);
+    public List<Property> search(
+            ListingType listingType,
+            String city,
+            String suburb,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Integer bedrooms,
+            Integer bathrooms,
+            Boolean diasporaFriendly
+    ) {
+        return search(listingType, city, suburb, minPrice, maxPrice, bedrooms, bathrooms, diasporaFriendly,
+                null, null, null, null, null, null, null, null, null, null);
+    }
+
+    public List<Property> search(
+            ListingType listingType,
+            String city,
+            String suburb,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Integer bedrooms,
+            Integer bathrooms,
+            Boolean diasporaFriendly,
+            Boolean solarInstalled,
+            Boolean backupPower,
+            WaterSource waterSource,
+            Boolean furnished,
+            Boolean internetAvailable,
+            Boolean securityFeatures,
+            Boolean parkingAvailable,
+            Boolean petsAllowed,
+            Boolean verifiedOnly,
+            Boolean escrowAvailable
+    ) {
+        return properties.search(listingType, blankToNull(city), blankToNull(suburb), minPrice, maxPrice, bedrooms, bathrooms,
+                diasporaFriendly, solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
+                parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable);
     }
 
     public List<Property> forLandlord(Long landlordId) {
         return properties.findByLandlord(users.require(landlordId));
     }
 
+    public List<Property> forAgent(Long agentId) {
+        return properties.findByAgent(users.require(agentId));
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Map<PropertyStatus, Long> statusCounts() {
+        java.util.EnumMap<PropertyStatus, Long> counts = new java.util.EnumMap<>(PropertyStatus.class);
+        for (PropertyStatus status : PropertyStatus.values()) {
+            counts.put(status, properties.countByStatus(status));
+        }
+        return counts;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Property> recentlyListed() {
+        return properties.findTop10ByOrderByCreatedAtDesc();
+    }
+
+    @Transactional
     public void submitInquiry(Long id, PropertyDtos.InquiryRequest request) {
         Property property = require(id);
+        PropertyInquiry inquiry = new PropertyInquiry();
+        inquiry.setProperty(property);
+        inquiry.setName(request.name());
+        inquiry.setEmail(request.email());
+        inquiry.setPhone(request.phone());
+        inquiry.setMessage(request.message());
+        inquiries.save(inquiry);
         log.info("Inquiry for property '{}' (id={}): from {} <{}> phone={} - {}",
                 property.getTitle(), id, request.name(), request.email(), request.phone(), request.message());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PropertyDtos.InquiryResponse> inquiriesFor(AppUser currentUser) {
+        return inquiries.findForOwner(currentUser.getId()).stream()
+                .map(PropertyDtos.InquiryResponse::from)
+                .toList();
     }
 
     @Transactional

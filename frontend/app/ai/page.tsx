@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Zap, Send, User, Bot, Loader } from "lucide-react";
+import { Zap, Send, User, Bot, Loader, Home, Search } from "lucide-react";
 import { ai } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+type Mode = "SEARCH" | "HOME_ASSISTANT";
 
 const SUGGESTIONS = [
   "Find me a 2-bedroom apartment in Borrowdale under $600 near schools",
@@ -16,35 +19,67 @@ const SUGGESTIONS = [
   "What are escrow-protected rentals in Bulawayo?",
 ];
 
+const ASSISTANT_SUGGESTIONS = [
+  "When is my rent due?",
+  "Explain my lease",
+  "What's the status of my maintenance request?",
+];
+
+const SEARCH_WELCOME =
+  "Hi! I'm the Homestead AI assistant. Describe what you're looking for and I'll help you find the perfect property. For example: 'Find me a 2-bedroom apartment in Harare under $500/month near schools.'";
+
+const ASSISTANT_WELCOME =
+  "Hi! I'm your Home Assistant — ask me about your rent, lease, or maintenance requests and I'll answer using your actual account details.";
+
 export default function AiSearchPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content:
-        "Hi! I'm the PrimeNest AI assistant. Describe what you're looking for and I'll help you find the perfect property. For example: 'Find me a 2-bedroom apartment in Harare under $500/month near schools.'",
-    },
-  ]);
+  const { user, token } = useAuth();
+  const [mode, setMode] = useState<Mode>("SEARCH");
+  const [messages, setMessages] = useState<Message[]>([{ role: "assistant", content: SEARCH_WELCOME }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiPowered, setAiPowered] = useState<boolean | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const switchMode = (next: Mode) => {
+    if (next === mode) return;
+    setMode(next);
+    setAiPowered(null);
+    setMessages([{ role: "assistant", content: next === "SEARCH" ? SEARCH_WELCOME : ASSISTANT_WELCOME }]);
+  };
+
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
+    if (mode === "HOME_ASSISTANT" && !token) {
+      setMessages((m) => [
+        ...m,
+        { role: "user", content: text },
+        { role: "assistant", content: "Please log in so I can look up your lease, rent, and maintenance details." },
+      ]);
+      setInput("");
+      return;
+    }
     const userMsg: Message = { role: "user", content: text };
     setMessages((m) => [...m, userMsg]);
     setInput("");
     setLoading(true);
     try {
-      const response = await ai.search(text);
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: response.result ?? "I found some properties that match your search. Check the results above.",
-      };
-      setMessages((m) => [...m, assistantMsg]);
+      if (mode === "HOME_ASSISTANT" && token) {
+        const response = await ai.homeAssistant(text, token);
+        setAiPowered(response.aiPowered ?? false);
+        setMessages((m) => [...m, { role: "assistant", content: response.answer ?? "I couldn't find an answer to that." }]);
+      } else {
+        const response = await ai.search(text);
+        setAiPowered(response.aiPowered ?? false);
+        const assistantMsg: Message = {
+          role: "assistant",
+          content: response.answer ?? "I found some properties that match your search. Check the results above.",
+        };
+        setMessages((m) => [...m, assistantMsg]);
+      }
     } catch {
       setMessages((m) => [
         ...m,
@@ -64,14 +99,47 @@ export default function AiSearchPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] max-w-3xl mx-auto w-full px-4">
+    <div className="flex flex-col h-[calc(100vh-80px)] max-w-3xl mx-auto w-full px-4">
       {/* Header */}
       <div className="py-6 text-center border-b border-gray-200">
         <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
           <Zap className="w-6 h-6 text-white" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">AI Property Search</h1>
-        <p className="text-gray-500 text-sm mt-1">Describe your ideal home in plain language</p>
+        <h1 className="text-xl font-bold text-gray-900">
+          {mode === "SEARCH" ? "AI Property Search" : "Home Assistant"}
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">
+          {mode === "SEARCH" ? "Describe your ideal home in plain language" : "Ask about your rent, lease, or maintenance"}
+        </p>
+
+        {user && (
+          <div className="flex justify-center gap-2 mt-4">
+            <button
+              type="button"
+              onClick={() => switchMode("SEARCH")}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                mode === "SEARCH" ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              <Search className="w-3.5 h-3.5" /> Property Search
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("HOME_ASSISTANT")}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                mode === "HOME_ASSISTANT" ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              <Home className="w-3.5 h-3.5" /> Home Assistant
+            </button>
+          </div>
+        )}
+
+        {aiPowered === false && (
+          <p className="text-amber-600 text-xs mt-2">
+            Running in keyword-matching mode — no live AI backend is configured yet.
+          </p>
+        )}
       </div>
 
       {/* Messages */}
@@ -121,7 +189,7 @@ export default function AiSearchPage() {
         <div className="pb-3">
           <p className="text-xs text-gray-400 mb-2 text-center">Try these examples</p>
           <div className="flex flex-wrap gap-2 justify-center">
-            {SUGGESTIONS.map((s) => (
+            {(mode === "SEARCH" ? SUGGESTIONS : ASSISTANT_SUGGESTIONS).map((s) => (
               <button
                 key={s}
                 onClick={() => sendMessage(s)}
@@ -145,7 +213,7 @@ export default function AiSearchPage() {
               sendMessage(input);
             }
           }}
-          placeholder="Describe your ideal property..."
+          placeholder={mode === "SEARCH" ? "Describe your ideal property..." : "Ask about your rent, lease, or maintenance..."}
           rows={1}
           className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
           style={{ maxHeight: "120px" }}

@@ -3,13 +3,13 @@ package com.example.primenestprop.payment;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.Instant;
 
 public final class PaymentDtos {
     private PaymentDtos() {
     }
 
     public record CreatePaymentRequest(
-            @NotNull Long payerId,
             @NotNull Long payeeId,
             Long propertyId,
             Long leaseId,
@@ -23,7 +23,9 @@ public final class PaymentDtos {
     public record PaymentResponse(
             Long id,
             Long payerId,
+            String payerName,
             Long payeeId,
+            String payeeName,
             Long propertyId,
             Long leaseId,
             PaymentStatus status,
@@ -31,13 +33,17 @@ public final class PaymentDtos {
             String currency,
             String provider,
             String reference,
-            String purpose
+            String purpose,
+            Instant createdAt,
+            Instant paidAt
     ) {
         public static PaymentResponse from(Payment payment) {
             return new PaymentResponse(
                     payment.getId(),
                     payment.getPayer().getId(),
+                    payment.getPayer().getFullName(),
                     payment.getPayee().getId(),
+                    payment.getPayee().getFullName(),
                     payment.getProperty() == null ? null : payment.getProperty().getId(),
                     payment.getLease() == null ? null : payment.getLease().getId(),
                     payment.getStatus(),
@@ -45,7 +51,9 @@ public final class PaymentDtos {
                     payment.getCurrency(),
                     payment.getProvider(),
                     payment.getReference(),
-                    payment.getPurpose()
+                    payment.getPurpose(),
+                    payment.getCreatedAt(),
+                    payment.getPaidAt()
             );
         }
     }

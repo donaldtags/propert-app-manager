@@ -3,6 +3,8 @@ package com.example.primenestprop.escrow;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 
 public final class EscrowDtos {
     private EscrowDtos() {
@@ -11,10 +13,15 @@ public final class EscrowDtos {
     public record CreateEscrowRequest(
             @NotNull Long propertyId,
             Long leaseId,
-            @NotNull Long payerId,
             @DecimalMin("0.01") BigDecimal amount,
             String currency,
             String purpose
+    ) {
+    }
+
+    public record FundEscrowRequest(
+            @NotNull FundingMethod method,
+            String provider
     ) {
     }
 
@@ -27,9 +34,18 @@ public final class EscrowDtos {
             EscrowStatus status,
             BigDecimal amount,
             String currency,
-            String purpose
+            String purpose,
+            FundingMethod fundingMethod,
+            String fundingProvider,
+            Instant createdAt,
+            int releaseApprovals,
+            int releaseApprovalsRequired,
+            List<Long> releaseApprovedByUserIds
     ) {
         public static EscrowResponse from(EscrowTransaction escrow) {
+            List<Long> approverIds = escrow.getReleaseApprovals().stream()
+                    .map(a -> a.getApprover().getId())
+                    .toList();
             return new EscrowResponse(
                     escrow.getId(),
                     escrow.getProperty().getId(),
@@ -39,7 +55,13 @@ public final class EscrowDtos {
                     escrow.getStatus(),
                     escrow.getAmount(),
                     escrow.getCurrency(),
-                    escrow.getPurpose()
+                    escrow.getPurpose(),
+                    escrow.getFundingMethod(),
+                    escrow.getFundingProvider(),
+                    escrow.getCreatedAt(),
+                    approverIds.size(),
+                    2,
+                    approverIds
             );
         }
     }

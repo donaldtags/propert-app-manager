@@ -308,6 +308,7 @@ Do not use seeded demo users. For development and demos, register users through 
 - `/users`
 - `/profile`
 - `/settings/security`
+- 
 
 ## Existing Backend Endpoints
 

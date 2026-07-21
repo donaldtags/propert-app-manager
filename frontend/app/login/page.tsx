@@ -3,16 +3,19 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Home, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { dashboardPathFor } from "@/lib/dashboardRoute";
 
 function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") ?? "/";
+  const redirectParam = searchParams.get("redirect");
+  const redirect = redirectParam ?? "/";
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -23,8 +26,8 @@ function LoginForm() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
-      router.push(redirect);
+      const loggedInUser = await login(identifier, password);
+      router.push(redirectParam ?? dashboardPathFor(loggedInUser.roles));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed. Check your credentials.");
     } finally {
@@ -36,11 +39,8 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-              <Home className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-blue-600">PrimeNest</span>
+          <Link href="/" className="inline-flex items-center mb-6">
+            <Image src="/homestead_logo.png" alt="Homestead" width={912} height={273} className="h-11 w-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-gray-500 mt-1">Sign in to your account</p>
@@ -55,15 +55,15 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email or phone number</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="username"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
-                placeholder="you@example.com"
+                placeholder="you@example.com or +263771000001"
               />
             </div>
 

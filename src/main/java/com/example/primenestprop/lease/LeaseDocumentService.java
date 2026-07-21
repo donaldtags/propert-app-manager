@@ -25,7 +25,9 @@ public class LeaseDocumentService {
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "image/png",
-            "image/jpeg"
+            "image/jpeg",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     );
 
     private final LeaseDocumentRepository documents;
@@ -85,8 +87,8 @@ public class LeaseDocumentService {
     @Transactional
     public LeaseDocument review(Long leaseId, Long documentId, AppUser currentUser, LeaseDtos.ReviewDocumentRequest request) {
         Lease lease = leases.require(leaseId);
-        if (!isAdmin(currentUser) && !currentUser.getId().equals(lease.getLandlord().getId())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only the landlord or an admin can review lease documents");
+        if (!isAdmin(currentUser) && !isLandlordOrRepresentingAgent(lease, currentUser)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the landlord, the representing agent, or an admin can review lease documents");
         }
         if (request.status() == LeaseDocumentStatus.SUBMITTED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Review status must be APPROVED or REJECTED");
@@ -138,17 +140,24 @@ public class LeaseDocumentService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "File size must be 8MB or less");
         }
         if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only PDF, PNG, and JPEG files are allowed");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only PDF, Word (.doc/.docx), PNG, and JPEG files are allowed");
         }
     }
 
     private void assertLeasePartyOrAdmin(Lease lease, AppUser user) {
         if (isAdmin(user)
                 || user.getId().equals(lease.getTenant().getId())
-                || user.getId().equals(lease.getLandlord().getId())) {
+                || isLandlordOrRepresentingAgent(lease, user)) {
             return;
         }
-        throw new ApiException(HttpStatus.FORBIDDEN, "Only the tenant, landlord, or admin can access these documents");
+        throw new ApiException(HttpStatus.FORBIDDEN, "Only the tenant, landlord, representing agent, or admin can access these documents");
+    }
+
+    private boolean isLandlordOrRepresentingAgent(Lease lease, AppUser user) {
+        if (user.getId().equals(lease.getLandlord().getId())) {
+            return true;
+        }
+        return lease.getProperty().getAgent() != null && user.getId().equals(lease.getProperty().getAgent().getId());
     }
 
     private boolean isAdmin(AppUser user) {

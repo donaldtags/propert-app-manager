@@ -1,0 +1,9 @@
+target/
+frontend/
+storage/
+bruno/
+.git/
+.idea/
+.mvn/wrapper/maven-wrapper.jar
+*.log
+*.md

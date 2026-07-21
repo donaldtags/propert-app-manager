@@ -18,7 +18,7 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<User>;
   register: (data: {
     fullName: string;
     email: string;
@@ -26,7 +26,7 @@ interface AuthContextValue extends AuthState {
     password: string;
     country?: string;
     roles?: string[];
-  }) => Promise<void>;
+  }) => Promise<User>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   setUser: (user: User) => void;
@@ -62,10 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadUser]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { token, user } = await auth.login({ email, password });
+  const login = useCallback(async (identifier: string, password: string) => {
+    const { token, user } = await auth.login({ identifier, password });
     localStorage.setItem(TOKEN_KEY, token);
     setState({ user, token, loading: false });
+    return user;
   }, []);
 
   const register = useCallback(
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { token, user } = await auth.register(data);
       localStorage.setItem(TOKEN_KEY, token);
       setState({ user, token, loading: false });
+      return user;
     },
     []
   );

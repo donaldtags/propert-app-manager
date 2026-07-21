@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { users } from "@/lib/api";
+import Link from "next/link";
 import {
   User,
   Shield,
@@ -14,8 +15,11 @@ import {
   Save,
   X,
   Star,
+  Camera,
+  ArrowRight,
+  Building2,
 } from "lucide-react";
-import type { UserRole } from "@/lib/types";
+import type { LandlordPassport, TenantPassport, UserRole } from "@/lib/types";
 
 const ROLE_COLORS: Record<UserRole, string> = {
   TENANT: "bg-blue-100 text-blue-700",
@@ -50,9 +54,22 @@ export default function ProfilePage() {
     smsNotifications: true,
   });
 
+  const [tenantPassport, setTenantPassport] = useState<TenantPassport | null>(null);
+  const [landlordPassport, setLandlordPassport] = useState<LandlordPassport | null>(null);
+
   useEffect(() => {
     if (!loading && !user) router.push("/login?redirect=/profile");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user || !token) return;
+    if (user.roles?.includes("TENANT") || user.roles?.includes("DIASPORA")) {
+      users.tenantPassport(user.id, token).then(setTenantPassport).catch(() => {});
+    }
+    if (user.roles?.includes("LANDLORD") || user.roles?.includes("AGENT") || user.roles?.includes("PRIVATE") || user.roles?.includes("DEVELOPER")) {
+      users.landlordPassport(user.id).then(setLandlordPassport).catch(() => {});
+    }
+  }, [user, token]);
 
   useEffect(() => {
     if (user) {
@@ -152,8 +169,108 @@ export default function ProfilePage() {
               <Shield className="w-3 h-3" /> Identity Verified
             </span>
           )}
+          {user.faceVerified && (
+            <span className="flex items-center gap-1 bg-white/20 text-white text-xs px-3 py-1 rounded-full">
+              <Camera className="w-3 h-3" /> Face Verified
+            </span>
+          )}
+          {user.businessVerified && (
+            <span className="flex items-center gap-1 bg-white/20 text-white text-xs px-3 py-1 rounded-full">
+              <Building2 className="w-3 h-3" /> Verified Business
+            </span>
+          )}
         </div>
+
+        {!user.identityVerified && (
+          <Link
+            href="/verification"
+            className="mt-4 flex items-center justify-between gap-2 bg-white/10 hover:bg-white/20 rounded-xl px-4 py-3 text-sm transition-colors"
+          >
+            <span>Verify your identity to unlock listing, applying, and escrow</span>
+            <ArrowRight className="w-4 h-4 shrink-0" />
+          </Link>
+        )}
       </div>
+
+      {/* Tenant Passport */}
+      {tenantPassport && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-blue-600" /> Tenant Passport
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Trust Score</p>
+              <p className="text-lg font-bold text-gray-900">{tenantPassport.trustScore}/100</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Completed Leases</p>
+              <p className="text-lg font-bold text-gray-900">{tenantPassport.completedLeaseCount}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">On-Time Payments</p>
+              <p className="text-lg font-bold text-gray-900">
+                {tenantPassport.onTimePaymentRatePercent != null ? `${tenantPassport.onTimePaymentRatePercent}%` : "—"}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Years on Platform</p>
+              <p className="text-lg font-bold text-gray-900">{tenantPassport.yearsOnPlatform}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Landlord Passport */}
+      {landlordPassport && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-green-600" /> Landlord / Agent Passport
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Trust Score</p>
+              <p className="text-lg font-bold text-gray-900">{landlordPassport.trustScore}/100</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Properties</p>
+              <p className="text-lg font-bold text-gray-900">{landlordPassport.propertyCount}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Avg. Response</p>
+              <p className="text-lg font-bold text-gray-900">
+                {landlordPassport.averageResponseHours != null ? `${landlordPassport.averageResponseHours}h` : "—"}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Maintenance Resolved</p>
+              <p className="text-lg font-bold text-gray-900">
+                {landlordPassport.maintenanceResolutionRatePercent != null ? `${landlordPassport.maintenanceResolutionRatePercent}%` : "—"}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Escrow Usage</p>
+              <p className="text-lg font-bold text-gray-900">
+                {landlordPassport.escrowUsageRatePercent != null ? `${landlordPassport.escrowUsageRatePercent}%` : "—"}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Avg. Rating</p>
+              <p className="text-lg font-bold text-gray-900">
+                {landlordPassport.averageRating != null ? `${landlordPassport.averageRating.toFixed(1)} ★` : "—"}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Completed Leases</p>
+              <p className="text-lg font-bold text-gray-900">{landlordPassport.completedLeaseCount}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-1">Years on Platform</p>
+              <p className="text-lg font-bold text-gray-900">{landlordPassport.yearsOnPlatform}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Profile form */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">

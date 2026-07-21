@@ -12,4 +12,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     long countByConversationAndSenderNotAndReadAtIsNull(Conversation conversation, AppUser sender);
 
     List<ChatMessage> findByConversationAndSenderNotAndReadAtIsNull(Conversation conversation, AppUser sender);
+
+    @EntityGraph(attributePaths = {"sender"})
+    List<ChatMessage> findByConversationInOrderByCreatedAtAsc(List<Conversation> conversations);
 }

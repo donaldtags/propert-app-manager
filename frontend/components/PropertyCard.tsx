@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bed, Bath, MapPin, Shield, Globe, CheckCircle } from "lucide-react";
+import { Bed, Bath, MapPin, Shield, Globe, CheckCircle, Building2, Camera, Scale } from "lucide-react";
 import type { Property } from "@/lib/types";
+import { isComparing, toggleCompare, MAX_COMPARE } from "@/lib/compareListings";
 
 interface Props {
   property: Property;
@@ -16,7 +18,7 @@ interface Props {
 function formatPrice(price: number, currency: string, listingType: string) {
   const formatted = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: currency === "USD" ? "USD" : "USD",
+    currency: currency || "USD",
     maximumFractionDigits: 0,
   }).format(price);
   if (listingType === "RENT") return `${formatted}/mo`;
@@ -24,12 +26,13 @@ function formatPrice(price: number, currency: string, listingType: string) {
   return formatted;
 }
 
-function getPrimaryPhoto(property: Property): string | null {
-  const sources = [property.photoUrls, property.imageUrls, property.photos];
-  for (const src of sources) {
-    if (src && src.length > 0 && src[0]) return src[0];
-  }
-  return null;
+function getPhotos(property: Property): string[] {
+  const photos = [
+    ...(property.photoUrls ?? []),
+    ...(property.imageUrls ?? []),
+    ...(property.photos ?? []),
+  ];
+  return [...new Set(photos)].filter(Boolean);
 }
 
 export default function PropertyCard({
@@ -39,28 +42,43 @@ export default function PropertyCard({
   onMouseLeave,
   compact,
 }: Props) {
-  const photo = getPrimaryPhoto(property);
+  const photos = getPhotos(property);
+  const photo = photos[0] ?? null;
   const isVerified = property.verificationStatus === "VERIFIED";
+  const companyName = property.agentName
+    ? property.agentCompanyName
+    : property.landlordCompanyName;
+
+  const [comparing, setComparing] = useState(false);
+  useEffect(() => {
+    setComparing(isComparing(property.id));
+  }, [property.id]);
+
+  const handleToggleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setComparing(toggleCompare(property.id));
+  };
 
   return (
     <Link
       href={`/properties/${property.id}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`block bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-lg ${
+      className={`group block bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-lg ${
         highlighted
           ? "border-blue-500 shadow-lg ring-2 ring-blue-200"
           : "border-gray-200 shadow-sm"
       }`}
     >
       {/* Photo */}
-      <div className={`relative bg-gray-100 ${compact ? "h-40" : "h-52"}`}>
+      <div className={`relative bg-gray-100 overflow-hidden ${compact ? "h-40" : "h-52"}`}>
         {photo ? (
           <Image
             src={photo}
             alt={property.title}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 400px"
             unoptimized
           />
@@ -94,6 +112,28 @@ export default function PropertyCard({
             </span>
           </div>
         )}
+
+        {/* Photo count */}
+        {photos.length > 1 && (
+          <div className="absolute bottom-3 right-3">
+            <span className="bg-black/60 text-white text-xs font-medium px-2 py-1 rounded flex items-center gap-1">
+              <Camera className="w-3 h-3" />
+              {photos.length}
+            </span>
+          </div>
+        )}
+
+        {/* Compare toggle */}
+        <button
+          type="button"
+          onClick={handleToggleCompare}
+          title={comparing ? "Remove from comparison" : `Add to comparison (max ${MAX_COMPARE})`}
+          className={`absolute bottom-3 left-3 w-7 h-7 rounded-full flex items-center justify-center shadow transition-colors ${
+            comparing ? "bg-blue-600 text-white" : "bg-white/90 text-gray-600 hover:bg-white"
+          }`}
+        >
+          <Scale className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* Content */}
@@ -117,6 +157,13 @@ export default function PropertyCard({
           <MapPin className="w-3 h-3 shrink-0" />
           {property.suburb}, {property.city}
         </p>
+
+        {companyName && (
+          <p className="text-xs text-blue-700 font-medium flex items-center gap-1 mt-0.5">
+            <Building2 className="w-3 h-3 shrink-0" />
+            {companyName}
+          </p>
+        )}
 
         {/* Feature badges */}
         <div className="flex flex-wrap gap-1.5 mt-2">

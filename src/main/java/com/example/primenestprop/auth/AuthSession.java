@@ -38,4 +38,7 @@ public class AuthSession {
 
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
+
+    @Column(nullable = false)
+    private Instant expiresAt;
 }

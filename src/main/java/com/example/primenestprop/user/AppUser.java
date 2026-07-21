@@ -35,7 +35,7 @@ public class AppUser {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(unique = true)
     private String phone;
 
     @Column(length = 120)
@@ -50,12 +50,14 @@ public class AppUser {
     private String nationalIdNumber;
     private String occupation;
     private String companyName;
+    private boolean businessVerified;
     private String emergencyContactName;
     private String emergencyContactPhone;
     private boolean emailNotifications = true;
     private boolean smsNotifications = true;
     private boolean twoFactorEnabled;
     private boolean identityVerified;
+    private boolean faceVerified;
     private boolean verified;
     private int trustScore = 50;
     private String primaryProfile = "USER";
@@ -93,6 +95,12 @@ public class AppUser {
         }
         if (roles.contains(UserRole.ADMIN)) {
             return "ADMIN";
+        }
+        if (roles.contains(UserRole.DEVELOPER)) {
+            return "DEVELOPER";
+        }
+        if (roles.contains(UserRole.PRIVATE)) {
+            return "PRIVATE";
         }
         return "USER";
     }

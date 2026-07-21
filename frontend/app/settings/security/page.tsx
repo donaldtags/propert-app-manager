@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { users as usersApi } from "@/lib/api";
-import { Shield, AlertCircle, CheckCircle, Plus } from "lucide-react";
+import { Shield, AlertCircle, CheckCircle, Plus, ArrowRight, Info } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
 const SELF_SERVICE_ROLES: UserRole[] = ["TENANT", "LANDLORD", "AGENT", "DIASPORA", "INVESTOR", "DEVELOPER", "PRIVATE"];
@@ -19,9 +20,13 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   PRIVATE: "List your own property as a private seller or landlord",
 };
 
-export default function SecuritySettingsPage() {
+function SecuritySettingsPageInner() {
   const { user, token, loading, refresh } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const needRoles = (searchParams.get("needRole")?.split(",").filter(Boolean) ?? []) as UserRole[];
+  const needReason = searchParams.get("reason") ?? "";
 
   const [addingRole, setAddingRole] = useState<UserRole | null>(null);
   const [password, setPassword] = useState("");
@@ -32,6 +37,13 @@ export default function SecuritySettingsPage() {
   useEffect(() => {
     if (!loading && !user) router.push("/login?redirect=/settings/security");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (needRoles.length > 0 && !user?.roles?.some((r) => needRoles.includes(r))) {
+      setAddingRole(needRoles[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleAddRole = async (role: UserRole) => {
     if (!user || !token) return;
@@ -76,6 +88,18 @@ export default function SecuritySettingsPage() {
         </h1>
         <p className="text-gray-500 mt-1">Manage your account roles and security settings</p>
       </div>
+
+      {needRoles.length > 0 && !needRoles.some((r) => currentRoles.includes(r)) && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-xl mb-5 flex items-start gap-2">
+          <Info className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">
+              Add the {needRoles.join(" or ")} role to continue{needReason ? ` — ${needReason}` : ""}.
+            </p>
+            <p className="text-xs mt-0.5 text-blue-700">We've highlighted it for you below.</p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
@@ -182,6 +206,12 @@ export default function SecuritySettingsPage() {
             </span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
+            <span className="text-gray-500">Face Verified</span>
+            <span className={user.faceVerified ? "text-green-600 font-medium" : "text-gray-400"}>
+              {user.faceVerified ? "Yes" : "No"}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="text-gray-500">Two-Factor Auth</span>
             <span className="text-gray-400">Coming soon</span>
           </div>
@@ -195,6 +225,26 @@ export default function SecuritySettingsPage() {
           </div>
         </div>
       </div>
+
+      {!user.identityVerified && (
+        <Link
+          href="/verification"
+          className="mt-6 flex items-center justify-between gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-4 text-sm font-semibold transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Shield className="w-4 h-4" /> Verify your identity
+          </span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      )}
     </div>
+  );
+}
+
+export default function SecuritySettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SecuritySettingsPageInner />
+    </Suspense>
   );
 }

@@ -5,6 +5,7 @@ import com.example.primenestprop.lease.Lease;
 import com.example.primenestprop.lease.LeaseService;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
+import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -19,19 +20,27 @@ public class PaymentService {
     private final UserService users;
     private final PropertyService properties;
     private final LeaseService leases;
+    private final RentInvoiceService rentInvoices;
 
-    public PaymentService(PaymentRepository payments, UserService users, PropertyService properties, LeaseService leases) {
+    public PaymentService(
+            PaymentRepository payments,
+            UserService users,
+            PropertyService properties,
+            LeaseService leases,
+            RentInvoiceService rentInvoices
+    ) {
         this.payments = payments;
         this.users = users;
         this.properties = properties;
         this.leases = leases;
+        this.rentInvoices = rentInvoices;
     }
 
     @Transactional
-    public Payment create(PaymentDtos.CreatePaymentRequest request) {
+    public Payment create(PaymentDtos.CreatePaymentRequest request, AppUser payer) {
         Lease lease = request.leaseId() == null ? null : leases.require(request.leaseId());
         if (lease != null && isRentPayment(request.purpose())) {
-            if (!lease.getTenant().getId().equals(request.payerId())) {
+            if (!lease.getTenant().getId().equals(payer.getId())) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "Monthly rent must be paid by the lease tenant");
             }
             if (!lease.getLandlord().getId().equals(request.payeeId())) {
@@ -42,7 +51,7 @@ public class PaymentService {
             }
         }
         Payment payment = new Payment();
-        payment.setPayer(users.require(request.payerId()));
+        payment.setPayer(payer);
         payment.setPayee(users.require(request.payeeId()));
         if (request.propertyId() != null) {
             payment.setProperty(properties.require(request.propertyId()));
@@ -56,23 +65,67 @@ public class PaymentService {
         return payments.save(payment);
     }
 
+    @Transactional(readOnly = true)
     public Payment require(Long id) {
-        return payments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Payment not found"));
+        return payments.findWithDetailsById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Payment not found"));
     }
 
-    public List<Payment> forUser(Long userId) {
+    @Transactional(readOnly = true)
+    public Payment requireVisible(Long id, AppUser currentUser) {
+        Payment payment = require(id);
+        boolean isParty = payment.getPayer().getId().equals(currentUser.getId())
+                || payment.getPayee().getId().equals(currentUser.getId());
+        if (!isParty && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You do not have access to this payment");
+        }
+        return payment;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Payment> forUser(Long userId, AppUser currentUser) {
+        if (!userId.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own payments");
+        }
         AppUser user = users.require(userId);
-        List<Payment> payer = payments.findByPayer(user);
-        List<Payment> payee = payments.findByPayee(user);
-        payer.addAll(payee);
-        return payer;
+        List<Payment> result = new java.util.ArrayList<>(payments.findByPayer(user));
+        result.addAll(payments.findByPayee(user));
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public java.math.BigDecimal revenueBetween(java.time.Instant from, java.time.Instant to, String currency) {
+        return payments.sumSuccessfulBetween(from, to, currency);
+    }
+
+    @Transactional(readOnly = true)
+    public java.math.BigDecimal totalRevenueForPayee(Long payeeId, String currency) {
+        return payments.sumSuccessfulByPayeeAndCurrency(payeeId, currency);
+    }
+
+    @Transactional(readOnly = true)
+    public java.math.BigDecimal revenueForPayeeBetween(Long payeeId, java.time.Instant from, java.time.Instant to, String currency) {
+        return payments.sumSuccessfulByPayeeBetween(payeeId, from, to, currency);
+    }
+
+    @Transactional(readOnly = true)
+    public java.math.BigDecimal revenueForPayerBetween(Long payerId, java.time.Instant from, java.time.Instant to, String currency) {
+        return payments.sumSuccessfulByPayerBetween(payerId, from, to, currency);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Payment> recentSuccessful() {
+        return payments.findTop10ByStatusOrderByPaidAtDesc(PaymentStatus.SUCCESSFUL);
     }
 
     @Transactional
-    public Payment markSuccessful(Long id) {
+    public Payment markSuccessful(Long id, AppUser currentUser) {
         Payment payment = require(id);
+        if (!payment.getPayee().getId().equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the payee can confirm this payment as successful");
+        }
         payment.setStatus(PaymentStatus.SUCCESSFUL);
         payment.setPaidAt(Instant.now());
+        rentInvoices.markPaidIfMatching(payment);
         return payment;
     }
 
