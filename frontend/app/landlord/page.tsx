@@ -252,12 +252,20 @@ export default function LandlordDashboardPage() {
           <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
           <p className="text-gray-500 mt-1">{pageSubtitle}</p>
         </div>
-        <Link
-          href="/properties/new"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Property
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/landlord/subscription"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 text-gray-700 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+          >
+            Subscription
+          </Link>
+          <Link
+            href="/properties/new"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Property
+          </Link>
+        </div>
       </div>
 
       {user?.roles?.includes("DIASPORA") && (
@@ -502,7 +510,10 @@ export default function LandlordDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900">My Properties</h2>
-            <Link href="/properties" className="text-xs text-blue-600 hover:underline">Browse all</Link>
+            <div className="flex items-center gap-3">
+              <Link href="/landlord/featured-listings" className="text-xs text-amber-600 hover:underline font-medium">Feature a listing</Link>
+              <Link href="/properties" className="text-xs text-blue-600 hover:underline">Browse all</Link>
+            </div>
           </div>
           {ownProperties.length === 0 ? (
             <div className="text-center py-8">
@@ -522,6 +533,7 @@ export default function LandlordDashboardPage() {
                     <p className="text-xs font-semibold text-green-600 mt-0.5">${prop.price}/mo</p>
                   </div>
                   <div className="text-right flex flex-col gap-1 items-end">
+                    {prop.featured && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">★ Featured</span>}
                     <StatusBadge status={prop.status} />
                     <StatusBadge status={prop.verificationStatus} />
                   </div>

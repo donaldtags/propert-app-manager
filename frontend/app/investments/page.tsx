@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { investments as investmentsApi, market as marketApi } from "@/lib/api";
 import type { Reit, Investment, MarketSnapshot } from "@/lib/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
-import RolePrompt from "@/components/RolePrompt";
+import { settingsRoleUrl } from "@/lib/roleGate";
 import {
   TrendingUp,
   TrendingDown,
@@ -205,7 +205,6 @@ export default function InvestmentsPage() {
   const [myInvestments, setMyInvestments] = useState<Investment[]>([]);
   const [reitsLoading, setReitsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showInvestRolePrompt, setShowInvestRolePrompt] = useState(false);
   const [investing, setInvesting] = useState<number | null>(null);
   const [units, setUnits] = useState<Record<number, string>>({});
   const [selling, setSelling] = useState<number | null>(null);
@@ -240,10 +239,9 @@ export default function InvestmentsPage() {
   const handleInvest = async (reit: Reit) => {
     if (!user || !token) { router.push("/login?redirect=/investments"); return; }
     if (!user.roles?.includes("INVESTOR") && !user.roles?.includes("DIASPORA")) {
-      setShowInvestRolePrompt(true);
+      router.push(settingsRoleUrl(["INVESTOR", "DIASPORA"], "investing in a REIT needs the Investor role"));
       return;
     }
-    setShowInvestRolePrompt(false);
     const n = Number(units[reit.id] || 1);
     if (n < 1) { setError("Enter at least 1 unit."); return; }
     if (!reit.active) { setError("This REIT is not currently open for investment."); return; }
@@ -354,11 +352,6 @@ export default function InvestmentsPage() {
         </div>
       )}
 
-      {showInvestRolePrompt && (
-        <div className="mb-5">
-          <RolePrompt roles={["INVESTOR", "DIASPORA"]} reason="investing in a REIT needs the Investor role" />
-        </div>
-      )}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" /> {error}
@@ -491,7 +484,14 @@ export default function InvestmentsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
                   <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
                     <div>
-                      <p className="text-white font-bold leading-tight drop-shadow">{reit.name}</p>
+                      <p className="text-white font-bold leading-tight drop-shadow flex items-center gap-1.5">
+                        {reit.name}
+                        {reit.tickerSymbol && (
+                          <span className="font-mono text-[10px] font-bold bg-white/90 text-blue-700 rounded-md px-1.5 py-0.5">
+                            {reit.tickerSymbol}
+                          </span>
+                        )}
+                      </p>
                       <p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">
                         <MapPin className="w-3 h-3" /> {COUNTRY_FLAGS[reit.market] ?? ""} {reit.market}
                       </p>
@@ -518,6 +518,47 @@ export default function InvestmentsPage() {
 
                 <div className="p-6 flex-1 flex flex-col">
                   {reit.description && <p className="text-sm text-gray-600 mb-4">{reit.description}</p>}
+
+                  {reit.tickerSymbol && (
+                    <div className="mb-3 rounded-xl border border-gray-200 px-3 py-2.5 flex items-center justify-between">
+                      {reit.marketQuote ? (
+                        <>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Radio className="w-3.5 h-3.5 text-green-600" />
+                            <span>Live ZSE: {reit.tickerSymbol}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold text-gray-900 text-sm">
+                              {reit.marketQuote.price != null ? `${reit.marketQuote.price.toFixed(4)} ${reit.marketQuote.currency}` : "—"}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-medium ${
+                                (reit.marketQuote.changeAmount ?? 0) > 0
+                                  ? "text-green-600"
+                                  : (reit.marketQuote.changeAmount ?? 0) < 0
+                                    ? "text-red-600"
+                                    : "text-gray-400"
+                              }`}
+                            >
+                              {(reit.marketQuote.changeAmount ?? 0) > 0 ? (
+                                <ArrowUpRight className="w-3 h-3" />
+                              ) : (reit.marketQuote.changeAmount ?? 0) < 0 ? (
+                                <ArrowDownRight className="w-3 h-3" />
+                              ) : (
+                                <Minus className="w-3 h-3" />
+                              )}
+                              {reit.marketQuote.changePercent != null ? `${Math.abs(reit.marketQuote.changePercent).toFixed(2)}%` : "0.00%"}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Live ZSE data for {reit.tickerSymbol} is temporarily unavailable
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div className="bg-gray-50 rounded-xl p-3">
@@ -612,10 +653,13 @@ export default function InvestmentsPage() {
                         <button
                           onClick={() => handleInvest(reit)}
                           disabled={investing === reit.id || !reit.active || reit.availableUnits === 0}
+                          title={`Buy units of ${reit.name}`}
                           className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
                         >
-                          <DollarSign className="w-4 h-4" />
-                          {investing === reit.id ? "Processing..." : "Buy Units"}
+                          <DollarSign className="w-4 h-4 shrink-0" />
+                          <span className="truncate">
+                            {investing === reit.id ? "Processing..." : `Buy ${reit.name} Units`}
+                          </span>
                         </button>
                       </div>
                       <p className="text-xs text-gray-400 mt-2">
@@ -638,10 +682,13 @@ export default function InvestmentsPage() {
                         <button
                           onClick={() => handleSell(reit)}
                           disabled={selling === reit.id || totalUnitsOwned === 0}
+                          title={`Sell units of ${reit.name}`}
                           className="flex-1 bg-white hover:bg-red-50 disabled:opacity-50 text-red-600 font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 border border-red-200"
                         >
-                          <Minus className="w-4 h-4" />
-                          {selling === reit.id ? "Processing..." : "Sell Units"}
+                          <Minus className="w-4 h-4 shrink-0" />
+                          <span className="truncate">
+                            {selling === reit.id ? "Processing..." : `Sell ${reit.name} Units`}
+                          </span>
                         </button>
                       </div>
                       <p className="text-xs text-gray-400 mt-2">

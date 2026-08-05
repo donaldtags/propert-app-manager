@@ -61,7 +61,7 @@ export default function NewPropertyPage() {
   const [suggestionError, setSuggestionError] = useState("");
 
   const handleGetPriceSuggestion = async () => {
-    if (!form.city || !form.bedrooms) return;
+    if (!form.city || !form.bedrooms || !token) return;
     setSuggestionError("");
     setSuggestionLoading(true);
     setRentSuggestion(null);
@@ -71,7 +71,7 @@ export default function NewPropertyPage() {
         city: form.city,
         suburb: form.suburb || undefined,
         bedrooms: form.bedrooms,
-      });
+      }, token);
       setRentSuggestion(result);
     } catch (err: unknown) {
       setSuggestionError(err instanceof Error ? err.message : "Could not compute a pricing suggestion.");
@@ -118,6 +118,18 @@ export default function NewPropertyPage() {
   useEffect(() => {
     return () => filePreviews.forEach((url) => URL.revokeObjectURL(url));
   }, [filePreviews]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      router.push("/login?redirect=/properties/new");
+      return;
+    }
+    if (!user.roles?.some((r) => LISTING_ROLES.includes(r))) {
+      router.push(settingsRoleUrl(LISTING_ROLES, "listing a property needs one of these roles"));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -179,34 +191,8 @@ export default function NewPropertyPage() {
     }
   };
 
-  if (loading) {
+  if (loading || !user || !user.roles?.some((r) => LISTING_ROLES.includes(r))) {
     return <div className="flex-1 flex items-center justify-center text-gray-400">Loading...</div>;
-  }
-
-  if (!user) {
-    router.push("/login?redirect=/properties/new");
-    return null;
-  }
-
-  const canList = user.roles?.some((r) => LISTING_ROLES.includes(r));
-  if (!canList) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center px-4">
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center max-w-md">
-          <Home className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Add a listing role to continue</h2>
-          <p className="text-gray-500 mb-6 text-sm">
-            Listing a property requires the Landlord, Agent, Developer, or Private Seller role on your account.
-          </p>
-          <Link
-            href={settingsRoleUrl(LISTING_ROLES, "listing a property needs one of these roles")}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-          >
-            Add a Role in Settings
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   if (success && createdId) {

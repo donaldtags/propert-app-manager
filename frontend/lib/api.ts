@@ -42,6 +42,11 @@ import type {
   LeaseActionRequest,
   LeaseActionType,
   LeaseActionStatus,
+  FeaturedListingSettings,
+  FeatureListingResult,
+  PlanSettings,
+  SubscriptionInfo,
+  SubscriptionPlan,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -129,6 +134,38 @@ export const properties = {
     return request<Property[]>(`/properties${qs ? `?${qs}` : ""}`);
   },
 
+  // Paginated variant for the public browse/search page. Reads the total count from the
+  // X-Total-Count response header so "Load more" knows when to stop, without changing the
+  // response shape other callers of `list()` rely on.
+  searchPaged: async (params: PropertySearchParams & { page: number; size: number }) => {
+    const q = new URLSearchParams();
+    if (params.listingType) q.set("listingType", params.listingType);
+    if (params.city) q.set("city", params.city);
+    if (params.suburb) q.set("suburb", params.suburb);
+    if (params.minPrice != null) q.set("minPrice", String(params.minPrice));
+    if (params.maxPrice != null) q.set("maxPrice", String(params.maxPrice));
+    if (params.bedrooms != null) q.set("bedrooms", String(params.bedrooms));
+    if (params.bathrooms != null) q.set("bathrooms", String(params.bathrooms));
+    if (params.diasporaFriendly) q.set("diasporaFriendly", "true");
+    if (params.solarInstalled) q.set("solarInstalled", "true");
+    if (params.backupPower) q.set("backupPower", "true");
+    if (params.waterSource) q.set("waterSource", params.waterSource);
+    if (params.furnished) q.set("furnished", "true");
+    if (params.internetAvailable) q.set("internetAvailable", "true");
+    if (params.securityFeatures) q.set("securityFeatures", "true");
+    if (params.parkingAvailable) q.set("parkingAvailable", "true");
+    if (params.petsAllowed) q.set("petsAllowed", "true");
+    if (params.verifiedOnly) q.set("verifiedOnly", "true");
+    if (params.escrowAvailable) q.set("escrowAvailable", "true");
+    q.set("page", String(params.page));
+    q.set("size", String(params.size));
+    const res = await fetch(`${BASE}/properties?${q.toString()}`);
+    if (!res.ok) throw new Error("Failed to load properties");
+    const items = (await res.json()) as Property[];
+    const totalCount = Number(res.headers.get("X-Total-Count") ?? items.length);
+    return { items, totalCount };
+  },
+
   get: (id: number) => request<Property>(`/properties/${id}`),
 
   getPassport: (id: number) => request<PropertyPassport>(`/properties/${id}/passport`),
@@ -168,6 +205,9 @@ export const properties = {
 
   verify: (id: number, data: { verifierId: number; note?: string }, token: string) =>
     request<Property>(`/properties/${id}/verify`, { method: "PATCH", body: JSON.stringify(data) }, token),
+
+  feature: (id: number, token: string) =>
+    request<FeatureListingResult>(`/properties/${id}/feature`, { method: "POST" }, token),
 
   submitInquiry: (id: number, data: { name: string; email: string; phone?: string; message: string }) =>
     request<void>(`/properties/${id}/inquiries`, { method: "POST", body: JSON.stringify(data) }),
@@ -623,6 +663,49 @@ export const admin = {
     request<FraudSignal[]>("/admin/fraud-signals", {}, token),
 };
 
+// Landlord/agent subscription tiers: pricing and feature gates are admin-controlled
+export const subscriptions = {
+  plans: () => request<PlanSettings[]>("/subscriptions/plans"),
+
+  updatePlan: (
+    plan: SubscriptionPlan,
+    data: {
+      monthlyPrice: number;
+      currency: string;
+      maxProperties: number | null;
+      escrowEnabled: boolean;
+      digitalLeasesEnabled: boolean;
+      maintenanceCoordinationEnabled: boolean;
+      rentRemindersEnabled: boolean;
+      aiPricingEnabled: boolean;
+      tenantPassportEnabled: boolean;
+      reportsEnabled: boolean;
+    },
+    token: string
+  ) =>
+    request<PlanSettings>(`/subscriptions/plans/${plan}`, { method: "PUT", body: JSON.stringify(data) }, token),
+
+  mine: (token: string) => request<SubscriptionInfo>("/subscriptions/me", {}, token),
+
+  subscribe: (plan: SubscriptionPlan, token: string) =>
+    request<SubscriptionInfo>("/subscriptions/subscribe", { method: "POST", body: JSON.stringify({ plan }) }, token),
+};
+
+// Featured listings: billing for landlords/agents to boost a listing, price set by admin
+export const featuredListings = {
+  settings: () => request<FeaturedListingSettings>("/featured-listings/settings"),
+
+  updateSettings: (
+    data: { price: number; currency: string; durationDays: number },
+    token: string
+  ) =>
+    request<FeaturedListingSettings>(
+      "/featured-listings/settings",
+      { method: "PUT", body: JSON.stringify(data) },
+      token
+    ),
+};
+
 // Viewings
 export const viewings = {
   create: (
@@ -764,11 +847,16 @@ export const neighbourhoods = {
 };
 
 // AI
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export const ai = {
-  search: (query: string) =>
+  search: (query: string, history?: ConversationTurn[]) =>
     request<{ answer: string; matches: Property[]; aiPowered: boolean }>("/ai/property-search", {
       method: "POST",
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, history }),
     }),
 
   affordability: (data: { grossMonthlyIncome: number; existingMonthlyDebt?: number; propertyId?: number }) =>
@@ -781,7 +869,7 @@ export const ai = {
       note: string;
     }>("/ai/affordability", { method: "POST", body: JSON.stringify(data) }),
 
-  rentSuggestion: (params: { listingType: string; city: string; suburb?: string; bedrooms: number }) => {
+  rentSuggestion: (params: { listingType: string; city: string; suburb?: string; bedrooms: number }, token: string) => {
     const q = new URLSearchParams();
     q.set("listingType", params.listingType);
     q.set("city", params.city);
@@ -793,13 +881,13 @@ export const ai = {
       priceRangeHigh: number | null;
       comparableCount: number;
       basis: string;
-    }>(`/ai/rent-suggestion?${q.toString()}`);
+    }>(`/ai/rent-suggestion?${q.toString()}`, {}, token);
   },
 
-  homeAssistant: (message: string, token: string) =>
+  homeAssistant: (message: string, token: string, history?: ConversationTurn[]) =>
     request<{ answer: string; aiPowered: boolean }>(
       "/ai/home-assistant",
-      { method: "POST", body: JSON.stringify({ message }) },
+      { method: "POST", body: JSON.stringify({ message, history }) },
       token
     ),
 

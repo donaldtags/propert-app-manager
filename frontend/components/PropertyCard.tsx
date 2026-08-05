@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Bed, Bath, MapPin, Shield, Globe, CheckCircle, Building2, Camera, Scale } from "lucide-react";
+import { Bed, Bath, MapPin, Shield, Globe, CheckCircle, Building2, Camera, Scale, Star } from "lucide-react";
 import type { Property } from "@/lib/types";
 import { isComparing, toggleCompare, MAX_COMPARE } from "@/lib/compareListings";
 
@@ -45,6 +45,7 @@ export default function PropertyCard({
   const photos = getPhotos(property);
   const photo = photos[0] ?? null;
   const isVerified = property.verificationStatus === "VERIFIED";
+  const isFeatured = property.featured && (!property.featuredUntil || new Date(property.featuredUntil).getTime() > Date.now());
   const companyName = property.agentName
     ? property.agentCompanyName
     : property.landlordCompanyName;
@@ -68,7 +69,9 @@ export default function PropertyCard({
       className={`group block bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-lg ${
         highlighted
           ? "border-blue-500 shadow-lg ring-2 ring-blue-200"
-          : "border-gray-200 shadow-sm"
+          : isFeatured
+            ? "border-amber-300 shadow-md ring-1 ring-amber-200"
+            : "border-gray-200 shadow-sm"
       }`}
     >
       {/* Photo */}
@@ -88,8 +91,16 @@ export default function PropertyCard({
           </div>
         )}
 
+        {isFeatured && (
+          <div className="absolute top-0 left-0">
+            <span className="bg-amber-500 text-white text-xs font-bold pl-2 pr-3 py-1 rounded-br-lg flex items-center gap-1 shadow">
+              <Star className="w-3 h-3 fill-white" /> Featured
+            </span>
+          </div>
+        )}
+
         {/* Type badge */}
-        <div className="absolute top-3 left-3">
+        <div className={`absolute left-3 ${isFeatured ? "top-9" : "top-3"}`}>
           <span
             className={`text-xs font-bold px-2 py-1 rounded ${
               property.listingType === "RENT"
