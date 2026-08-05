@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface ReitRepository extends JpaRepository<Reit, Long> {
     List<Reit> findByActiveTrue();
 
+    boolean existsByName(String name);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Reit r where r.id = :id")
     Optional<Reit> findByIdForUpdate(@Param("id") Long id);

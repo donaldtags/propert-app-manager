@@ -11,7 +11,10 @@ public final class AiDtos {
     private AiDtos() {
     }
 
-    public record AiPropertyQuery(@NotBlank String query) {
+    public record ConversationTurn(@NotBlank String role, @NotBlank String content) {
+    }
+
+    public record AiPropertyQuery(@NotBlank String query, List<ConversationTurn> history) {
     }
 
     public record AiPropertyAnswer(String answer, List<PropertyResponse> matches, boolean aiPowered) {
@@ -43,7 +46,7 @@ public final class AiDtos {
     ) {
     }
 
-    public record HomeAssistantRequest(@NotBlank String message) {
+    public record HomeAssistantRequest(@NotBlank String message, List<ConversationTurn> history) {
     }
 
     public record HomeAssistantResponse(String answer, boolean aiPowered) {

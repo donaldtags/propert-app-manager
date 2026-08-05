@@ -6,6 +6,8 @@ import com.example.primenestprop.lease.LeaseService;
 import com.example.primenestprop.lease.LeaseStatus;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
+import com.example.primenestprop.subscription.SubscriptionFeature;
+import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
@@ -24,24 +26,28 @@ public class EscrowService {
     private final LeaseService leases;
     private final UserService users;
     private final EscrowReleaseApprovalRepository releaseApprovals;
+    private final SubscriptionService subscriptions;
 
     public EscrowService(
             EscrowRepository escrows,
             PropertyService properties,
             LeaseService leases,
             UserService users,
-            EscrowReleaseApprovalRepository releaseApprovals
+            EscrowReleaseApprovalRepository releaseApprovals,
+            SubscriptionService subscriptions
     ) {
         this.escrows = escrows;
         this.properties = properties;
         this.leases = leases;
         this.users = users;
         this.releaseApprovals = releaseApprovals;
+        this.subscriptions = subscriptions;
     }
 
     @Transactional
     public EscrowTransaction create(EscrowDtos.CreateEscrowRequest request, AppUser payer) {
         Property property = properties.require(request.propertyId());
+        subscriptions.requireFeature(property.getLandlord(), SubscriptionFeature.ESCROW);
         EscrowTransaction escrow = new EscrowTransaction();
         escrow.setProperty(property);
         escrow.setPayer(payer);

@@ -53,12 +53,17 @@ public class ZimbabweReitMarketService {
     }
 
     public MarketSnapshot snapshot() {
-        if (cache.get().isEmpty()) {
-            refresh();
-        }
         Instant success = lastSuccess.get();
         boolean stale = success == null || Instant.now().isAfter(success.plusMillis(STALE_AFTER_MILLIS));
         return new MarketSnapshot(cache.get(), success, stale, SOURCE_URL);
+    }
+
+    public MarketQuote quoteFor(String ticker) {
+        if (ticker == null || ticker.isBlank()) return null;
+        return snapshot().quotes().stream()
+                .filter(q -> q.ticker().equalsIgnoreCase(ticker))
+                .findFirst()
+                .orElse(null);
     }
 
     private List<MarketQuote> fetch() throws IOException {

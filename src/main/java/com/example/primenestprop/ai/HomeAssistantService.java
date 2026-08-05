@@ -2,6 +2,7 @@ package com.example.primenestprop.ai;
 
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
+import com.example.primenestprop.ai.AiDtos.ConversationTurn;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.lease.Lease;
 import com.example.primenestprop.lease.LeaseService;
@@ -55,16 +56,16 @@ public class HomeAssistantService {
     }
 
     @Transactional(readOnly = true)
-    public String answer(AppUser tenant, String question) {
+    public String answer(AppUser tenant, String question, List<ConversationTurn> history) {
         TenantContext context = buildContext(tenant);
         if (anthropicConfig.client() != null) {
             try {
-                return answerWithClaude(question, context);
+                return answerWithClaude(tenant, question, context, history);
             } catch (Exception ex) {
                 log.warn("Claude home-assistant answer failed, falling back to rule-based answer", ex);
             }
         }
-        return ruleBasedAnswer(question, context);
+        return ruleBasedAnswer(tenant, question, context);
     }
 
     @Transactional(readOnly = true)
@@ -130,19 +131,29 @@ public class HomeAssistantService {
         return new TenantContext(tenantLeases, activeLease, nextDueInvoice, tenantMaintenance);
     }
 
-    private String answerWithClaude(String question, TenantContext context) {
-        String system = "You are PrimeNest's Home Assistant for a tenant on a Zimbabwean rental platform. "
-                + "Answer ONLY using the facts given below about this specific tenant's lease, rent, and maintenance "
-                + "history. Never invent a date, amount, or status that isn't given. If the facts don't cover the "
-                + "question, say what you do know and suggest where in the app they can find the rest (Leases, "
-                + "Payments, or Maintenance pages). Keep the answer to 2-4 short sentences.\n\n" + factsSummary(context);
+    private String answerWithClaude(AppUser tenant, String question, TenantContext context, List<ConversationTurn> history) {
+        String system = "You are " + AiAssistantService.ASSISTANT_NAME + ", PrimeNest's Home Assistant for "
+                + tenant.getFullName() + ", a tenant on a Zimbabwean rental platform. Use the conversation so far "
+                + "for context. Answer ONLY using the facts given below about this specific tenant's lease, rent, "
+                + "and maintenance history. Never invent a date, amount, or status that isn't given. If the facts "
+                + "don't cover the question, say what you do know and suggest where in the app they can find the "
+                + "rest (Leases, Payments, or Maintenance pages). Keep the answer to 2-4 short sentences.\n\n"
+                + factsSummary(context);
 
-        MessageCreateParams params = MessageCreateParams.builder()
+        MessageCreateParams.Builder builder = MessageCreateParams.builder()
                 .model(anthropicConfig.model())
                 .maxTokens(400L)
-                .system(system)
-                .addUserMessage(question)
-                .build();
+                .system(system);
+        if (history != null) {
+            for (ConversationTurn turn : history) {
+                if ("assistant".equalsIgnoreCase(turn.role())) {
+                    builder.addAssistantMessage(turn.content());
+                } else {
+                    builder.addUserMessage(turn.content());
+                }
+            }
+        }
+        MessageCreateParams params = builder.addUserMessage(question).build();
 
         return textOf(anthropicConfig.client().messages().create(params));
     }
@@ -187,13 +198,34 @@ public class HomeAssistantService {
         return sb.toString();
     }
 
-    private String ruleBasedAnswer(String question, TenantContext context) {
-        String q = question.toLowerCase(Locale.ROOT);
+    private static final List<String> GREETING_WORDS = List.of("hi", "hello", "hey", "hiya", "yo", "sup", "good morning", "good afternoon", "good evening");
+    private static final List<String> THANKS_WORDS = List.of("thanks", "thank you", "thx", "cheers", "appreciate");
+    private static final List<String> NAME_PHRASES = List.of("your name", "who are you", "what are you called", "what's your name");
+
+    private String ruleBasedAnswer(AppUser tenant, String question, TenantContext context) {
+        String q = question.toLowerCase(Locale.ROOT).strip();
+        String firstName = tenant.getFullName() == null ? null : tenant.getFullName().split("\\s+")[0];
+
+        boolean isGreeting = GREETING_WORDS.stream().anyMatch(w -> q.equals(w) || q.startsWith(w + " ") || q.startsWith(w + ","));
+        boolean asksName = NAME_PHRASES.stream().anyMatch(q::contains);
+        boolean saysThanks = THANKS_WORDS.stream().anyMatch(q::contains);
         boolean asksRent = q.contains("rent") && (q.contains("due") || q.contains("when") || q.contains("pay"));
         boolean asksLease = q.contains("lease") && (q.contains("explain") || q.contains("terms") || q.contains("what"));
         boolean asksMaintenance = q.contains("maintenance") || q.contains("repair") || q.contains("fix")
                 || (q.contains("issue") && q.contains("landlord"));
 
+        if (asksName) {
+            return "I'm " + AiAssistantService.ASSISTANT_NAME + ", your Home Assistant here on PrimeNest"
+                    + (firstName != null ? " — nice to meet you, " + firstName + "!" : "!")
+                    + " I can help with your rent due dates, lease terms, and maintenance requests.";
+        }
+        if (isGreeting) {
+            return "Hey" + (firstName != null ? " " + firstName : "") + "! I'm " + AiAssistantService.ASSISTANT_NAME
+                    + ". Ask me about your rent, lease, or maintenance requests and I'll pull up your actual account details.";
+        }
+        if (saysThanks) {
+            return "You're welcome" + (firstName != null ? ", " + firstName : "") + "! Let me know if there's anything else about your rent, lease, or maintenance you'd like to check.";
+        }
         if (asksRent) {
             return rentAnswer(context);
         }

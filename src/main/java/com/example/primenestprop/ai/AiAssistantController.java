@@ -3,6 +3,8 @@ package com.example.primenestprop.ai;
 import com.example.primenestprop.property.ListingType;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyDtos.PropertyResponse;
+import com.example.primenestprop.subscription.SubscriptionFeature;
+import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -22,23 +24,26 @@ public class AiAssistantController {
     private final AffordabilityService affordabilityService;
     private final RentPricingService rentPricingService;
     private final HomeAssistantService homeAssistantService;
+    private final SubscriptionService subscriptions;
 
     public AiAssistantController(
             AiAssistantService service,
             AffordabilityService affordabilityService,
             RentPricingService rentPricingService,
-            HomeAssistantService homeAssistantService
+            HomeAssistantService homeAssistantService,
+            SubscriptionService subscriptions
     ) {
         this.service = service;
         this.affordabilityService = affordabilityService;
         this.rentPricingService = rentPricingService;
         this.homeAssistantService = homeAssistantService;
+        this.subscriptions = subscriptions;
     }
 
     @PostMapping("/property-search")
     AiDtos.AiPropertyAnswer propertySearch(@Valid @RequestBody AiDtos.AiPropertyQuery request) {
-        List<Property> matches = service.search(request.query());
-        String answer = service.answer(request.query(), matches);
+        List<Property> matches = service.search(request.query(), request.history());
+        String answer = service.answer(request.query(), matches, request.history());
         List<PropertyResponse> responses = matches.stream().map(PropertyResponse::from).toList();
         return new AiDtos.AiPropertyAnswer(answer, responses, service.aiPowered());
     }
@@ -53,8 +58,10 @@ public class AiAssistantController {
             @RequestParam(defaultValue = "RENT") ListingType listingType,
             @RequestParam String city,
             @RequestParam(required = false) String suburb,
-            @RequestParam int bedrooms
+            @RequestParam int bedrooms,
+            @AuthenticationPrincipal AppUser currentUser
     ) {
+        subscriptions.requireFeature(currentUser, SubscriptionFeature.AI_PRICING);
         return rentPricingService.suggest(listingType, city, suburb, bedrooms);
     }
 
@@ -63,7 +70,7 @@ public class AiAssistantController {
             @Valid @RequestBody AiDtos.HomeAssistantRequest request,
             @AuthenticationPrincipal AppUser currentUser
     ) {
-        String answer = homeAssistantService.answer(currentUser, request.message());
+        String answer = homeAssistantService.answer(currentUser, request.message(), request.history());
         return new AiDtos.HomeAssistantResponse(answer, homeAssistantService.aiPowered());
     }
 

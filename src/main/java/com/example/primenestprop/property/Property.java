@@ -83,6 +83,9 @@ public class Property {
     private Instant createdAt = Instant.now();
     private Instant verifiedAt;
 
+    private boolean featured;
+    private Instant featuredUntil;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private AppUser landlord;
 

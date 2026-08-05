@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,10 +104,26 @@ public class PropertyService {
         return saved;
     }
 
+    /** Called right after creation when the landlord's plan doesn't include escrow - keeps the
+     * property record honest so the "Escrow Protected" badge never promises something the
+     * landlord's plan can't actually deliver. */
+    @Transactional
+    public Property forceDisableEscrow(Property property) {
+        property.setEscrowRequired(false);
+        return properties.save(property);
+    }
+
     public Property require(Long id) {
         return properties.findWithPhotosById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Property not found"));
     }
+
+    /** Internal callers (AI search, rent pricing comparables) don't paginate - bound them to a
+     * sane page so a broad query can never pull the entire table into memory. MAX_PAGE_SIZE is a
+     * hard ceiling shared by both the paginated browse endpoint and legacy "give me everything"
+     * callers, so no query - however it's invoked - can ever pull the whole table into memory. */
+    private static final int INTERNAL_SEARCH_LIMIT = 50;
+    private static final int MAX_PAGE_SIZE = 500;
 
     public List<Property> search(
             ListingType listingType,
@@ -140,9 +159,38 @@ public class PropertyService {
             Boolean verifiedOnly,
             Boolean escrowAvailable
     ) {
+        return searchPage(listingType, city, suburb, minPrice, maxPrice, bedrooms, bathrooms, diasporaFriendly,
+                solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
+                parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, 0, INTERNAL_SEARCH_LIMIT)
+                .getContent();
+    }
+
+    public Page<Property> searchPage(
+            ListingType listingType,
+            String city,
+            String suburb,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Integer bedrooms,
+            Integer bathrooms,
+            Boolean diasporaFriendly,
+            Boolean solarInstalled,
+            Boolean backupPower,
+            WaterSource waterSource,
+            Boolean furnished,
+            Boolean internetAvailable,
+            Boolean securityFeatures,
+            Boolean parkingAvailable,
+            Boolean petsAllowed,
+            Boolean verifiedOnly,
+            Boolean escrowAvailable,
+            int page,
+            int size
+    ) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
         return properties.search(listingType, blankToNull(city), blankToNull(suburb), minPrice, maxPrice, bedrooms, bathrooms,
                 diasporaFriendly, solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
-                parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable);
+                parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, pageable);
     }
 
     public List<Property> forLandlord(Long landlordId) {

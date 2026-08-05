@@ -4,6 +4,9 @@ import static com.example.primenestprop.lease.LeaseDtos.LeaseResponse;
 
 import com.example.primenestprop.auth.AuthService;
 import com.example.primenestprop.lease.LeaseDocumentDtos.LeaseDocumentResponse;
+import com.example.primenestprop.property.PropertyService;
+import com.example.primenestprop.subscription.SubscriptionFeature;
+import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -32,23 +35,30 @@ public class LeaseController {
     private final LeaseExtractionService extractionService;
     private final AuthService authService;
     private final LeaseActionService actionService;
+    private final PropertyService properties;
+    private final SubscriptionService subscriptions;
 
     public LeaseController(
             LeaseService service,
             LeaseDocumentService documentService,
             LeaseExtractionService extractionService,
             AuthService authService,
-            LeaseActionService actionService
+            LeaseActionService actionService,
+            PropertyService properties,
+            SubscriptionService subscriptions
     ) {
         this.service = service;
         this.documentService = documentService;
         this.extractionService = extractionService;
         this.authService = authService;
         this.actionService = actionService;
+        this.properties = properties;
+        this.subscriptions = subscriptions;
     }
 
     @PostMapping
     LeaseResponse create(@Valid @RequestBody LeaseDtos.CreateLeaseRequest request, @AuthenticationPrincipal AppUser currentUser) {
+        subscriptions.requireFeature(properties.require(request.propertyId()).getLandlord(), SubscriptionFeature.DIGITAL_LEASES);
         return LeaseResponse.from(service.create(request, currentUser));
     }
 

@@ -1,6 +1,7 @@
 package com.example.primenestprop.investment;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.market.ZimbabweReitMarketService;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyRepository;
 import com.example.primenestprop.user.AppUser;
@@ -19,19 +20,26 @@ public class InvestmentService {
     private final UserService users;
     private final PropertyRepository properties;
     private final InvestmentScoreService scoreService;
+    private final ZimbabweReitMarketService marketService;
 
     public InvestmentService(
             ReitRepository reits,
             InvestmentRepository investments,
             UserService users,
             PropertyRepository properties,
-            InvestmentScoreService scoreService
+            InvestmentScoreService scoreService,
+            ZimbabweReitMarketService marketService
     ) {
         this.reits = reits;
         this.investments = investments;
         this.users = users;
         this.properties = properties;
         this.scoreService = scoreService;
+        this.marketService = marketService;
+    }
+
+    private InvestmentDtos.ReitResponse toResponse(Reit reit) {
+        return InvestmentDtos.ReitResponse.from(reit, scoreService, marketService.quoteFor(reit.getTickerSymbol()));
     }
 
     @Transactional
@@ -51,10 +59,11 @@ public class InvestmentService {
         reit.setUnitsSold(java.math.BigDecimal.ZERO);
         reit.setPropertyType(request.propertyType() == null || request.propertyType().isBlank() ? "RESIDENTIAL" : request.propertyType());
         reit.setCoverImageUrl(request.coverImageUrl());
+        reit.setTickerSymbol(request.tickerSymbol());
         if (request.propertyIds() != null && !request.propertyIds().isEmpty()) {
             reit.setProperties(new java.util.LinkedHashSet<>(properties.findAllById(request.propertyIds())));
         }
-        return InvestmentDtos.ReitResponse.from(reits.save(reit), scoreService);
+        return toResponse(reits.save(reit));
     }
 
     @Transactional
@@ -66,12 +75,12 @@ public class InvestmentService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "REIT not found"));
         Set<Property> linked = new java.util.LinkedHashSet<>(properties.findAllById(request.propertyIds()));
         reit.setProperties(linked);
-        return InvestmentDtos.ReitResponse.from(reits.save(reit), scoreService);
+        return toResponse(reits.save(reit));
     }
 
     @Transactional(readOnly = true)
     public List<InvestmentDtos.ReitResponse> activeReits() {
-        return reits.findByActiveTrue().stream().map(r -> InvestmentDtos.ReitResponse.from(r, scoreService)).toList();
+        return reits.findByActiveTrue().stream().map(this::toResponse).toList();
     }
 
     @Transactional

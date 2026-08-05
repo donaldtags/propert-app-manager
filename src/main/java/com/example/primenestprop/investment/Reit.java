@@ -49,6 +49,9 @@ public class Reit {
     @Column(length = 1000)
     private String coverImageUrl;
 
+    /** ZSE ticker this product tracks for reference market data, e.g. "TIG". Null if untracked. */
+    private String tickerSymbol;
+
     /** Null means unlimited inventory. */
     private BigDecimal totalUnits;
     private BigDecimal unitsSold = BigDecimal.ZERO;
