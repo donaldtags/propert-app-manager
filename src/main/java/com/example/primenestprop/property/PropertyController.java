@@ -3,12 +3,16 @@ package com.example.primenestprop.property;
 import static com.example.primenestprop.property.PropertyDtos.PropertyResponse;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.subscription.SubscriptionFeature;
+import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserRole;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -24,12 +28,20 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/v1/properties")
 public class PropertyController {
+    /** Requests that pass page/size get a normal UI page. Requests that don't (older
+     * "give me everything for a picker" call sites) get a generous but still-bounded slice, so
+     * behaviour for those callers is unchanged in practice while the query can never run away. */
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int LEGACY_UNPAGINATED_SIZE = 500;
+
     private final PropertyService service;
     private final PropertyPassportService passportService;
+    private final SubscriptionService subscriptions;
 
-    public PropertyController(PropertyService service, PropertyPassportService passportService) {
+    public PropertyController(PropertyService service, PropertyPassportService passportService, SubscriptionService subscriptions) {
         this.service = service;
         this.passportService = passportService;
+        this.subscriptions = subscriptions;
     }
 
     @PostMapping
@@ -37,11 +49,18 @@ public class PropertyController {
         if (!request.landlordId().equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "landlordId must match the authenticated user");
         }
-        return PropertyResponse.from(service.create(request));
+        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+            subscriptions.requirePropertyCapacity(currentUser);
+        }
+        Property saved = service.create(request);
+        if (saved.isEscrowRequired() && !subscriptions.hasFeature(saved.getLandlord(), SubscriptionFeature.ESCROW)) {
+            saved = service.forceDisableEscrow(saved);
+        }
+        return PropertyResponse.from(service.require(saved.getId()));
     }
 
     @GetMapping
-    List<PropertyResponse> search(
+    ResponseEntity<List<PropertyResponse>> search(
             @RequestParam(required = false) ListingType listingType,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String suburb,
@@ -59,13 +78,18 @@ public class PropertyController {
             @RequestParam(required = false) Boolean parkingAvailable,
             @RequestParam(required = false) Boolean petsAllowed,
             @RequestParam(required = false) Boolean verifiedOnly,
-            @RequestParam(required = false) Boolean escrowAvailable
+            @RequestParam(required = false) Boolean escrowAvailable,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
     ) {
-        return service.search(listingType, city, suburb, minPrice, maxPrice, bedrooms, bathrooms, diasporaFriendly,
-                        solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
-                        parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable).stream()
-                .map(PropertyResponse::from)
-                .toList();
+        boolean paginated = page != null || size != null;
+        int resolvedSize = size != null ? size : (paginated ? DEFAULT_PAGE_SIZE : LEGACY_UNPAGINATED_SIZE);
+        Page<Property> results = service.searchPage(listingType, city, suburb, minPrice, maxPrice, bedrooms, bathrooms,
+                diasporaFriendly, solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
+                parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, page != null ? page : 0, resolvedSize);
+        return ResponseEntity.ok()
+                .header("X-Total-Count", String.valueOf(results.getTotalElements()))
+                .body(results.getContent().stream().map(PropertyResponse::from).toList());
     }
 
     @GetMapping("/{id}")

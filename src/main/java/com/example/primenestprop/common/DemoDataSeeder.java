@@ -252,6 +252,7 @@ class DemoDataSeeder implements CommandLineRunner {
                 new BigDecimal("50000"),
                 "RESIDENTIAL",
                 null,
+                null,
                 null
         ), admin);
         investmentService.invest(new InvestmentDtos.CreateInvestmentRequest(

@@ -3,6 +3,8 @@ package com.example.primenestprop.maintenance;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
+import com.example.primenestprop.subscription.SubscriptionFeature;
+import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
@@ -33,6 +35,7 @@ public class MaintenanceService {
     private final UserService users;
     private final MaintenanceTriageService triageService;
     private final VendorService vendorService;
+    private final SubscriptionService subscriptions;
     private final Path photoStorageRoot;
     private final String publicBaseUrl;
 
@@ -43,9 +46,11 @@ public class MaintenanceService {
             UserService users,
             MaintenanceTriageService triageService,
             VendorService vendorService,
+            SubscriptionService subscriptions,
             @Value("${app.storage.maintenance-photos:storage/maintenance-photos}") String photoStorageRoot,
             @Value("${app.public-base-url:http://localhost:8081}") String publicBaseUrl
     ) {
+        this.subscriptions = subscriptions;
         this.requests = requests;
         this.photos = photos;
         this.properties = properties;
@@ -78,6 +83,7 @@ public class MaintenanceService {
         if (!isLandlordOrAgent && !currentUser.getRoles().contains(UserRole.ADMIN)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the property landlord, agent, or an admin can assign a vendor");
         }
+        subscriptions.requireFeature(property.getLandlord(), SubscriptionFeature.MAINTENANCE_REQUESTS);
         Vendor vendor = vendorService.require(vendorId);
         request.setAssignedVendor(vendor);
         if (request.getStatus() == MaintenanceStatus.OPEN) {

@@ -45,7 +45,7 @@ public class Notification {
 
     private Long relatedId;
 
-    @Column(nullable = false)
+    @Column(name = "is_read", nullable = false)
     private boolean read;
 
     private Instant createdAt = Instant.now();

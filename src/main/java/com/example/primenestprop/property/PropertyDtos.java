@@ -119,6 +119,8 @@ public final class PropertyDtos {
             Integer agentTrustScore,
             Instant createdAt,
             Instant verifiedAt,
+            boolean featured,
+            Instant featuredUntil,
             List<String> photoUrls,
             List<String> imageUrls,
             List<String> photos
@@ -174,6 +176,8 @@ public final class PropertyDtos {
                     agentTrustScore,
                     property.getCreatedAt(),
                     property.getVerifiedAt(),
+                    property.isFeatured(),
+                    property.getFeaturedUntil(),
                     urls,
                     urls,
                     urls

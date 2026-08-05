@@ -28,6 +28,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(allowedOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("X-Total-Count"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
@@ -58,10 +59,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/logs/frontend").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/property-search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/affordability").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/ai/rent-suggestion").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/inquiries").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties", "/api/v1/properties/*", "/api/v1/properties/*/passport").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/investments/reits").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/featured-listings/settings").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/featured-listings/settings").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/subscriptions/plans").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/subscriptions/plans/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/market/reits/zw").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/neighbourhoods").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/neighbourhoods").hasRole("ADMIN")

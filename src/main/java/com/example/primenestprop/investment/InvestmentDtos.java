@@ -1,5 +1,7 @@
 package com.example.primenestprop.investment;
 
+
+import com.example.primenestprop.market.MarketQuote;
 import com.example.primenestprop.property.ListingType;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyPhoto;
@@ -24,7 +26,8 @@ public final class InvestmentDtos {
             @DecimalMin("0.01") BigDecimal totalUnits,
             String propertyType,
             String coverImageUrl,
-            List<Long> propertyIds
+            List<Long> propertyIds,
+            String tickerSymbol
     ) {
     }
 
@@ -89,10 +92,12 @@ public final class InvestmentDtos {
             BigDecimal availableUnits,
             String propertyType,
             String coverImageUrl,
+            String tickerSymbol,
+            MarketQuote marketQuote,
             InvestmentScore investmentScore,
             List<ReitPropertySummary> properties
     ) {
-        public static ReitResponse from(Reit reit, InvestmentScoreService scoreService) {
+        public static ReitResponse from(Reit reit, InvestmentScoreService scoreService, MarketQuote marketQuote) {
             return new ReitResponse(
                     reit.getId(),
                     reit.getName(),
@@ -107,6 +112,8 @@ public final class InvestmentDtos {
                     reit.getAvailableUnits(),
                     reit.getPropertyType(),
                     reit.getCoverImageUrl(),
+                    reit.getTickerSymbol(),
+                    marketQuote,
                     scoreService.compute(reit),
                     reit.getProperties().stream().map(ReitPropertySummary::from).toList()
             );
