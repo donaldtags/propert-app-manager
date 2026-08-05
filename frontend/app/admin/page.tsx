@@ -13,6 +13,8 @@ import {
   admin as adminApi,
   neighbourhoods as neighbourhoodsApi,
   vendors as vendorsApi,
+  featuredListings as featuredListingsApi,
+  subscriptions as subscriptionsApi,
 } from "@/lib/api";
 import type {
   User,
@@ -27,6 +29,9 @@ import type {
   NeighbourhoodProfile,
   Vendor,
   VendorCategory,
+  FeaturedListingSettings,
+  PlanSettings,
+  SubscriptionPlan,
 } from "@/lib/types";
 import {
   ShieldCheck,
@@ -46,12 +51,14 @@ import {
   ShieldAlert,
   MapPin,
   Wrench,
+  Star,
+  CreditCard,
 } from "lucide-react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminMessagesPanel from "@/components/AdminMessagesPanel";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "escrows" | "messages" | "fraud" | "neighbourhoods" | "vendors";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "escrows" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -101,6 +108,51 @@ export default function AdminPortalPage() {
   const [nError, setNError] = useState("");
   const [nSuccess, setNSuccess] = useState("");
   const [nLoaded, setNLoaded] = useState<NeighbourhoodProfile | null>(null);
+
+  const [planList, setPlanList] = useState<PlanSettings[]>([]);
+  const [planDrafts, setPlanDrafts] = useState<Record<string, PlanSettings>>({});
+  const [planSaving, setPlanSaving] = useState<SubscriptionPlan | null>(null);
+  const [planError, setPlanError] = useState("");
+  const [planSuccess, setPlanSuccess] = useState("");
+
+  const updatePlanDraft = (plan: SubscriptionPlan, patch: Partial<PlanSettings>) => {
+    setPlanDrafts((prev) => ({ ...prev, [plan]: { ...prev[plan], ...patch } }));
+  };
+
+  const handleSavePlan = async (plan: SubscriptionPlan) => {
+    const draft = planDrafts[plan];
+    if (!token || !draft) return;
+    setPlanError(""); setPlanSuccess(""); setPlanSaving(plan);
+    try {
+      const saved = await subscriptionsApi.updatePlan(plan, {
+        monthlyPrice: draft.monthlyPrice,
+        currency: draft.currency,
+        maxProperties: draft.maxProperties,
+        escrowEnabled: draft.escrowEnabled,
+        digitalLeasesEnabled: draft.digitalLeasesEnabled,
+        maintenanceCoordinationEnabled: draft.maintenanceCoordinationEnabled,
+        rentRemindersEnabled: draft.rentRemindersEnabled,
+        aiPricingEnabled: draft.aiPricingEnabled,
+        tenantPassportEnabled: draft.tenantPassportEnabled,
+        reportsEnabled: draft.reportsEnabled,
+      }, token);
+      setPlanList((prev) => prev.map((p) => (p.plan === plan ? saved : p)));
+      setPlanDrafts((prev) => ({ ...prev, [plan]: saved }));
+      setPlanSuccess(`${plan} plan updated.`);
+    } catch (err: unknown) {
+      setPlanError(err instanceof Error ? err.message : "Failed to update plan.");
+    } finally {
+      setPlanSaving(null);
+    }
+  };
+
+  const [featuredSettings, setFeaturedSettings] = useState<FeaturedListingSettings | null>(null);
+  const [fpPrice, setFpPrice] = useState("15.00");
+  const [fpCurrency, setFpCurrency] = useState("USD");
+  const [fpDurationDays, setFpDurationDays] = useState("14");
+  const [fpSaving, setFpSaving] = useState(false);
+  const [fpError, setFpError] = useState("");
+  const [fpSuccess, setFpSuccess] = useState("");
 
   const [vendorList, setVendorList] = useState<Vendor[]>([]);
   const [vendorsLoading, setVendorsLoading] = useState(true);
@@ -182,6 +234,23 @@ export default function AdminPortalPage() {
     }
   };
 
+  const handleSaveFeaturedPricing = async () => {
+    if (!token) return;
+    setFpError(""); setFpSuccess(""); setFpSaving(true);
+    try {
+      const saved = await featuredListingsApi.updateSettings(
+        { price: Number(fpPrice), currency: fpCurrency, durationDays: Number(fpDurationDays) },
+        token
+      );
+      setFeaturedSettings(saved);
+      setFpSuccess("Featured listing price updated.");
+    } catch (err: unknown) {
+      setFpError(err instanceof Error ? err.message : "Failed to update pricing.");
+    } finally {
+      setFpSaving(false);
+    }
+  };
+
   const [kycSubmissions, setKycSubmissions] = useState<KycSubmission[]>([]);
   const [kycLoading, setKycLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
@@ -218,6 +287,18 @@ export default function AdminPortalPage() {
     adminApi.fraudSignals(token).then(setFraudSignals).catch(() => {}).finally(() => setFraudLoading(false));
 
     loadVendors();
+
+    featuredListingsApi.settings().then((s) => {
+      setFeaturedSettings(s);
+      setFpPrice(s.price.toFixed(2));
+      setFpCurrency(s.currency);
+      setFpDurationDays(String(s.durationDays));
+    }).catch(() => {});
+
+    subscriptionsApi.plans().then((list) => {
+      setPlanList(list);
+      setPlanDrafts(Object.fromEntries(list.map((p) => [p.plan, p])));
+    }).catch(() => {});
 
     setKycLoading(true);
     kycApi.listForAdmin(token).then(setKycSubmissions).catch(() => {}).finally(() => setKycLoading(false));
@@ -384,6 +465,8 @@ export default function AdminPortalPage() {
     { key: "fraud", label: "Fraud Signals", icon: ShieldAlert, count: fraudSignals.length },
     { key: "neighbourhoods", label: "Neighbourhoods", icon: MapPin },
     { key: "vendors", label: "Service Vendors", icon: Wrench, count: vendorList.length },
+    { key: "pricing", label: "Featured Listing Pricing", icon: Star },
+    { key: "subscriptions", label: "Subscription Plans", icon: CreditCard },
   ];
 
   return (
@@ -1058,6 +1141,179 @@ export default function AdminPortalPage() {
             >
               {nSaving ? "Saving…" : nLoaded ? "Update Profile" : "Create Profile"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {tab === "pricing" && (
+        <div className="max-w-lg">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500" /> Featured Listing Pricing
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Set what landlords and agents pay to feature one of their listings, and how many days the boost
+              lasts. Charges settle instantly and show up as platform revenue in payment records.
+            </p>
+          </div>
+
+          {fpError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" /> {fpError}
+            </div>
+          )}
+          {fpSuccess && (
+            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 shrink-0" /> {fpSuccess}
+            </div>
+          )}
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Price</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={fpPrice}
+                  onChange={(e) => setFpPrice(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Currency</label>
+                <input
+                  value={fpCurrency}
+                  onChange={(e) => setFpCurrency(e.target.value.toUpperCase())}
+                  maxLength={3}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Duration (days)</label>
+              <input
+                type="number"
+                min="1"
+                value={fpDurationDays}
+                onChange={(e) => setFpDurationDays(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {featuredSettings && (
+              <p className="text-xs text-gray-400">
+                Current: ${featuredSettings.price.toFixed(2)} {featuredSettings.currency} for {featuredSettings.durationDays} days
+              </p>
+            )}
+
+            <button
+              onClick={handleSaveFeaturedPricing}
+              disabled={fpSaving || !fpPrice || !fpCurrency || !fpDurationDays}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
+            >
+              {fpSaving ? "Saving…" : "Save Pricing"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === "subscriptions" && (
+        <div className="max-w-4xl">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-blue-600" /> Subscription Plans
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Set the monthly price, property cap, and feature gates for each landlord/agent plan tier.
+              Growth+ features are enforced across escrow, digital leases, maintenance coordination, and AI pricing.
+            </p>
+          </div>
+
+          {planError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" /> {planError}
+            </div>
+          )}
+          {planSuccess && (
+            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 shrink-0" /> {planSuccess}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {planList.map((plan) => {
+              const draft = planDrafts[plan.plan] ?? plan;
+              const featureFields: { key: keyof PlanSettings; label: string }[] = [
+                { key: "escrowEnabled", label: "Escrow" },
+                { key: "digitalLeasesEnabled", label: "Digital leases" },
+                { key: "maintenanceCoordinationEnabled", label: "Maintenance coordination" },
+                { key: "rentRemindersEnabled", label: "Rent reminders" },
+                { key: "aiPricingEnabled", label: "AI pricing" },
+                { key: "tenantPassportEnabled", label: "Tenant Passport" },
+                { key: "reportsEnabled", label: "Reports" },
+              ];
+              return (
+                <div key={plan.plan} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{plan.plan}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">Price</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={draft.monthlyPrice}
+                        onChange={(e) => updatePlanDraft(plan.plan, { monthlyPrice: Number(e.target.value) })}
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">Currency</label>
+                      <input
+                        value={draft.currency}
+                        onChange={(e) => updatePlanDraft(plan.plan, { currency: e.target.value.toUpperCase() })}
+                        maxLength={3}
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-1">Max properties (blank = unlimited)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={draft.maxProperties ?? ""}
+                      onChange={(e) => updatePlanDraft(plan.plan, { maxProperties: e.target.value === "" ? null : Number(e.target.value) })}
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    {featureFields.map(({ key, label }) => (
+                      <label key={String(key)} className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(draft[key])}
+                          onChange={(e) => updatePlanDraft(plan.plan, { [key]: e.target.checked } as Partial<PlanSettings>)}
+                          className="rounded border-gray-300"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => handleSavePlan(plan.plan)}
+                    disabled={planSaving === plan.plan}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors"
+                  >
+                    {planSaving === plan.plan ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

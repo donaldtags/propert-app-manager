@@ -37,10 +37,10 @@ import {
 } from "lucide-react";
 import { properties as propertiesApi, ratings as ratingsApi, messages as messagesApi, ai as aiApi, viewings as viewingsApi, applications as applicationsApi } from "@/lib/api";
 import type { Property, PropertyPassport, Rating, Viewing, RentalApplication } from "@/lib/types";
-import RolePrompt from "@/components/RolePrompt";
 import { useAuth } from "@/lib/auth";
 import { logEvent } from "@/lib/api";
 import { isSaved, toggleSaved } from "@/lib/savedListings";
+import { settingsRoleUrl } from "@/lib/roleGate";
 
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
   ssr: false,
@@ -134,18 +134,12 @@ export default function PropertyDetailPage() {
     if (!id) return;
     setLoading(true);
     try {
-      const [prop, ratingData] = await Promise.allSettled([
-        propertiesApi.get(Number(id)),
-        ratingsApi.listByLandlord(0), // will filter by landlordId once we have it
-      ]);
-      if (prop.status === "fulfilled") {
-        setProperty(prop.value);
-        setSaved(isSaved(prop.value.id));
-        // Now load ratings for this landlord
-        const r = await ratingsApi.listByLandlord(prop.value.landlordId);
-        setRatings(r);
-        logEvent("info", "property_viewed", `/properties/${id}`, "User opened property details", user?.id, { propertyId: Number(id) });
-      }
+      const prop = await propertiesApi.get(Number(id));
+      setProperty(prop);
+      setSaved(isSaved(prop.id));
+      const r = await ratingsApi.listByLandlord(prop.landlordId);
+      setRatings(r);
+      logEvent("info", "property_viewed", `/properties/${id}`, "User opened property details", user?.id, { propertyId: Number(id) });
     } catch {
       // handled by empty state
     } finally {
@@ -188,7 +182,6 @@ export default function PropertyDetailPage() {
   const [applicationSubmitting, setApplicationSubmitting] = useState(false);
   const [applicationError, setApplicationError] = useState("");
   const [applicationResult, setApplicationResult] = useState<RentalApplication | null>(null);
-  const [showApplyRolePrompt, setShowApplyRolePrompt] = useState(false);
 
   const handleApply = () => {
     if (!user) {
@@ -200,10 +193,9 @@ export default function PropertyDetailPage() {
       return;
     }
     if (!user.roles?.some((r) => r === "TENANT" || r === "DIASPORA")) {
-      setShowApplyRolePrompt(true);
+      router.push(settingsRoleUrl(["TENANT", "DIASPORA"], "applying for a rental needs the Tenant role"));
       return;
     }
-    setShowApplyRolePrompt(false);
     setApplicationResult(null);
     setApplicationError("");
     setApplicationModalOpen(true);
@@ -1101,12 +1093,6 @@ export default function PropertyDetailPage() {
                 >
                   Make an Offer
                 </button>
-              )}
-
-              {showApplyRolePrompt && (
-                <div className="mb-3">
-                  <RolePrompt roles={["TENANT", "DIASPORA"]} reason="applying for a rental needs the Tenant role" />
-                </div>
               )}
 
               <button

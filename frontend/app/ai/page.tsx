@@ -4,10 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { Zap, Send, User, Bot, Loader, Home, Search } from "lucide-react";
 import { ai } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import PropertyCard from "@/components/PropertyCard";
+import type { Property } from "@/lib/types";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  matches?: Property[];
 }
 
 type Mode = "SEARCH" | "HOME_ASSISTANT";
@@ -25,16 +28,28 @@ const ASSISTANT_SUGGESTIONS = [
   "What's the status of my maintenance request?",
 ];
 
-const SEARCH_WELCOME =
-  "Hi! I'm the Homestead AI assistant. Describe what you're looking for and I'll help you find the perfect property. For example: 'Find me a 2-bedroom apartment in Harare under $500/month near schools.'";
+const ASSISTANT_NAME = "Kaks";
 
-const ASSISTANT_WELCOME =
-  "Hi! I'm your Home Assistant — ask me about your rent, lease, or maintenance requests and I'll answer using your actual account details.";
+function firstName(fullName?: string) {
+  return fullName?.trim().split(/\s+/)[0];
+}
+
+function searchWelcome(name?: string) {
+  const greeting = name ? `Hi ${name}! I'm ${ASSISTANT_NAME}` : `Hi! I'm ${ASSISTANT_NAME}`;
+  return `${greeting}, your Homestead AI assistant. Describe what you're looking for and I'll help you find the perfect property. For example: 'Find me a 2-bedroom apartment in Harare under $500/month near schools.'`;
+}
+
+function assistantWelcome(name?: string) {
+  const greeting = name ? `Hi ${name}! I'm ${ASSISTANT_NAME}` : `Hi! I'm ${ASSISTANT_NAME}`;
+  return `${greeting}, your Home Assistant — ask me about your rent, lease, or maintenance requests and I'll answer using your actual account details.`;
+}
+
+const MAX_HISTORY_TURNS = 10;
 
 export default function AiSearchPage() {
   const { user, token } = useAuth();
   const [mode, setMode] = useState<Mode>("SEARCH");
-  const [messages, setMessages] = useState<Message[]>([{ role: "assistant", content: SEARCH_WELCOME }]);
+  const [messages, setMessages] = useState<Message[]>([{ role: "assistant", content: searchWelcome() }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [aiPowered, setAiPowered] = useState<boolean | null>(null);
@@ -44,11 +59,22 @@ export default function AiSearchPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Re-greet by name once the logged-in user loads, as long as the conversation hasn't started yet.
+  useEffect(() => {
+    if (!user) return;
+    setMessages((m) => {
+      if (m.length !== 1 || m[0].role !== "assistant") return m;
+      const greeting = mode === "SEARCH" ? searchWelcome(firstName(user.fullName)) : assistantWelcome(firstName(user.fullName));
+      return [{ role: "assistant", content: greeting }];
+    });
+  }, [user, mode]);
+
   const switchMode = (next: Mode) => {
     if (next === mode) return;
     setMode(next);
     setAiPowered(null);
-    setMessages([{ role: "assistant", content: next === "SEARCH" ? SEARCH_WELCOME : ASSISTANT_WELCOME }]);
+    const name = firstName(user?.fullName);
+    setMessages([{ role: "assistant", content: next === "SEARCH" ? searchWelcome(name) : assistantWelcome(name) }]);
   };
 
   const sendMessage = async (text: string) => {
@@ -62,21 +88,25 @@ export default function AiSearchPage() {
       setInput("");
       return;
     }
+    const history = messages
+      .slice(-MAX_HISTORY_TURNS)
+      .map(({ role, content }) => ({ role, content }));
     const userMsg: Message = { role: "user", content: text };
     setMessages((m) => [...m, userMsg]);
     setInput("");
     setLoading(true);
     try {
       if (mode === "HOME_ASSISTANT" && token) {
-        const response = await ai.homeAssistant(text, token);
+        const response = await ai.homeAssistant(text, token, history);
         setAiPowered(response.aiPowered ?? false);
         setMessages((m) => [...m, { role: "assistant", content: response.answer ?? "I couldn't find an answer to that." }]);
       } else {
-        const response = await ai.search(text);
+        const response = await ai.search(text, history);
         setAiPowered(response.aiPowered ?? false);
         const assistantMsg: Message = {
           role: "assistant",
-          content: response.answer ?? "I found some properties that match your search. Check the results above.",
+          content: response.answer ?? "I found some properties that match your search. Check the results below.",
+          matches: response.matches ?? [],
         };
         setMessages((m) => [...m, assistantMsg]);
       }
@@ -106,7 +136,7 @@ export default function AiSearchPage() {
           <Zap className="w-6 h-6 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">
-          {mode === "SEARCH" ? "AI Property Search" : "Home Assistant"}
+          {ASSISTANT_NAME} — {mode === "SEARCH" ? "AI Property Search" : "Home Assistant"}
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           {mode === "SEARCH" ? "Describe your ideal home in plain language" : "Ask about your rent, lease, or maintenance"}
@@ -145,27 +175,37 @@ export default function AiSearchPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-6 space-y-4">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                msg.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {msg.role === "user" ? (
-                <User className="w-4 h-4" />
-              ) : (
-                <Bot className="w-4 h-4" />
-              )}
+          <div key={i} className={`flex flex-col gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}>
+            <div className={`flex gap-3 w-full ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  msg.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {msg.role === "user" ? (
+                  <User className="w-4 h-4" />
+                ) : (
+                  <Bot className="w-4 h-4" />
+                )}
+              </div>
+              <div
+                className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {msg.content}
+              </div>
             </div>
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              {msg.content}
-            </div>
+
+            {msg.matches && msg.matches.length > 0 && (
+              <div className="w-full pl-11 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {msg.matches.map((property) => (
+                  <PropertyCard key={property.id} property={property} compact />
+                ))}
+              </div>
+            )}
           </div>
         ))}
 

@@ -78,6 +78,9 @@ function PropertiesContent() {
   const [escrowAvailable, setEscrowAvailable] = useState(searchParams.get("escrowAvailable") === "true");
 
   const [results, setResults] = useState<Property[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
@@ -200,11 +203,14 @@ function PropertiesContent() {
     waterSource || undefined,
   ].filter((v) => v !== undefined).length;
 
-  const fetchProperties = useCallback(async () => {
-    setLoading(true);
+  const PAGE_SIZE = 20;
+
+  const fetchPage = useCallback(async (pageToLoad: number, append: boolean) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     setError("");
     try {
-      const data = await propertiesApi.list({
+      const { items, totalCount: count } = await propertiesApi.searchPaged({
         listingType,
         city: city || undefined,
         suburb: suburb || undefined,
@@ -223,12 +229,17 @@ function PropertiesContent() {
         petsAllowed: petsAllowed || undefined,
         verifiedOnly: verifiedOnly || undefined,
         escrowAvailable: escrowAvailable || undefined,
+        page: pageToLoad,
+        size: PAGE_SIZE,
       });
-      setResults(data);
+      setResults((prev) => (append ? [...prev, ...items] : items));
+      setTotalCount(count);
+      setPage(pageToLoad);
     } catch {
       setError("Failed to load properties. Is the backend running?");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [
     listingType, city, suburb, bedrooms, bathrooms, minPrice, maxPrice, diasporaFriendly,
@@ -236,9 +247,12 @@ function PropertiesContent() {
     parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable,
   ]);
 
+  // Any filter change starts a fresh search from page 0.
   useEffect(() => {
-    fetchProperties();
-  }, [fetchProperties]);
+    fetchPage(0, false);
+  }, [fetchPage]);
+
+  const handleLoadMore = () => fetchPage(page + 1, true);
 
   // Keep the URL in sync with the active search so results are shareable and the
   // browser back/forward buttons move between prior searches.
@@ -332,7 +346,7 @@ function PropertiesContent() {
       {/* Page heading */}
       <div className="px-4 pt-4 pb-1 bg-white border-b border-gray-100">
         <h1 className="text-lg font-bold text-gray-900">
-          {loading ? "Searching…" : `${sortedResults.length} ${listingTypeLabel} in ${locationLabel}`}
+          {loading ? "Searching…" : `${totalCount} ${listingTypeLabel} in ${locationLabel}`}
         </h1>
       </div>
 
@@ -540,7 +554,7 @@ function PropertiesContent() {
 
         {/* Result count */}
         <span className="text-sm text-gray-500 ml-auto hidden sm:block">
-          {loading ? "Loading..." : `${sortedResults.length} result${sortedResults.length !== 1 ? "s" : ""}`}
+          {loading ? "Loading..." : `${totalCount} result${totalCount !== 1 ? "s" : ""}`}
         </span>
 
         {/* Sort */}
@@ -650,7 +664,7 @@ function PropertiesContent() {
             )}
 
             {loading ? (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-60 bg-gray-100 rounded-xl animate-pulse" />
                 ))}
@@ -667,17 +681,30 @@ function PropertiesContent() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {sortedResults.map((property) => (
-                  <PropertyCard
-                    key={property.id}
-                    property={property}
-                    highlighted={highlightedId === property.id}
-                    onMouseEnter={() => setHighlightedId(property.id)}
-                    onMouseLeave={() => setHighlightedId(null)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 gap-4">
+                  {sortedResults.map((property) => (
+                    <PropertyCard
+                      key={property.id}
+                      property={property}
+                      highlighted={highlightedId === property.id}
+                      onMouseEnter={() => setHighlightedId(property.id)}
+                      onMouseLeave={() => setHighlightedId(null)}
+                    />
+                  ))}
+                </div>
+                {results.length < totalCount && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="border border-gray-200 hover:border-gray-300 disabled:opacity-60 text-gray-700 font-semibold text-sm px-6 py-2.5 rounded-xl transition-colors"
+                    >
+                      {loadingMore ? "Loading…" : `Load more (${results.length} of ${totalCount})`}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -70,9 +70,61 @@ export interface Property {
   agentTrustScore?: number;
   createdAt: string;
   verifiedAt?: string;
+  featured: boolean;
+  featuredUntil?: string;
   photoUrls: string[];
   imageUrls: string[];
   photos: string[];
+}
+
+export interface FeaturedListingSettings {
+  price: number;
+  currency: string;
+  durationDays: number;
+  updatedAt: string;
+}
+
+export type SubscriptionPlan = "STARTER" | "GROWTH" | "PROFESSIONAL";
+export type SubscriptionFeature =
+  | "ESCROW"
+  | "DIGITAL_LEASES"
+  | "MAINTENANCE_REQUESTS"
+  | "RENT_REMINDERS"
+  | "AI_PRICING"
+  | "TENANT_PASSPORT"
+  | "REPORTS";
+
+export interface PlanSettings {
+  plan: SubscriptionPlan;
+  monthlyPrice: number;
+  currency: string;
+  maxProperties: number | null;
+  escrowEnabled: boolean;
+  digitalLeasesEnabled: boolean;
+  maintenanceCoordinationEnabled: boolean;
+  rentRemindersEnabled: boolean;
+  aiPricingEnabled: boolean;
+  tenantPassportEnabled: boolean;
+  reportsEnabled: boolean;
+  updatedAt: string;
+}
+
+export interface SubscriptionInfo {
+  plan: SubscriptionPlan;
+  status: "ACTIVE" | "PAST_DUE" | "CANCELLED";
+  currentPeriodEnd: string | null;
+  maxProperties: number | null;
+  activePropertyCount: number;
+  enabledFeatures: SubscriptionFeature[];
+}
+
+export interface FeatureListingResult {
+  propertyId: number;
+  featured: boolean;
+  featuredUntil: string;
+  paymentId: number;
+  amountCharged: number;
+  currency: string;
 }
 
 export interface User {
@@ -265,6 +317,8 @@ export interface Reit {
   availableUnits?: number;
   propertyType: string;
   coverImageUrl?: string;
+  tickerSymbol?: string;
+  marketQuote?: MarketQuote;
   investmentScore?: InvestmentScore;
   properties: ReitProperty[];
 }
