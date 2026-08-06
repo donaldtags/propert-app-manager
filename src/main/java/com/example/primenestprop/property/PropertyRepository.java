@@ -25,8 +25,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @Query(value = """
             select p from Property p
             where (:listingType is null or p.listingType = :listingType)
-              and (:city is null or lower(p.city) = lower(cast(:city as string)))
-              and (:suburb is null or lower(p.suburb) like lower(concat('%', cast(:suburb as string), '%')))
+              and (:city is null or lower(p.city) = lower(coalesce(cast(:city as string), '')))
+              and (:suburb is null or lower(p.suburb) like lower(concat('%', coalesce(cast(:suburb as string), ''), '%')))
               and (:minPrice is null or p.price >= :minPrice)
               and (:maxPrice is null or p.price <= :maxPrice)
               and (:bedrooms is null or p.bedrooms >= :bedrooms)
@@ -51,8 +51,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             countQuery = """
             select count(p) from Property p
             where (:listingType is null or p.listingType = :listingType)
-              and (:city is null or lower(p.city) = lower(cast(:city as string)))
-              and (:suburb is null or lower(p.suburb) like lower(concat('%', cast(:suburb as string), '%')))
+              and (:city is null or lower(p.city) = lower(coalesce(cast(:city as string), '')))
+              and (:suburb is null or lower(p.suburb) like lower(concat('%', coalesce(cast(:suburb as string), ''), '%')))
               and (:minPrice is null or p.price >= :minPrice)
               and (:maxPrice is null or p.price <= :maxPrice)
               and (:bedrooms is null or p.bedrooms >= :bedrooms)
