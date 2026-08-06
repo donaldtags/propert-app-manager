@@ -1,7 +1,6 @@
 package com.example.primenestprop.security;
 
 import com.example.primenestprop.auth.AuthService;
-import jakarta.annotation.PostConstruct;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,11 +21,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}")
     private String[] allowedOrigins;
-
-    @PostConstruct
-    void logAllowedOrigins() {
-        System.out.println("RESOLVED_CORS_ALLOWED_ORIGINS=" + String.join("|", allowedOrigins));
-    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
