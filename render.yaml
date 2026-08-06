@@ -42,10 +42,21 @@ services:
       - key: SERVER_PORT
         value: "8081"
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: "https://primenest-frontend.onrender.com,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001"
       - key: PUBLIC_BASE_URL
-        sync: false
+        value: "https://primenest-backend-xwgh.onrender.com"
       - key: FRONTEND_BASE_URL
-        sync: false
+        value: "https://primenest-frontend.onrender.com"
       - key: ANTHROPIC_API_KEY
         sync: false
+
+  - type: web
+    name: primenest-frontend
+    runtime: docker
+    rootDir: frontend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: "https://primenest-backend-xwgh.onrender.com/api/v1"
