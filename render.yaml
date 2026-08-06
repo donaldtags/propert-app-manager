@@ -15,8 +15,22 @@ services:
     envVars:
       - key: DB_DRIVER
         value: org.postgresql.Driver
-      - key: DB_URL
-        sync: false
+      - key: DB_KIND
+        value: postgresql
+      - key: DB_URL_PARAMS
+        value: "?sslmode=prefer"
+      - key: DB_HOST
+        fromDatabase:
+          name: primenest-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: primenest-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: primenest-db
+          property: database
       - key: DB_USERNAME
         fromDatabase:
           name: primenest-db
