@@ -1,5 +1,6 @@
 package com.example.primenestprop.common;
 
+import java.sql.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -27,9 +28,19 @@ class RoleCheckConstraintFixer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         try {
-            jdbc.execute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_check");
+            // Postgres needs an ACCESS EXCLUSIVE lock to drop a constraint; without a timeout,
+            // any lingering connection from a prior instance (e.g. mid-shutdown) can block this
+            // indefinitely and hang the whole app startup. Fail fast instead - next boot retries.
+            // Both statements must run on the same connection for the lock_timeout to apply.
+            jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Void>) con -> {
+                try (Statement st = con.createStatement()) {
+                    st.execute("SET lock_timeout = '5s'");
+                    st.execute("ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_check");
+                }
+                return null;
+            });
         } catch (Exception e) {
-            log.debug("Skipping roles_name_check drop (not applicable on this database): {}", e.getMessage());
+            log.debug("Skipping roles_name_check drop (not applicable, or lock unavailable, on this database): {}", e.getMessage());
         }
     }
 }
