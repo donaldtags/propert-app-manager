@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Menu, X, ChevronDown } from "lucide-react";
 import NotificationBell from "./NotificationBell";
@@ -12,8 +12,27 @@ export default function Navbar() {
   const { user, logout, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Close the profile menu whenever the route changes, so it never lingers open on a new page.
+  useEffect(() => {
+    setProfileOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Close the profile menu on outside clicks.
+  useEffect(() => {
+    if (!profileOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -63,7 +82,7 @@ export default function Navbar() {
           ) : user ? (
             <>
             <NotificationBell />
-            <div className="relative">
+            <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
@@ -76,7 +95,6 @@ export default function Navbar() {
               </button>
               {profileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                  <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Profile</Link>
                   {user.roles?.includes("TENANT") && (
                     <Link href="/tenant" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Tenant Dashboard</Link>
                   )}
@@ -95,6 +113,7 @@ export default function Navbar() {
                   {user.roles?.includes("ADMIN") && (
                     <Link href="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50">Admin Portal</Link>
                   )}
+                  <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Profile</Link>
                   <Link href="/messages" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Messages</Link>
                   <Link href="/settings/security" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</Link>
                   <hr className="my-1 border-gray-100" />

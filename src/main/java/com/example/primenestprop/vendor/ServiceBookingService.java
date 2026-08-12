@@ -57,10 +57,12 @@ public class ServiceBookingService {
 
     @Transactional
     public ServiceBooking updateStatus(Long id, BookingStatus status, AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only an admin can update a service booking's status on the vendor's behalf");
-        }
         ServiceBooking booking = require(id);
+        boolean isVendorOwner = booking.getVendor().getOwner() != null
+                && booking.getVendor().getOwner().getId().equals(currentUser.getId());
+        if (!isVendorOwner && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the vendor or an admin can update a service booking's status");
+        }
         booking.setStatus(status);
         if (status == BookingStatus.COMPLETED) {
             booking.setCompletedAt(Instant.now());
@@ -91,5 +93,11 @@ public class ServiceBookingService {
     @Transactional(readOnly = true)
     public List<ServiceBooking> forRequester(AppUser requester) {
         return bookings.findByRequesterOrderByCreatedAtDesc(requester);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ServiceBooking> forVendorOwner(AppUser owner) {
+        Vendor vendor = vendors.requireMine(owner);
+        return bookings.findByVendorOrderByCreatedAtDesc(vendor);
     }
 }

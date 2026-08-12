@@ -12,6 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -34,6 +35,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException ex) {
         String msg = ex.getMessage() != null ? ex.getMessage().split(";")[0] : "Malformed request body";
         return ResponseEntity.badRequest().body(error(HttpStatus.BAD_REQUEST, msg));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<Map<String, Object>> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(error(HttpStatus.PAYLOAD_TOO_LARGE, "That file is too large. Please upload photos under 15MB each."));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

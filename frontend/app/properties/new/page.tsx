@@ -8,7 +8,7 @@ import { properties as propertiesApi, ai as aiApi } from "@/lib/api";
 import { Home, Plus, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X, Sparkles } from "lucide-react";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import type { UserRole } from "@/lib/types";
-import { ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
+import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
 
 const LISTING_TYPES = [
   { value: "RENT", label: "For Rent", desc: "Monthly rental property" },
@@ -87,6 +87,7 @@ export default function NewPropertyPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
+  const [photoUploadWarning, setPhotoUploadWarning] = useState("");
 
   const suburbs = ZIMBABWE_SUBURBS[form.city] ?? [];
 
@@ -142,6 +143,7 @@ export default function NewPropertyPage() {
       return;
     }
     setError("");
+    setPhotoUploadWarning("");
     setSubmitting(true);
     try {
       const property = await propertiesApi.create(
@@ -179,7 +181,15 @@ export default function NewPropertyPage() {
       if (photoFiles.length > 0) {
         const formData = new FormData();
         photoFiles.forEach((file) => formData.append("files", file));
-        await propertiesApi.uploadPhotos(property.id, formData, token);
+        try {
+          await propertiesApi.uploadPhotos(property.id, formData, token);
+        } catch (uploadErr: unknown) {
+          setPhotoUploadWarning(
+            uploadErr instanceof Error
+              ? `Listing created, but photos failed to upload: ${uploadErr.message}. You can add photos from the listing page.`
+              : "Listing created, but photos failed to upload. You can add photos from the listing page."
+          );
+        }
       }
 
       setCreatedId(property.id);
@@ -204,6 +214,11 @@ export default function NewPropertyPage() {
           <p className="text-gray-500 mb-6">
             Your property has been created. An agent or admin can verify it to give it a Verified badge.
           </p>
+          {photoUploadWarning && (
+            <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm mb-6 text-left flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {photoUploadWarning}
+            </p>
+          )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href={`/properties/${createdId}`}
@@ -212,7 +227,7 @@ export default function NewPropertyPage() {
               View Listing
             </Link>
             <button
-              onClick={() => { setSuccess(false); setCreatedId(null); setPhotoFiles([]); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, solarInstalled: false, backupPower: false, waterSource: "", furnished: false, internetAvailable: false, securityFeatures: false, parkingAvailable: false, petsAllowed: false, virtualTourUrl: "", photoUrls: [] }); }}
+              onClick={() => { setSuccess(false); setCreatedId(null); setPhotoFiles([]); setPhotoUploadWarning(""); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, solarInstalled: false, backupPower: false, waterSource: "", furnished: false, internetAvailable: false, securityFeatures: false, parkingAvailable: false, petsAllowed: false, virtualTourUrl: "", photoUrls: [] }); }}
               className="border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold px-6 py-3 rounded-xl transition-colors"
             >
               List Another
@@ -400,40 +415,37 @@ export default function NewPropertyPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">City *</label>
-              <select
+              <input
+                type="text"
+                list="city-options"
                 value={form.city}
                 onChange={(e) => setForm((f) => ({ ...f, city: e.target.value, suburb: "" }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 bg-white"
-              >
-                {Object.keys(ZIMBABWE_SUBURBS).map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                required
+                placeholder="Start typing a city..."
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <datalist id="city-options">
+                {ZIMBABWE_CITIES.map((c) => (
+                  <option key={c} value={c} />
                 ))}
-                <option value="Other">Other</option>
-              </select>
+              </datalist>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Suburb *</label>
-              {suburbs.length > 0 ? (
-                <select
-                  value={form.suburb}
-                  onChange={(e) => setForm((f) => ({ ...f, suburb: e.target.value }))}
-                  required
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 bg-white"
-                >
-                  <option value="">Select suburb...</option>
-                  {suburbs.map((s) => <option key={s} value={s}>{s}</option>)}
-                  <option value="Other">Other</option>
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  value={form.suburb}
-                  onChange={(e) => setForm((f) => ({ ...f, suburb: e.target.value }))}
-                  required
-                  placeholder="Suburb name"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              )}
+              <input
+                type="text"
+                list="suburb-options"
+                value={form.suburb}
+                onChange={(e) => setForm((f) => ({ ...f, suburb: e.target.value }))}
+                required
+                placeholder="Start typing a suburb..."
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <datalist id="suburb-options">
+                {suburbs.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
             </div>
           </div>
           <div>
@@ -696,6 +708,15 @@ export default function NewPropertyPage() {
           </div>
         </div>
 
+        {/* Billing notice */}
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <p>
+            Listing a property costs <strong>$7.00/month</strong>, billed automatically to your account.
+            You&apos;ll be charged as soon as you publish, then renewed every 30 days for as long as the listing stays active.
+          </p>
+        </div>
+
         {/* Submit */}
         <div className="flex gap-4">
           <button
@@ -704,7 +725,7 @@ export default function NewPropertyPage() {
             className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3.5 px-10 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <Home className="w-5 h-5" />
-            {submitting ? "Publishing..." : "Publish Listing"}
+            {submitting ? "Publishing..." : "Publish Listing — $7.00/mo"}
           </button>
           <Link
             href="/properties"

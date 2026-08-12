@@ -7,16 +7,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    @Value("${app.storage.property-photos:storage/property-photos}")
-    private String propertyPhotoStorage;
-
     @Value("${app.storage.maintenance-photos:storage/maintenance-photos}")
     private String maintenancePhotoStorage;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/property-photos/**")
-                .addResourceLocations("file:" + java.nio.file.Path.of(propertyPhotoStorage).toAbsolutePath() + "/");
+        // Property photos are served by PropertyPhotoRedirectController (S3-backed), not from local disk.
         registry.addResourceHandler("/uploads/maintenance-photos/**")
                 .addResourceLocations("file:" + java.nio.file.Path.of(maintenancePhotoStorage).toAbsolutePath() + "/");
     }

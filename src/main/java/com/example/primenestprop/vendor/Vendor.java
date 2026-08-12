@@ -1,13 +1,16 @@
 package com.example.primenestprop.vendor;
 
+import com.example.primenestprop.user.AppUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.Getter;
@@ -15,10 +18,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * A service provider Homestead's admins have vetted and listed - movers, cleaners, plumbers,
- * insurers, lawyers, solar installers, etc. Admin-curated (like the Neighbourhood profiles)
- * rather than open self-registration, since a fraudulent "vendor" listing is a direct route to
- * scamming a tenant/landlord who trusts Homestead's vetting.
+ * A service provider listed on Homestead - movers, cleaners, plumbers, insurers, lawyers, solar
+ * installers, etc. Either admin-curated (owner null) or self-registered by a SERVICE_PROVIDER
+ * user (owner set); either way, {@code verified} only ever flips to true via admin review, since
+ * a fraudulent "vendor" listing is a direct route to scamming a tenant/landlord who trusts
+ * Homestead's vetting.
  */
 @Entity
 @Table(name = "vendors", indexes = {
@@ -48,6 +52,9 @@ public class Vendor {
     private String city;
     private boolean verified;
     private boolean active = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private AppUser owner;
 
     private Instant createdAt = Instant.now();
 }

@@ -1,7 +1,9 @@
 package com.example.primenestprop.vendor;
 
+import com.example.primenestprop.user.AppUser;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +33,27 @@ public class VendorController {
     @PostMapping
     VendorDtos.VendorResponse create(@Valid @RequestBody VendorDtos.CreateVendorRequest request) {
         return service.toResponse(service.create(request));
+    }
+
+    @PostMapping("/self")
+    VendorDtos.VendorResponse registerSelf(
+            @Valid @RequestBody VendorDtos.SelfRegisterVendorRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return service.toResponse(service.registerSelf(request, currentUser));
+    }
+
+    @GetMapping("/mine")
+    VendorDtos.VendorResponse mine(@AuthenticationPrincipal AppUser currentUser) {
+        return service.toResponse(service.requireMine(currentUser));
+    }
+
+    @PatchMapping("/mine")
+    VendorDtos.VendorResponse updateMine(
+            @RequestBody VendorDtos.UpdateVendorRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return service.toResponse(service.updateMine(request, currentUser));
     }
 
     @PatchMapping("/{id}/verify")

@@ -45,6 +45,11 @@ public class ServiceBookingController {
         return service.forRequester(currentUser).stream().map(ServiceBookingDtos.ServiceBookingResponse::from).toList();
     }
 
+    @GetMapping("/received")
+    List<ServiceBookingDtos.ServiceBookingResponse> received(@AuthenticationPrincipal AppUser currentUser) {
+        return service.forVendorOwner(currentUser).stream().map(ServiceBookingDtos.ServiceBookingResponse::from).toList();
+    }
+
     @PatchMapping("/{id}/cancel")
     ServiceBookingDtos.ServiceBookingResponse cancel(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
         return ServiceBookingDtos.ServiceBookingResponse.from(service.cancel(id, currentUser));

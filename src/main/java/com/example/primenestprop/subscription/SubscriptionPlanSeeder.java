@@ -18,9 +18,26 @@ class SubscriptionPlanSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        seedIfMissing(SubscriptionPlan.STARTER, BigDecimal.ZERO, 1, false, false, false, false, false, false, false);
+        seedIfMissing(SubscriptionPlan.STARTER, BigDecimal.ZERO, 1, true, true, false, false, false, false, false);
         seedIfMissing(SubscriptionPlan.GROWTH, new BigDecimal("15.00"), 10, true, true, true, true, true, true, true);
         seedIfMissing(SubscriptionPlan.PROFESSIONAL, new BigDecimal("49.00"), null, true, true, true, true, true, true, true);
+        // Digital leases and escrow used to be Growth+ only; STARTER landlords couldn't lease out
+        // or safely collect rent on their one free listing at all. Repair any row already seeded
+        // with the old defaults.
+        settings.findById(SubscriptionPlan.STARTER).ifPresent(row -> {
+            boolean changed = false;
+            if (!row.isDigitalLeasesEnabled()) {
+                row.setDigitalLeasesEnabled(true);
+                changed = true;
+            }
+            if (!row.isEscrowEnabled()) {
+                row.setEscrowEnabled(true);
+                changed = true;
+            }
+            if (changed) {
+                settings.save(row);
+            }
+        });
     }
 
     private void seedIfMissing(

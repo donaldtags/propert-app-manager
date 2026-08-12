@@ -185,7 +185,7 @@ export default function PropertyDetailPage() {
 
   const handleApply = () => {
     if (!user) {
-      router.push(`/login?redirect=/properties/${id}`);
+      router.push(`/login?redirect=${encodeURIComponent(`/properties/${id}?action=apply`)}`);
       return;
     }
     if (property?.listingType === "SALE") {
@@ -196,6 +196,8 @@ export default function PropertyDetailPage() {
       router.push(settingsRoleUrl(["TENANT", "DIASPORA"], "applying for a rental needs the Tenant role"));
       return;
     }
+    setLightboxOpen(false);
+    setViewingModalOpen(false);
     setApplicationResult(null);
     setApplicationError("");
     setApplicationModalOpen(true);
@@ -237,9 +239,11 @@ export default function PropertyDetailPage() {
 
   const handleBookViewing = () => {
     if (!user) {
-      router.push(`/login?redirect=/properties/${id}`);
+      router.push(`/login?redirect=${encodeURIComponent(`/properties/${id}?action=book-viewing`)}`);
       return;
     }
+    setLightboxOpen(false);
+    setApplicationModalOpen(false);
     setViewingResult(null);
     setViewingError("");
     setViewingModalOpen(true);
@@ -270,7 +274,7 @@ export default function PropertyDetailPage() {
 
   const handleMessageAgent = () => {
     if (!user) {
-      router.push(`/login?redirect=/properties/${id}`);
+      router.push(`/login?redirect=${encodeURIComponent(`/properties/${id}?action=message-agent`)}`);
       return;
     }
     startAgentConversation(
@@ -297,6 +301,22 @@ export default function PropertyDetailPage() {
       setMessagingAgent(false);
     }
   };
+
+  // Resumes the action (apply / book a viewing / message the agent) a visitor
+  // was trying to take before being sent to log in, once they land back here.
+  useEffect(() => {
+    if (loading || !property || !user) return;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    if (!action) return;
+    params.delete("action");
+    const query = params.toString();
+    router.replace(`/properties/${id}${query ? `?${query}` : ""}`, { scroll: false });
+    if (action === "apply") handleApply();
+    else if (action === "book-viewing") handleBookViewing();
+    else if (action === "message-agent") handleMessageAgent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, property, user]);
 
   if (loading) {
     return (
@@ -327,6 +347,8 @@ export default function PropertyDetailPage() {
   }
 
   const openLightbox = (index: number) => {
+    setApplicationModalOpen(false);
+    setViewingModalOpen(false);
     setPhotoIndex(index);
     setLightboxOpen(true);
   };
@@ -1071,6 +1093,14 @@ export default function PropertyDetailPage() {
           <div className="lg:col-span-1 space-y-4">
             {/* Price + actions card */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm sticky top-20">
+              {(user?.id === property.landlordId || user?.id === property.agentId || user?.roles?.includes("ADMIN")) && (
+                <Link
+                  href={`/properties/${property.id}/edit`}
+                  className="block w-full text-center border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold py-2 rounded-xl transition-colors mb-4 text-sm"
+                >
+                  Edit Listing
+                </Link>
+              )}
               <p className="text-2xl font-bold text-gray-900 mb-1">
                 {formatPrice(property.price, property.currency, property.listingType)}
               </p>

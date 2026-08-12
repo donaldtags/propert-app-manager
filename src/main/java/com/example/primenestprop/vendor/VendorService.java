@@ -1,6 +1,8 @@
 package com.example.primenestprop.vendor;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.user.AppUser;
+import com.example.primenestprop.user.UserRole;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,44 @@ public class VendorService {
         vendor.setEmail(request.email());
         vendor.setCity(request.city());
         return vendors.save(vendor);
+    }
+
+    @Transactional
+    public Vendor registerSelf(VendorDtos.SelfRegisterVendorRequest request, AppUser owner) {
+        if (!owner.getRoles().contains(UserRole.SERVICE_PROVIDER)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Add the Service Provider role to your account first");
+        }
+        if (vendors.findByOwnerId(owner.getId()).isPresent()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "You already have a service provider profile");
+        }
+        Vendor vendor = new Vendor();
+        vendor.setBusinessName(request.businessName());
+        vendor.setCategory(request.category());
+        vendor.setDescription(request.description());
+        vendor.setPhone(request.phone());
+        vendor.setEmail(owner.getEmail());
+        vendor.setCity(request.city());
+        vendor.setOwner(owner);
+        vendor.setVerified(false);
+        return vendors.save(vendor);
+    }
+
+    @Transactional(readOnly = true)
+    public Vendor requireMine(AppUser owner) {
+        return vendors.findByOwnerId(owner.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "You don't have a service provider profile yet"));
+    }
+
+    @Transactional
+    public Vendor updateMine(VendorDtos.UpdateVendorRequest request, AppUser owner) {
+        Vendor vendor = requireMine(owner);
+        if (request.businessName() != null) vendor.setBusinessName(request.businessName());
+        if (request.category() != null) vendor.setCategory(request.category());
+        if (request.description() != null) vendor.setDescription(request.description());
+        if (request.phone() != null) vendor.setPhone(request.phone());
+        if (request.email() != null) vendor.setEmail(request.email());
+        if (request.city() != null) vendor.setCity(request.city());
+        return vendor;
     }
 
     @Transactional

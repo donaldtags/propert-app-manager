@@ -1,6 +1,7 @@
 package com.example.primenestprop.property;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.common.ObjectStorageService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
@@ -38,6 +39,8 @@ public class PropertyService {
     private final PropertyPhotoRepository photos;
     private final PropertyInquiryRepository inquiries;
     private final UserService users;
+    private final ObjectStorageService objectStorage;
+    private final PropertyBillingService billing;
     private final Path photoStorageRoot;
     private final String publicBaseUrl;
 
@@ -46,6 +49,8 @@ public class PropertyService {
             PropertyPhotoRepository photos,
             PropertyInquiryRepository inquiries,
             UserService users,
+            ObjectStorageService objectStorage,
+            PropertyBillingService billing,
             @Value("${app.storage.property-photos:storage/property-photos}") String photoStorageRoot,
             @Value("${app.public-base-url:http://localhost:8081}") String publicBaseUrl
     ) {
@@ -53,6 +58,8 @@ public class PropertyService {
         this.photos = photos;
         this.inquiries = inquiries;
         this.users = users;
+        this.objectStorage = objectStorage;
+        this.billing = billing;
         this.photoStorageRoot = Path.of(photoStorageRoot);
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }
@@ -100,8 +107,81 @@ public class PropertyService {
             property.setAgent(agent);
         }
         Property saved = properties.save(property);
+        billing.chargeForNewListing(saved, landlord);
         savePhotoUrls(saved, requestPhotoUrls(request));
         return saved;
+    }
+
+    @Transactional
+    public Property update(Long id, PropertyDtos.UpdatePropertyRequest request, AppUser currentUser) {
+        Property property = require(id);
+        requireOwnerOrAdmin(property, currentUser);
+        if (request.title() != null) property.setTitle(request.title());
+        if (request.description() != null) property.setDescription(request.description());
+        if (request.listingType() != null) property.setListingType(request.listingType());
+        if (request.city() != null) property.setCity(request.city());
+        if (request.suburb() != null) property.setSuburb(request.suburb());
+        if (request.address() != null) property.setAddress(request.address());
+        if (request.country() != null) property.setCountry(request.country());
+        if (request.bedrooms() != null) property.setBedrooms(request.bedrooms());
+        if (request.bathrooms() != null) property.setBathrooms(request.bathrooms());
+        if (request.price() != null) property.setPrice(request.price());
+        if (request.currency() != null) property.setCurrency(request.currency());
+        if (request.latitude() != null) property.setLatitude(request.latitude());
+        if (request.longitude() != null) property.setLongitude(request.longitude());
+        if (request.diasporaFriendly() != null) property.setDiasporaFriendly(request.diasporaFriendly());
+        if (request.escrowRequired() != null) property.setEscrowRequired(request.escrowRequired());
+        if (request.solarInstalled() != null) property.setSolarInstalled(request.solarInstalled());
+        if (request.backupPower() != null) property.setBackupPower(request.backupPower());
+        if (request.waterSource() != null) property.setWaterSource(request.waterSource());
+        if (request.furnished() != null) property.setFurnished(request.furnished());
+        if (request.internetAvailable() != null) property.setInternetAvailable(request.internetAvailable());
+        if (request.securityFeatures() != null) property.setSecurityFeatures(request.securityFeatures());
+        if (request.parkingAvailable() != null) property.setParkingAvailable(request.parkingAvailable());
+        if (request.petsAllowed() != null) property.setPetsAllowed(request.petsAllowed());
+        if (request.virtualTourUrl() != null) property.setVirtualTourUrl(request.virtualTourUrl());
+        if (request.status() != null) property.setStatus(request.status());
+        return property;
+    }
+
+    @Transactional
+    public Property deletePhoto(Long propertyId, Long photoId, AppUser currentUser) {
+        Property property = require(propertyId);
+        requireOwnerOrAdmin(property, currentUser);
+        PropertyPhoto photo = property.getPhotos().stream()
+                .filter(p -> p.getId().equals(photoId))
+                .findFirst()
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Photo not found"));
+        if (photo.getStorageKey() != null) {
+            if (objectStorage.isConfigured()) {
+                objectStorage.delete(photo.getStorageKey());
+            } else {
+                try {
+                    Files.deleteIfExists(Path.of(photo.getStorageKey()));
+                } catch (IOException ignored) {
+                    // best-effort cleanup; the DB row is still removed either way
+                }
+            }
+        }
+        property.getPhotos().remove(photo);
+        photos.delete(photo);
+        return property;
+    }
+
+    @Transactional(readOnly = true)
+    public PropertyBillingDtos.PropertyBillingResponse billingStatus(Long id, AppUser currentUser) {
+        Property property = require(id);
+        requireOwnerOrAdmin(property, currentUser);
+        return billing.describe(property);
+    }
+
+    private void requireOwnerOrAdmin(Property property, AppUser currentUser) {
+        boolean isOwner = property.getLandlord().getId().equals(currentUser.getId())
+                || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
+        boolean isAdmin = currentUser.getRoles().contains(UserRole.ADMIN);
+        if (!isOwner && !isAdmin) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the listing's landlord or agent can edit it");
+        }
     }
 
     /** Called right after creation when the landlord's plan doesn't include escrow - keeps the
@@ -242,10 +322,12 @@ public class PropertyService {
         if (files == null || files.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "At least one photo is required");
         }
-        try {
-            Files.createDirectories(photoStorageRoot.resolve(String.valueOf(id)));
-        } catch (IOException ex) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not prepare photo storage");
+        if (!objectStorage.isConfigured()) {
+            try {
+                Files.createDirectories(photoStorageRoot.resolve(String.valueOf(id)));
+            } catch (IOException ex) {
+                throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not prepare photo storage");
+            }
         }
 
         int nextSortOrder = property.getPhotos().size();
@@ -255,15 +337,22 @@ public class PropertyService {
                     ? "photo"
                     : Path.of(file.getOriginalFilename()).getFileName().toString();
             String storageName = UUID.randomUUID() + "-" + originalName;
-            Path target = photoStorageRoot.resolve(String.valueOf(id)).resolve(storageName);
-            try {
-                Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException ex) {
-                throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not store uploaded photo");
+            String storageKey;
+            if (objectStorage.isConfigured()) {
+                storageKey = id + "/" + storageName;
+                objectStorage.put(storageKey, file);
+            } else {
+                Path target = photoStorageRoot.resolve(String.valueOf(id)).resolve(storageName);
+                try {
+                    Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException ex) {
+                    throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not store uploaded photo");
+                }
+                storageKey = target.toString();
             }
             PropertyPhoto photo = new PropertyPhoto();
             photo.setProperty(property);
-            photo.setStorageKey(target.toString());
+            photo.setStorageKey(storageKey);
             photo.setPhotoUrl(publicBaseUrl + "/uploads/property-photos/" + id + "/" + storageName);
             photo.setSortOrder(nextSortOrder++);
             photo.setPrimaryPhoto(property.getPhotos().isEmpty() && nextSortOrder == 1);

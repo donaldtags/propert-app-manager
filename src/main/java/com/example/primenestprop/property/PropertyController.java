@@ -107,6 +107,25 @@ public class PropertyController {
         return PropertyResponse.from(service.uploadPhotos(id, request.files()));
     }
 
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}/photos/{photoId}")
+    PropertyResponse deletePhoto(@PathVariable Long id, @PathVariable Long photoId, @AuthenticationPrincipal AppUser currentUser) {
+        return PropertyResponse.from(service.deletePhoto(id, photoId, currentUser));
+    }
+
+    @GetMapping("/{id}/billing")
+    PropertyBillingDtos.PropertyBillingResponse billing(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
+        return service.billingStatus(id, currentUser);
+    }
+
+    @PatchMapping("/{id}")
+    PropertyResponse update(
+            @PathVariable Long id,
+            @RequestBody PropertyDtos.UpdatePropertyRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return PropertyResponse.from(service.update(id, request, currentUser));
+    }
+
     @PatchMapping("/{id}/verify")
     PropertyResponse verify(@PathVariable Long id, @Valid @RequestBody PropertyDtos.VerifyPropertyRequest request) {
         return PropertyResponse.from(service.verify(id, request));

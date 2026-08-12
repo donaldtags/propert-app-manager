@@ -30,6 +30,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
   ADMIN: "bg-red-100 text-red-700",
   DEVELOPER: "bg-orange-100 text-orange-700",
   PRIVATE: "bg-teal-100 text-teal-700",
+  SERVICE_PROVIDER: "bg-cyan-100 text-cyan-700",
 };
 
 export default function ProfilePage() {

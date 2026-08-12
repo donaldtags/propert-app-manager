@@ -47,6 +47,7 @@ import type {
   PlanSettings,
   SubscriptionInfo,
   SubscriptionPlan,
+  PropertyBilling,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -205,6 +206,44 @@ export const properties = {
 
   verify: (id: number, data: { verifierId: number; note?: string }, token: string) =>
     request<Property>(`/properties/${id}/verify`, { method: "PATCH", body: JSON.stringify(data) }, token),
+
+  update: (
+    id: number,
+    data: Partial<{
+      title: string;
+      description: string;
+      listingType: string;
+      city: string;
+      suburb: string;
+      address: string;
+      country: string;
+      bedrooms: number;
+      bathrooms: number;
+      price: number;
+      currency: string;
+      latitude: number;
+      longitude: number;
+      diasporaFriendly: boolean;
+      escrowRequired: boolean;
+      solarInstalled: boolean;
+      backupPower: boolean;
+      waterSource: WaterSource;
+      furnished: boolean;
+      internetAvailable: boolean;
+      securityFeatures: boolean;
+      parkingAvailable: boolean;
+      petsAllowed: boolean;
+      virtualTourUrl: string;
+      status: string;
+    }>,
+    token: string
+  ) => request<Property>(`/properties/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+
+  deletePhoto: (propertyId: number, photoId: number, token: string) =>
+    request<Property>(`/properties/${propertyId}/photos/${photoId}`, { method: "DELETE" }, token),
+
+  billing: (id: number, token: string) =>
+    request<PropertyBilling>(`/properties/${id}/billing`, {}, token),
 
   feature: (id: number, token: string) =>
     request<FeatureListingResult>(`/properties/${id}/feature`, { method: "POST" }, token),

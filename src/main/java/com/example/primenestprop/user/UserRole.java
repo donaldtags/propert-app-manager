@@ -8,5 +8,6 @@ public enum UserRole {
     INVESTOR,
     ADMIN,
     DEVELOPER,
-    PRIVATE
+    PRIVATE,
+    SERVICE_PROVIDER
 }

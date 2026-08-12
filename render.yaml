@@ -49,6 +49,16 @@ services:
         value: "https://primenest-frontend.onrender.com"
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: S3_REGION
+        sync: false
 
   - type: web
     name: primenest-frontend

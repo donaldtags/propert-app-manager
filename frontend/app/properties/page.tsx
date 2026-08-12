@@ -8,7 +8,7 @@ import { properties as propertiesApi } from "@/lib/api";
 import type { Property, ListingType } from "@/lib/types";
 import PropertyCard from "@/components/PropertyCard";
 import CompareBar from "@/components/CompareBar";
-import { ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
+import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS, ZIMBABWE_SUBURB_ENTRIES, resolveLocationQuery } from "@/lib/zimbabweLocations";
 
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
   ssr: false,
@@ -291,10 +291,19 @@ function PropertiesContent() {
     if (parts.length >= 2) {
       setSuburb(parts[0]);
       setCity(parts[1]);
-    } else {
-      setCity(parts[0]);
-      setSuburb("");
+      return;
     }
+    const resolved = resolveLocationQuery(parts[0]);
+    if (resolved) {
+      setCity(resolved.city);
+      setSuburb(resolved.suburb);
+      return;
+    }
+    // Unrecognized text: city filtering is an exact match on the backend, so a
+    // free-text guess is far more likely to find something as a suburb filter
+    // (partial match) than as a city filter.
+    setCity("");
+    setSuburb(parts[0]);
   };
 
   const priceRanges = listingType === "RENT" ? PRICE_RANGES_RENT : PRICE_RANGES_SALE;
@@ -368,19 +377,36 @@ function PropertiesContent() {
         </div>
 
         {/* Search input */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white min-w-48 flex-1 max-w-64">
-          <Search className="w-4 h-4 text-gray-400 shrink-0" />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="City or suburb..."
-            className="text-sm text-gray-900 outline-none flex-1 placeholder-gray-400"
-          />
-          {searchQuery && (
-            <button type="button" onClick={() => { setSearchQuery(""); setCity(""); setSuburb(""); }}>
-              <X className="w-4 h-4 text-gray-400" />
-            </button>
-          )}
+        <form onSubmit={handleSearch} className="flex items-center gap-2 min-w-48 flex-1 max-w-96">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white flex-1">
+            <Search className="w-4 h-4 text-gray-400 shrink-0" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="City or suburb..."
+              list="top-search-location-options"
+              className="text-sm text-gray-900 outline-none flex-1 placeholder-gray-400"
+            />
+            <datalist id="top-search-location-options">
+              {ZIMBABWE_CITIES.map((c) => (
+                <option key={c} value={c} />
+              ))}
+              {ZIMBABWE_SUBURB_ENTRIES.map(({ suburb: s, city: c }) => (
+                <option key={`${s}-${c}`} value={s}>{`${s}, ${c}`}</option>
+              ))}
+            </datalist>
+            {searchQuery && (
+              <button type="button" onClick={() => { setSearchQuery(""); setCity(""); setSuburb(""); }}>
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            Search
+          </button>
         </form>
 
         {/* Filters */}
@@ -642,17 +668,22 @@ function PropertiesContent() {
                 {c}
               </button>
             ))}
-            {suburbOptions.length > 0 && (
-              <select
-                value={suburb}
-                onChange={(e) => setSuburb(e.target.value)}
-                className="shrink-0 text-xs font-medium border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-600 outline-none focus:border-blue-400"
-              >
-                <option value="">All {city} suburbs</option>
-                {suburbOptions.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+            {city && (
+              <>
+                <input
+                  type="text"
+                  list="browse-suburb-options"
+                  value={suburb}
+                  onChange={(e) => setSuburb(e.target.value)}
+                  placeholder={`All ${city} suburbs`}
+                  className="shrink-0 w-40 text-xs font-medium border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-600 outline-none focus:border-blue-400 placeholder-gray-500"
+                />
+                <datalist id="browse-suburb-options">
+                  {suburbOptions.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+              </>
             )}
           </div>
 

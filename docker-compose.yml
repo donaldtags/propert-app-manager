@@ -10,7 +10,7 @@ services:
       MARIADB_USER: ${DB_USERNAME:-primenest}
       MARIADB_PASSWORD: ${DB_PASSWORD:-primenest_password}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - primenest_mariadb_data:/var/lib/mysql
     healthcheck:
@@ -33,6 +33,11 @@ services:
       DB_USERNAME: ${DB_USERNAME:-primenest}
       DB_PASSWORD: ${DB_PASSWORD:-primenest_password}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-}
+      S3_REGION: ${S3_REGION:-auto}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       API_PUBLIC_BASE_URL: ${API_PUBLIC_BASE_URL:-http://localhost:8081}
       WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}

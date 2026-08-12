@@ -8,7 +8,7 @@ import { users as usersApi } from "@/lib/api";
 import { Shield, AlertCircle, CheckCircle, Plus, ArrowRight, Info } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
-const SELF_SERVICE_ROLES: UserRole[] = ["TENANT", "LANDLORD", "AGENT", "DIASPORA", "INVESTOR", "DEVELOPER", "PRIVATE"];
+const SELF_SERVICE_ROLES: UserRole[] = ["TENANT", "LANDLORD", "AGENT", "DIASPORA", "INVESTOR", "DEVELOPER", "PRIVATE", "SERVICE_PROVIDER"];
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   TENANT: "Browse, apply, and manage rental properties",
   LANDLORD: "List, manage, and rent out your properties",
@@ -18,6 +18,7 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   ADMIN: "Platform administration (requires approval)",
   DEVELOPER: "List and manage property development projects",
   PRIVATE: "List your own property as a private seller or landlord",
+  SERVICE_PROVIDER: "Offer moving, cleaning, repair, or other property services",
 };
 
 function SecuritySettingsPageInner() {

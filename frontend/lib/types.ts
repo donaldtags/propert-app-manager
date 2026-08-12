@@ -2,7 +2,7 @@ export type ListingType = "RENT" | "SALE" | "SHORT_STAY";
 export type PropertyStatus = "DRAFT" | "AVAILABLE" | "RESERVED" | "OCCUPIED" | "SOLD" | "INACTIVE";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 export type WaterSource = "MUNICIPAL" | "BOREHOLE" | "WELL" | "TANKER" | "OTHER";
-export type UserRole = "TENANT" | "LANDLORD" | "AGENT" | "DIASPORA" | "INVESTOR" | "ADMIN" | "DEVELOPER" | "PRIVATE";
+export type UserRole = "TENANT" | "LANDLORD" | "AGENT" | "DIASPORA" | "INVESTOR" | "ADMIN" | "DEVELOPER" | "PRIVATE" | "SERVICE_PROVIDER";
 export type LeaseStatus = "DRAFT" | "SENT" | "SIGNED" | "ACTIVE" | "ENDED" | "CANCELLED";
 export type EscrowStatus = "CREATED" | "FUNDED" | "RELEASED" | "DISPUTED" | "REFUNDED" | "CANCELLED";
 export type FundingMethod =
@@ -75,6 +75,7 @@ export interface Property {
   photoUrls: string[];
   imageUrls: string[];
   photos: string[];
+  photoDetails: { id: number; url: string }[];
 }
 
 export interface FeaturedListingSettings {
@@ -116,6 +117,13 @@ export interface SubscriptionInfo {
   maxProperties: number | null;
   activePropertyCount: number;
   enabledFeatures: SubscriptionFeature[];
+}
+
+export interface PropertyBilling {
+  status: "ACTIVE" | "PAST_DUE";
+  currentPeriodEnd: string | null;
+  monthlyFee: number;
+  currency: string;
 }
 
 export interface FeatureListingResult {
@@ -573,6 +581,8 @@ export interface Vendor {
   email?: string;
   city?: string;
   verified: boolean;
+  active: boolean;
+  ownerId?: number;
   averageRating?: number;
   ratingCount: number;
   createdAt: string;

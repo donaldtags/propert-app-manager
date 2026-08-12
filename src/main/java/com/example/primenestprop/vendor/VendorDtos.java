@@ -18,6 +18,27 @@ public final class VendorDtos {
     ) {
     }
 
+    /** Self-registration by a SERVICE_PROVIDER user; starts unverified until an admin reviews it. */
+    public record SelfRegisterVendorRequest(
+            @NotBlank String businessName,
+            @NotNull VendorCategory category,
+            String description,
+            String phone,
+            String city
+    ) {
+    }
+
+    /** All fields optional/nullable: only the ones present in the request body are changed. */
+    public record UpdateVendorRequest(
+            String businessName,
+            VendorCategory category,
+            String description,
+            String phone,
+            String email,
+            String city
+    ) {
+    }
+
     public record VendorResponse(
             Long id,
             String businessName,
@@ -27,6 +48,8 @@ public final class VendorDtos {
             String email,
             String city,
             boolean verified,
+            boolean active,
+            Long ownerId,
             Double averageRating,
             long ratingCount,
             Instant createdAt
@@ -41,6 +64,8 @@ public final class VendorDtos {
                     vendor.getEmail(),
                     vendor.getCity(),
                     vendor.isVerified(),
+                    vendor.isActive(),
+                    vendor.getOwner() == null ? null : vendor.getOwner().getId(),
                     averageRating,
                     ratingCount,
                     vendor.getCreatedAt()

@@ -48,6 +48,36 @@ public final class PropertyDtos {
     public record VerifyPropertyRequest(@NotNull Long verifierId, String note) {
     }
 
+    /** All fields optional/nullable: only the ones present in the request body are changed. */
+    public record UpdatePropertyRequest(
+            String title,
+            String description,
+            ListingType listingType,
+            String city,
+            String suburb,
+            String address,
+            String country,
+            @Min(0) Integer bedrooms,
+            @Min(0) Integer bathrooms,
+            @DecimalMin("0.0") BigDecimal price,
+            String currency,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Boolean diasporaFriendly,
+            Boolean escrowRequired,
+            Boolean solarInstalled,
+            Boolean backupPower,
+            WaterSource waterSource,
+            Boolean furnished,
+            Boolean internetAvailable,
+            Boolean securityFeatures,
+            Boolean parkingAvailable,
+            Boolean petsAllowed,
+            String virtualTourUrl,
+            PropertyStatus status
+    ) {
+    }
+
     public record InquiryRequest(
             @NotBlank String name,
             @NotBlank String email,
@@ -123,12 +153,17 @@ public final class PropertyDtos {
             Instant featuredUntil,
             List<String> photoUrls,
             List<String> imageUrls,
-            List<String> photos
+            List<String> photos,
+            List<PhotoResponse> photoDetails
     ) {
         public static PropertyResponse from(Property property) {
             List<String> urls = property.getPhotos().stream()
                     .map(PropertyPhoto::getPhotoUrl)
                     .filter(url -> url != null && !url.isBlank())
+                    .toList();
+            List<PhotoResponse> photoDetails = property.getPhotos().stream()
+                    .filter(p -> p.getPhotoUrl() != null && !p.getPhotoUrl().isBlank())
+                    .map(p -> new PhotoResponse(p.getId(), p.getPhotoUrl()))
                     .toList();
             String landlordName = property.getLandlord() != null ? property.getLandlord().getFullName() : null;
             String landlordCompanyName = property.getLandlord() != null ? property.getLandlord().getCompanyName() : null;
@@ -180,8 +215,12 @@ public final class PropertyDtos {
                     property.getFeaturedUntil(),
                     urls,
                     urls,
-                    urls
+                    urls,
+                    photoDetails
             );
         }
+    }
+
+    public record PhotoResponse(Long id, String url) {
     }
 }
