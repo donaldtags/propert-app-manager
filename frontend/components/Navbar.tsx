@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Menu, X, ChevronDown } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import PrimeNestLogo from "./PrimeNestLogo";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -52,7 +52,7 @@ export default function Navbar() {
       <div className="max-w-screen-2xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0">
-          <Image src="/homestead_logo.png" alt="Homestead" width={912} height={273} className="h-16 w-auto" preload />
+          <PrimeNestLogo size={40} />
         </Link>
 
         {/* Desktop nav links */}
@@ -61,7 +61,7 @@ export default function Navbar() {
             <Link
               key={l.href}
               href={l.href}
-              className={`hover:text-blue-600 transition-colors ${pathname === l.href.split("?")[0] ? "text-blue-600" : ""}`}
+              className={`hover:text-forest-600 transition-colors ${pathname === l.href.split("?")[0] ? "text-forest-600" : ""}`}
             >
               {l.label}
             </Link>
@@ -72,7 +72,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3 ml-auto">
           <Link
             href="/properties/new"
-            className="hidden sm:flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300 px-3 py-2 rounded-lg transition-colors"
+            className="hidden sm:flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-3 py-2 rounded-lg transition-colors"
           >
             + List Property
           </Link>
@@ -85,9 +85,9 @@ export default function Navbar() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-forest-600 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-full bg-forest-100 text-forest-700 flex items-center justify-center font-bold text-xs">
                   {user.fullName?.charAt(0).toUpperCase()}
                 </div>
                 <span className="hidden sm:block max-w-28 truncate">{user.fullName}</span>
@@ -111,7 +111,7 @@ export default function Navbar() {
                     <Link href="/investments" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Investments</Link>
                   )}
                   {user.roles?.includes("ADMIN") && (
-                    <Link href="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50">Admin Portal</Link>
+                    <Link href="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm font-medium text-forest-600 hover:bg-forest-50">Admin Portal</Link>
                   )}
                   <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Profile</Link>
                   <Link href="/messages" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Messages</Link>
@@ -126,12 +126,12 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors hidden sm:block">
+              <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-forest-600 transition-colors hidden sm:block">
                 Sign In
               </Link>
               <Link
                 href="/register"
-                className="text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                className="text-sm font-semibold bg-forest-600 hover:bg-forest-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 Register
               </Link>
@@ -156,7 +156,7 @@ export default function Navbar() {
               key={l.href}
               href={l.href}
               onClick={() => setMenuOpen(false)}
-              className="block py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+              className="block py-2 text-sm font-medium text-gray-700 hover:text-forest-600"
             >
               {l.label}
             </Link>

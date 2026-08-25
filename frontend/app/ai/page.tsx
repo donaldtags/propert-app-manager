@@ -36,7 +36,7 @@ function firstName(fullName?: string) {
 
 function searchWelcome(name?: string) {
   const greeting = name ? `Hi ${name}! I'm ${ASSISTANT_NAME}` : `Hi! I'm ${ASSISTANT_NAME}`;
-  return `${greeting}, your Homestead AI assistant. Describe what you're looking for and I'll help you find the perfect property. For example: 'Find me a 2-bedroom apartment in Harare under $500/month near schools.'`;
+  return `${greeting}, your PrimeNest AI assistant. Describe what you're looking for and I'll help you find the perfect property. For example: 'Find me a 2-bedroom apartment in Harare under $500/month near schools.'`;
 }
 
 function assistantWelcome(name?: string) {
@@ -132,7 +132,7 @@ export default function AiSearchPage() {
     <div className="flex flex-col h-[calc(100vh-80px)] max-w-3xl mx-auto w-full px-4">
       {/* Header */}
       <div className="py-6 text-center border-b border-gray-200">
-        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+        <div className="w-12 h-12 bg-forest-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
           <Zap className="w-6 h-6 text-white" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">
@@ -148,7 +148,7 @@ export default function AiSearchPage() {
               type="button"
               onClick={() => switchMode("SEARCH")}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-                mode === "SEARCH" ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
+                mode === "SEARCH" ? "bg-forest-600 text-white border-forest-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
               }`}
             >
               <Search className="w-3.5 h-3.5" /> Property Search
@@ -157,7 +157,7 @@ export default function AiSearchPage() {
               type="button"
               onClick={() => switchMode("HOME_ASSISTANT")}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-                mode === "HOME_ASSISTANT" ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
+                mode === "HOME_ASSISTANT" ? "bg-forest-600 text-white border-forest-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
               }`}
             >
               <Home className="w-3.5 h-3.5" /> Home Assistant
@@ -179,7 +179,7 @@ export default function AiSearchPage() {
             <div className={`flex gap-3 w-full ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  msg.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500"
+                  msg.role === "user" ? "bg-forest-600 text-white" : "bg-gray-100 text-gray-500"
                 }`}
               >
                 {msg.role === "user" ? (
@@ -191,7 +191,7 @@ export default function AiSearchPage() {
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-forest-600 text-white"
                     : "bg-gray-100 text-gray-800"
                 }`}
               >
@@ -233,7 +233,7 @@ export default function AiSearchPage() {
               <button
                 key={s}
                 onClick={() => sendMessage(s)}
-                className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors text-left"
+                className="text-xs bg-forest-50 text-forest-700 px-3 py-1.5 rounded-full hover:bg-forest-100 transition-colors text-left"
               >
                 {s}
               </button>
@@ -255,13 +255,13 @@ export default function AiSearchPage() {
           }}
           placeholder={mode === "SEARCH" ? "Describe your ideal property..." : "Ask about your rent, lease, or maintenance..."}
           rows={1}
-          className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
+          className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 resize-none"
           style={{ maxHeight: "120px" }}
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="w-11 h-11 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl flex items-center justify-center transition-colors shrink-0"
+          className="w-11 h-11 bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white rounded-2xl flex items-center justify-center transition-colors shrink-0"
         >
           <Send className="w-5 h-5" />
         </button>

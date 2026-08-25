@@ -10,8 +10,8 @@ import EntityPicker from "@/components/EntityPicker";
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    ACTIVE: "bg-green-100 text-green-700",
-    SIGNED: "bg-blue-100 text-blue-700",
+    ACTIVE: "bg-forest-100 text-forest-700",
+    SIGNED: "bg-forest-100 text-forest-700",
     DRAFT: "bg-gray-100 text-gray-700",
     COMPLETED: "bg-purple-100 text-purple-700",
     ENDED: "bg-red-100 text-red-700",
@@ -33,13 +33,13 @@ const DOCUMENT_TYPE_LABELS: Record<LeaseDocumentType, string> = {
 
 // Blank templates tenants/landlords can download, fill in, and re-upload as the matching document type.
 const DOCUMENT_TEMPLATES: Partial<Record<LeaseDocumentType, string>> = {
-  HAND_FILLED_APPLICATION: "/templates/Homestead_Rental_Application_Form.docx",
+  HAND_FILLED_APPLICATION: "/templates/PrimeNest_Rental_Application_Form.docx",
 };
 
 function DocStatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     SUBMITTED: "bg-amber-100 text-amber-700",
-    APPROVED: "bg-green-100 text-green-700",
+    APPROVED: "bg-forest-100 text-forest-700",
     REJECTED: "bg-red-100 text-red-700",
   };
   return (
@@ -275,7 +275,7 @@ export default function LeasesPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <FileText className="w-7 h-7 text-blue-600" /> Leases
+          <FileText className="w-7 h-7 text-forest-600" /> Leases
         </h1>
         <p className="text-gray-500 mt-1">Manage your digital lease agreements</p>
       </div>
@@ -286,7 +286,7 @@ export default function LeasesPage() {
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -295,7 +295,7 @@ export default function LeasesPage() {
       {canManageLeases && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
           <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Plus className="w-5 h-5 text-blue-600" /> Create New Lease
+            <Plus className="w-5 h-5 text-forest-600" /> Create New Lease
           </h2>
 
           {/* AI auto-fill from an existing lease document */}
@@ -305,7 +305,7 @@ export default function LeasesPage() {
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900">Auto-fill from an existing lease document</p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Upload a signed lease (PDF, scan, or Word doc) and Homestead's AI will read the dates, rent, and
+                  Upload a signed lease (PDF, scan, or Word doc) and PrimeNest's AI will read the dates, rent, and
                   deposit into the form below.
                 </p>
                 <input
@@ -319,7 +319,7 @@ export default function LeasesPage() {
                 {extractError && <p className="text-xs text-red-600 mt-2">{extractError}</p>}
                 {extractInfo && !extracting && (
                   <div className="text-xs text-gray-600 mt-2 space-y-0.5">
-                    <p className="text-green-700 font-medium">Filled in what we could find below — check it over.</p>
+                    <p className="text-forest-700 font-medium">Filled in what we could find below — check it over.</p>
                     {extractInfo.tenantFullName && <p>Tenant named in document: {extractInfo.tenantFullName}</p>}
                     {extractInfo.propertyAddress && <p>Address in document: {extractInfo.propertyAddress}</p>}
                     {extractInfo.currency && <p>Currency: {extractInfo.currency}</p>}
@@ -363,7 +363,7 @@ export default function LeasesPage() {
                   value={form[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                   required
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
                 />
               </div>
             ))}
@@ -373,7 +373,7 @@ export default function LeasesPage() {
                 type="text"
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
                 placeholder="Optional terms or notes"
               />
             </div>
@@ -381,7 +381,7 @@ export default function LeasesPage() {
               <button
                 type="submit"
                 disabled={creating}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
+                className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
               >
                 {creating ? "Creating..." : "Create Lease"}
               </button>
@@ -422,13 +422,13 @@ export default function LeasesPage() {
                     <p className="text-sm text-gray-500">
                       Property #{lease.propertyId} · {lease.startDate} → {lease.endDate}
                     </p>
-                    <p className="text-lg font-bold text-blue-600 mt-1">${lease.monthlyRent}/mo</p>
+                    <p className="text-lg font-bold text-forest-600 mt-1">${lease.monthlyRent}/mo</p>
                     <p className="text-xs text-gray-400 mt-0.5">Deposit: ${lease.depositAmount}</p>
                   </div>
                   <div className="flex flex-col gap-2 items-end">
                     <div className="flex gap-2 text-xs text-gray-500">
-                      {lease.signedByTenant && <span className="text-green-600 font-medium">✓ Tenant signed</span>}
-                      {lease.signedByLandlord && <span className="text-green-600 font-medium">✓ Landlord signed</span>}
+                      {lease.signedByTenant && <span className="text-forest-600 font-medium">✓ Tenant signed</span>}
+                      {lease.signedByLandlord && <span className="text-forest-600 font-medium">✓ Landlord signed</span>}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -441,7 +441,7 @@ export default function LeasesPage() {
                       {canSign && (
                         <button
                           onClick={() => handleSign(lease.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
+                          className="bg-forest-600 hover:bg-forest-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
                         >
                           Sign Lease
                         </button>
@@ -464,7 +464,7 @@ export default function LeasesPage() {
                             key={type}
                             href={href}
                             download
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full transition-colors"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-forest-600 hover:text-forest-700 bg-forest-50 hover:bg-forest-100 px-3 py-1.5 rounded-full transition-colors"
                           >
                             <Download className="w-3.5 h-3.5" />
                             Download blank {DOCUMENT_TYPE_LABELS[type as LeaseDocumentType]}
@@ -504,7 +504,7 @@ export default function LeasesPage() {
                                   <button
                                     onClick={() => handleDownload(lease.id, doc)}
                                     disabled={downloading === doc.id}
-                                    className="text-blue-600 hover:text-blue-700 font-medium text-xs mr-3 disabled:opacity-50"
+                                    className="text-forest-600 hover:text-forest-700 font-medium text-xs mr-3 disabled:opacity-50"
                                   >
                                     {downloading === doc.id ? "Downloading…" : "Download"}
                                   </button>
@@ -512,7 +512,7 @@ export default function LeasesPage() {
                                     <>
                                       <button
                                         onClick={() => handleReview(lease.id, doc.id, "APPROVED")}
-                                        className="text-green-600 hover:text-green-700 font-medium text-xs mr-3"
+                                        className="text-forest-600 hover:text-forest-700 font-medium text-xs mr-3"
                                       >
                                         Approve
                                       </button>
@@ -538,7 +538,7 @@ export default function LeasesPage() {
                         <select
                           value={uploadType[lease.id] ?? "LEASE_FORM"}
                           onChange={(e) => setUploadType((t) => ({ ...t, [lease.id]: e.target.value as LeaseDocumentType }))}
-                          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-blue-500"
+                          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-forest-500"
                         >
                           {Object.entries(DOCUMENT_TYPE_LABELS).map(([value, label]) => (
                             <option key={value} value={value}>{label}</option>
@@ -557,7 +557,7 @@ export default function LeasesPage() {
                       <button
                         onClick={() => handleUpload(lease.id)}
                         disabled={uploading === lease.id}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors"
+                        className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors"
                       >
                         {uploading === lease.id ? "Uploading…" : "Upload"}
                       </button>

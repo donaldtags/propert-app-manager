@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
+import PrimeNestLogo from "@/components/PrimeNestLogo";
 import { Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
@@ -57,7 +57,7 @@ function RegisterForm() {
     }
   };
 
-  const strengthColor = score < 2 ? "bg-red-400" : score < 4 ? "bg-amber-400" : "bg-green-500";
+  const strengthColor = score < 2 ? "bg-red-400" : score < 4 ? "bg-amber-400" : "bg-forest-500";
   const strengthLabel = score < 2 ? "Weak" : score < 4 ? "Medium" : "Strong";
 
   return (
@@ -65,7 +65,7 @@ function RegisterForm() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center mb-6">
-            <Image src="/homestead_logo.png" alt="Homestead" width={912} height={273} className="h-11 w-auto" />
+            <PrimeNestLogo size={36} />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
           <p className="text-gray-500 mt-1">Join thousands of verified users</p>
@@ -86,7 +86,7 @@ function RegisterForm() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                 placeholder="Tariro Moyo"
               />
             </div>
@@ -99,7 +99,7 @@ function RegisterForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -111,7 +111,7 @@ function RegisterForm() {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                   placeholder="+263771000001"
                 />
               </div>
@@ -121,7 +121,7 @@ function RegisterForm() {
                   type="text"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                   placeholder="Zimbabwe"
                 />
               </div>
@@ -144,7 +144,7 @@ function RegisterForm() {
                     onClick={() => setRole(value)}
                     className={`py-2 text-sm font-medium rounded-xl border transition-colors ${
                       role === value
-                        ? "bg-blue-600 text-white border-blue-600"
+                        ? "bg-forest-600 text-white border-forest-600"
                         : "border-gray-200 text-gray-600 hover:border-gray-400"
                     }`}
                   >
@@ -163,7 +163,7 @@ function RegisterForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="new-password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                   placeholder="••••••••"
                 />
                 <button
@@ -192,7 +192,7 @@ function RegisterForm() {
                       { label: "Number", ok: checks.number },
                       { label: "Symbol", ok: checks.symbol },
                     ].map(({ label, ok }) => (
-                      <span key={label} className={`flex items-center gap-1 ${ok ? "text-green-600" : "text-gray-400"}`}>
+                      <span key={label} className={`flex items-center gap-1 ${ok ? "text-forest-600" : "text-gray-400"}`}>
                         {ok ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                         {label}
                       </span>
@@ -216,9 +216,9 @@ function RegisterForm() {
                 className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition-colors ${
                   confirmPw.length > 0
                     ? pwMatch
-                      ? "border-green-400 focus:ring-2 focus:ring-green-100"
+                      ? "border-forest-400 focus:ring-2 focus:ring-forest-100"
                       : "border-red-400 focus:ring-2 focus:ring-red-100"
-                    : "border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    : "border-gray-200 focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
                 }`}
                 placeholder="••••••••"
               />
@@ -227,7 +227,7 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors mt-2"
+              className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors mt-2"
             >
               {loading ? "Creating account..." : "Create Account"}
             </button>
@@ -235,7 +235,7 @@ function RegisterForm() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Already have an account?{" "}
-            <Link href={`/login?redirect=${encodeURIComponent(redirect)}`} className="text-blue-600 font-semibold hover:underline">
+            <Link href={`/login?redirect=${encodeURIComponent(redirect)}`} className="text-forest-600 font-semibold hover:underline">
               Sign in
             </Link>
           </p>

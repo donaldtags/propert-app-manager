@@ -89,10 +89,10 @@ export default function NavSidebar({ roles }: NavSidebarProps) {
             href={item.href}
             onClick={onItemClick}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-              active ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              active ? "bg-forest-50 text-forest-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             }`}
           >
-            <Icon className={`w-4 h-4 shrink-0 ${active ? "text-blue-600" : "text-gray-400"}`} />
+            <Icon className={`w-4 h-4 shrink-0 ${active ? "text-forest-600" : "text-gray-400"}`} />
             <span className="truncate">{item.label}</span>
           </Link>
         );

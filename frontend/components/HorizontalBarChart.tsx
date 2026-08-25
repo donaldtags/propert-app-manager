@@ -9,7 +9,7 @@ interface HorizontalBarChartProps {
   color?: string;
 }
 
-export default function HorizontalBarChart({ data, color = "bg-blue-600" }: HorizontalBarChartProps) {
+export default function HorizontalBarChart({ data, color = "bg-forest-600" }: HorizontalBarChartProps) {
   const max = Math.max(1, ...data.map((d) => d.value));
 
   return (

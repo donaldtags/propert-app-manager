@@ -10,7 +10,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Homestead – Find Your Next Home in Africa",
+  title: "PrimeNest – Find Your Next Home in Africa",
   description:
     "Verified property listings with escrow-protected deposits, digital leases, and AI-powered search for African real estate.",
 };

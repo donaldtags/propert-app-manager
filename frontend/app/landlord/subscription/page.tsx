@@ -130,28 +130,28 @@ export default function SubscriptionPage() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <CreditCard className="w-6 h-6 text-blue-600" /> Subscription Plan
+          <CreditCard className="w-6 h-6 text-forest-600" /> Subscription Plan
         </h1>
         <p className="text-gray-500 mt-1">Choose the plan that fits your portfolio. Prices are set by PrimeNest.</p>
       </div>
 
       {mine && (
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div className="bg-forest-50 border border-forest-100 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <Building2 className="w-5 h-5 text-blue-600" />
+            <Building2 className="w-5 h-5 text-forest-600" />
             <div>
-              <p className="text-sm font-semibold text-blue-900">
+              <p className="text-sm font-semibold text-forest-900">
                 Current plan: {mine.plan} · {mine.activePropertyCount}{mine.maxProperties != null ? ` / ${mine.maxProperties}` : ""} properties used
               </p>
               {mine.currentPeriodEnd && (
-                <p className="text-xs text-blue-700 mt-0.5">
+                <p className="text-xs text-forest-700 mt-0.5">
                   Renews on {formatDate(mine.currentPeriodEnd)} · status {mine.status}
                   {mine.status === "PAST_DUE" && " — renewal failed, will downgrade if not resolved"}
                 </p>
               )}
             </div>
           </div>
-          <Link href="/payments" className="text-xs text-blue-700 underline">View billing history</Link>
+          <Link href="/payments" className="text-xs text-forest-700 underline">View billing history</Link>
         </div>
       )}
 
@@ -161,7 +161,7 @@ export default function SubscriptionPage() {
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -174,7 +174,7 @@ export default function SubscriptionPage() {
             <div
               key={plan.plan}
               className={`bg-white rounded-2xl p-6 border shadow-sm flex flex-col ${
-                isCurrent ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200"
+                isCurrent ? "border-forest-500 ring-2 ring-forest-100" : "border-gray-200"
               }`}
             >
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{plan.plan}</p>
@@ -190,7 +190,7 @@ export default function SubscriptionPage() {
                 {(Object.keys(FEATURE_LABELS) as SubscriptionFeature[]).map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-sm">
                     {enabled.includes(feature) ? (
-                      <Check className="w-4 h-4 text-green-600 shrink-0" />
+                      <Check className="w-4 h-4 text-forest-600 shrink-0" />
                     ) : (
                       <X className="w-4 h-4 text-gray-300 shrink-0" />
                     )}
@@ -207,7 +207,7 @@ export default function SubscriptionPage() {
                 className={`mt-5 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                   isCurrent
                     ? "bg-gray-100 text-gray-400 cursor-default"
-                    : "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+                    : "bg-forest-600 hover:bg-forest-700 text-white disabled:opacity-60"
                 }`}
               >
                 {isCurrent ? "Current plan" : switchingTo === plan.plan ? "Processing..." : plan.monthlyPrice > 0 ? "Upgrade" : "Switch to Starter"}

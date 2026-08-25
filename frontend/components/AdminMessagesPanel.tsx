@@ -115,7 +115,7 @@ export default function AdminMessagesPanel({
               setSelectedId(null);
               setError("");
             }}
-            className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+            className="flex items-center gap-1 text-xs font-medium text-forest-600 hover:text-forest-700"
           >
             <Plus className="w-3.5 h-3.5" /> New
           </button>
@@ -138,7 +138,7 @@ export default function AdminMessagesPanel({
                 key={c.id}
                 onClick={() => openConversation(c.id)}
                 className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
-                  selectedId === c.id ? "bg-blue-50" : ""
+                  selectedId === c.id ? "bg-forest-50" : ""
                 }`}
               >
                 <p className="text-sm font-medium text-gray-900 truncate">{c.participantNames.join(" & ")}</p>
@@ -176,7 +176,7 @@ export default function AdminMessagesPanel({
               <input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
               />
             </div>
             <div>
@@ -185,13 +185,13 @@ export default function AdminMessagesPanel({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 resize-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 resize-none"
               />
             </div>
             <button
               onClick={handleStartConversation}
               disabled={sending}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold py-2.5 rounded-xl"
+              className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white text-sm font-semibold py-2.5 rounded-xl"
             >
               {sending ? "Starting..." : "Start Conversation"}
             </button>
@@ -216,7 +216,7 @@ export default function AdminMessagesPanel({
                   <div key={m.id} className={`max-w-[75%] ${m.senderId === currentUserId ? "ml-auto text-right" : ""}`}>
                     <div
                       className={`inline-block px-3 py-2 rounded-xl text-sm ${
-                        m.senderId === currentUserId ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
+                        m.senderId === currentUserId ? "bg-forest-600 text-white" : "bg-gray-100 text-gray-900"
                       }`}
                     >
                       {m.content}
@@ -237,12 +237,12 @@ export default function AdminMessagesPanel({
                     if (e.key === "Enter") handleReply();
                   }}
                   placeholder="Reply..."
-                  className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                  className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
                 />
                 <button
                   onClick={handleReply}
                   disabled={sendingReply || !reply.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 rounded-xl flex items-center justify-center"
+                  className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-4 rounded-xl flex items-center justify-center"
                 >
                   <Send className="w-4 h-4" />
                 </button>

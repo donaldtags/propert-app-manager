@@ -1,4 +1,4 @@
-const STORAGE_KEY = "homestead_compare_properties";
+const STORAGE_KEY = "primenest_compare_properties";
 export const MAX_COMPARE = 4;
 
 function readIds(): number[] {

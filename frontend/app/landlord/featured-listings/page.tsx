@@ -135,7 +135,7 @@ export default function FeaturedListingsPage() {
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -144,7 +144,7 @@ export default function FeaturedListingsPage() {
         <div className="text-center py-16 text-gray-500">
           <Star className="w-12 h-12 mx-auto mb-4 opacity-30" />
           <p className="text-lg font-medium">No listings yet</p>
-          <Link href="/properties/new" className="mt-3 inline-block text-sm text-blue-600 hover:underline">+ Add your first property</Link>
+          <Link href="/properties/new" className="mt-3 inline-block text-sm text-forest-600 hover:underline">+ Add your first property</Link>
         </div>
       ) : (
         <div className="space-y-3">
@@ -153,7 +153,7 @@ export default function FeaturedListingsPage() {
             return (
               <div key={prop.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <Link href={`/properties/${prop.id}`} className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate block">
+                  <Link href={`/properties/${prop.id}`} className="text-sm font-semibold text-gray-900 hover:text-forest-600 transition-colors truncate block">
                     {prop.title}
                   </Link>
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">

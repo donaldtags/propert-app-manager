@@ -12,6 +12,30 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* PrimeNest brand — Forest Green replaces the generic product blue everywhere. */
+@theme {
+  --color-forest-50: #eff6f1;
+  --color-forest-100: #dceee2;
+  --color-forest-200: #b9ddc7;
+  --color-forest-300: #8fc7a7;
+  --color-forest-400: #5fa97f;
+  --color-forest-500: #3b8862;
+  --color-forest-600: #1f5d42;
+  --color-forest-700: #184a35;
+  --color-forest-800: #123726;
+  --color-forest-900: #0d291c;
+  --color-gold-50: #fbf6e7;
+  --color-gold-100: #f5eac6;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #9c7d1c;
+  --color-gold-700: #7a6115;
+  --color-terracotta-500: #b85c38;
+  --color-terracotta-600: #9a4a2c;
+  --color-brown-600: #5a3a29;
+  --color-ivory-50: #f8f3e7;
+  --color-charcoal-900: #202522;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -26,7 +50,7 @@ body {
 }
 
 .price-marker {
-  background: #006aff;
+  background: #1f5d42;
   color: white;
   border-radius: 4px;
   padding: 4px 8px;
@@ -47,7 +71,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #006aff;
+  background: #1f5d42;
   color: white;
   border-radius: 50%;
   font-size: 13px;

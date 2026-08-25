@@ -85,19 +85,19 @@ function SecuritySettingsPageInner() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Shield className="w-7 h-7 text-blue-600" /> Security & Roles
+          <Shield className="w-7 h-7 text-forest-600" /> Security & Roles
         </h1>
         <p className="text-gray-500 mt-1">Manage your account roles and security settings</p>
       </div>
 
       {needRoles.length > 0 && !needRoles.some((r) => currentRoles.includes(r)) && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-3 rounded-xl mb-5 flex items-start gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-800 text-sm px-4 py-3 rounded-xl mb-5 flex items-start gap-2">
           <Info className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">
               Add the {needRoles.join(" or ")} role to continue{needReason ? ` — ${needReason}` : ""}.
             </p>
-            <p className="text-xs mt-0.5 text-blue-700">We've highlighted it for you below.</p>
+            <p className="text-xs mt-0.5 text-forest-700">We've highlighted it for you below.</p>
           </div>
         </div>
       )}
@@ -108,7 +108,7 @@ function SecuritySettingsPageInner() {
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -118,7 +118,7 @@ function SecuritySettingsPageInner() {
         <h2 className="font-bold text-gray-900 mb-4">Current Roles</h2>
         <div className="flex flex-wrap gap-2">
           {currentRoles.map((role) => (
-            <span key={role} className="flex items-center gap-1 bg-blue-100 text-blue-700 text-sm font-semibold px-4 py-2 rounded-xl">
+            <span key={role} className="flex items-center gap-1 bg-forest-100 text-forest-700 text-sm font-semibold px-4 py-2 rounded-xl">
               <CheckCircle className="w-4 h-4" /> {role}
             </span>
           ))}
@@ -134,7 +134,7 @@ function SecuritySettingsPageInner() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {availableRoles.map((role) => (
-              <div key={role} className={`border rounded-2xl p-4 transition-all ${addingRole === role ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+              <div key={role} className={`border rounded-2xl p-4 transition-all ${addingRole === role ? "border-forest-500 bg-forest-50" : "border-gray-200 hover:border-gray-300"}`}>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <p className="font-semibold text-gray-900">{role}</p>
@@ -146,14 +146,14 @@ function SecuritySettingsPageInner() {
                       setPassword("");
                       setError("");
                     }}
-                    className="shrink-0 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-medium transition-colors flex items-center gap-1"
+                    className="shrink-0 text-xs bg-forest-600 hover:bg-forest-700 text-white px-3 py-1.5 rounded-xl font-medium transition-colors flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" /> Add
                   </button>
                 </div>
 
                 {addingRole === role && (
-                  <div className="mt-3 pt-3 border-t border-blue-200">
+                  <div className="mt-3 pt-3 border-t border-forest-200">
                     {role !== "ADMIN" && (
                       <div className="mb-3">
                         <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -163,7 +163,7 @@ function SecuritySettingsPageInner() {
                           type="password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+                          className="w-full border border-forest-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
                           placeholder="Current password"
                         />
                       </div>
@@ -174,7 +174,7 @@ function SecuritySettingsPageInner() {
                     <button
                       onClick={() => handleAddRole(role)}
                       disabled={submitting}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-xl transition-colors"
+                      className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-xl transition-colors"
                     >
                       {submitting ? "Processing..." : role === "ADMIN" ? "Request Admin Access" : `Add ${role} Role`}
                     </button>
@@ -196,19 +196,19 @@ function SecuritySettingsPageInner() {
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="text-gray-500">Verified</span>
-            <span className={user.verified ? "text-green-600 font-medium" : "text-gray-400"}>
+            <span className={user.verified ? "text-forest-600 font-medium" : "text-gray-400"}>
               {user.verified ? "Yes" : "No"}
             </span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="text-gray-500">Identity Verified</span>
-            <span className={user.identityVerified ? "text-green-600 font-medium" : "text-gray-400"}>
+            <span className={user.identityVerified ? "text-forest-600 font-medium" : "text-gray-400"}>
               {user.identityVerified ? "Yes" : "No"}
             </span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="text-gray-500">Face Verified</span>
-            <span className={user.faceVerified ? "text-green-600 font-medium" : "text-gray-400"}>
+            <span className={user.faceVerified ? "text-forest-600 font-medium" : "text-gray-400"}>
               {user.faceVerified ? "Yes" : "No"}
             </span>
           </div>
@@ -219,7 +219,7 @@ function SecuritySettingsPageInner() {
           <div className="pt-2">
             <button
               onClick={() => router.push("/forgot-password")}
-              className="text-blue-600 hover:underline text-sm font-medium"
+              className="text-forest-600 hover:underline text-sm font-medium"
             >
               Change Password
             </button>
@@ -230,7 +230,7 @@ function SecuritySettingsPageInner() {
       {!user.identityVerified && (
         <Link
           href="/verification"
-          className="mt-6 flex items-center justify-between gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-4 text-sm font-semibold transition-colors"
+          className="mt-6 flex items-center justify-between gap-2 bg-forest-600 hover:bg-forest-700 text-white rounded-2xl px-6 py-4 text-sm font-semibold transition-colors"
         >
           <span className="flex items-center gap-2">
             <Shield className="w-4 h-4" /> Verify your identity

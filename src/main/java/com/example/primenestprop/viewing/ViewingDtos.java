@@ -63,7 +63,7 @@ public final class ViewingDtos {
                     viewing.getVideoCallLink(),
                     includeCheckInMaterials ? viewing.getCheckInCode() : null,
                     includeCheckInMaterials && viewing.getStatus() == ViewingStatus.CONFIRMED
-                            ? QrCodeGenerator.toDataUri("HOMESTEAD-VIEWING:" + viewing.getId() + ":" + viewing.getCheckInCode(), 220)
+                            ? QrCodeGenerator.toDataUri("PRIMENEST-VIEWING:" + viewing.getId() + ":" + viewing.getCheckInCode(), 220)
                             : null,
                     viewing.getCreatedAt(),
                     viewing.getConfirmedAt(),

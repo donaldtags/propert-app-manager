@@ -66,7 +66,7 @@ public class LeaseExtractionService {
         StructuredMessageCreateParams<LeaseExtractionResult> params = MessageCreateParams.builder()
                 .model(model)
                 .maxTokens(1024L)
-                .system("You extract structured lease/rental agreement data from documents for the Homestead "
+                .system("You extract structured lease/rental agreement data from documents for the PrimeNest "
                         + "property platform. Never invent values that are not present in the document.")
                 .outputConfig(LeaseExtractionResult.class)
                 .addUserMessageOfBlockParams(List.of(documentBlock, instructionBlock))

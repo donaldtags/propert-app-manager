@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import PrimeNestLogo from "@/components/PrimeNestLogo";
 import { CheckCircle } from "lucide-react";
 import { auth } from "@/lib/api";
 
@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center mb-6">
-            <Image src="/homestead_logo.png" alt="Homestead" width={912} height={273} className="h-11 w-auto" />
+            <PrimeNestLogo size={36} />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Reset your password</h1>
           <p className="text-gray-500 mt-1">We&apos;ll send a reset link if your email exists</p>
@@ -38,12 +38,12 @@ export default function ForgotPasswordPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           {submitted ? (
             <div className="text-center py-4">
-              <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
+              <CheckCircle className="w-14 h-14 text-forest-500 mx-auto mb-4" />
               <p className="text-gray-900 font-semibold">Check your email</p>
               <p className="text-gray-500 text-sm mt-2">
                 If this email exists, a reset link has been sent.
               </p>
-              <Link href="/login" className="mt-6 inline-block text-blue-600 font-semibold hover:underline text-sm">
+              <Link href="/login" className="mt-6 inline-block text-forest-600 font-semibold hover:underline text-sm">
                 Back to Sign In
               </Link>
             </div>
@@ -62,20 +62,20 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                     placeholder="you@example.com"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors"
+                  className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors"
                 >
                   {loading ? "Sending..." : "Send Reset Link"}
                 </button>
               </form>
               <p className="text-center text-sm text-gray-500 mt-5">
-                <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+                <Link href="/login" className="text-forest-600 font-semibold hover:underline">
                   Back to Sign In
                 </Link>
               </p>

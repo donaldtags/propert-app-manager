@@ -101,10 +101,10 @@ function ServicesMarketplaceContent() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Wrench className="w-7 h-7 text-blue-600" /> Home Services Marketplace
+          <Wrench className="w-7 h-7 text-forest-600" /> Home Services Marketplace
         </h1>
         <p className="text-gray-500 mt-1">
-          Homestead-vetted movers, cleaners, tradespeople, insurers, lawyers, and more — book directly.
+          PrimeNest-vetted movers, cleaners, tradespeople, insurers, lawyers, and more — book directly.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ function ServicesMarketplaceContent() {
         <button
           onClick={() => setCategory("")}
           className={`text-sm font-medium px-3 py-1.5 rounded-full border transition-colors ${
-            category === "" ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
+            category === "" ? "bg-forest-600 text-white border-forest-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
           }`}
         >
           All
@@ -126,7 +126,7 @@ function ServicesMarketplaceContent() {
               key={c}
               onClick={() => setCategory(c)}
               className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                category === c ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
+                category === c ? "bg-forest-600 text-white border-forest-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
               }`}
             >
               <Icon className="w-3.5 h-3.5" /> {meta.label}
@@ -162,8 +162,8 @@ function ServicesMarketplaceContent() {
               <div key={vendor.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <Icon className="w-4.5 h-4.5 text-blue-600" />
+                    <div className="w-9 h-9 bg-forest-50 rounded-lg flex items-center justify-center">
+                      <Icon className="w-4.5 h-4.5 text-forest-600" />
                     </div>
                     <div>
                       <p className="font-bold text-gray-900 text-sm leading-tight">{vendor.businessName}</p>
@@ -171,7 +171,7 @@ function ServicesMarketplaceContent() {
                     </div>
                   </div>
                   {vendor.verified && (
-                    <span className="flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
+                    <span className="flex items-center gap-1 bg-forest-50 text-forest-700 text-xs font-bold px-2 py-1 rounded-full">
                       <CheckCircle className="w-3 h-3" /> Verified
                     </span>
                   )}
@@ -198,7 +198,7 @@ function ServicesMarketplaceContent() {
 
                 <button
                   onClick={() => openBooking(vendor)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors"
+                  className="w-full bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors"
                 >
                   Book Now
                 </button>
@@ -214,12 +214,12 @@ function ServicesMarketplaceContent() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
             {bookingSuccess ? (
               <div className="text-center">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <CheckCircle className="w-12 h-12 text-forest-500 mx-auto mb-3" />
                 <p className="font-bold text-gray-900 text-lg mb-1">Booking requested!</p>
                 <p className="text-sm text-gray-500 mb-4">{bookingVendor.businessName} will follow up with you shortly.</p>
                 <button
                   onClick={() => setBookingVendor(null)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                  className="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
                 >
                   Done
                 </button>
@@ -234,7 +234,7 @@ function ServicesMarketplaceContent() {
                 </div>
                 {!user ? (
                   <p className="text-sm text-gray-500">
-                    Please <a href="/login?redirect=/services" className="text-blue-600 underline">sign in</a> to book a service.
+                    Please <a href="/login?redirect=/services" className="text-forest-600 underline">sign in</a> to book a service.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -242,20 +242,20 @@ function ServicesMarketplaceContent() {
                       type="date"
                       value={bookingDate}
                       onChange={(e) => setBookingDate(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500"
                     />
                     <textarea
                       value={bookingNotes}
                       onChange={(e) => setBookingNotes(e.target.value)}
                       rows={3}
                       placeholder="Describe what you need (optional)"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500 resize-none"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500 resize-none"
                     />
                     {bookingError && <p className="text-xs text-red-600">{bookingError}</p>}
                     <button
                       onClick={submitBooking}
                       disabled={bookingSubmitting}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                      className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors"
                     >
                       {bookingSubmitting ? "Booking…" : "Request Booking"}
                     </button>

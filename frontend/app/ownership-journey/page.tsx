@@ -119,7 +119,7 @@ export default function OwnershipJourneyPage() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <TrendingUp className="w-7 h-7 text-blue-600" /> Home Ownership Journey
+          <TrendingUp className="w-7 h-7 text-forest-600" /> Home Ownership Journey
         </h1>
         <p className="text-gray-500 mt-1">From renting to building real estate wealth</p>
       </div>
@@ -131,7 +131,7 @@ export default function OwnershipJourneyPage() {
           {stages.map((stage, i) => (
             <div key={stage.label} className="flex items-start gap-3">
               {stage.done ? (
-                <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                <CheckCircle className="w-5 h-5 text-forest-600 shrink-0 mt-0.5" />
               ) : (
                 <Circle className="w-5 h-5 text-gray-300 shrink-0 mt-0.5" />
               )}
@@ -145,7 +145,7 @@ export default function OwnershipJourneyPage() {
           ))}
         </div>
         {!passport?.identityVerified && (
-          <Link href="/verification" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
+          <Link href="/verification" className="mt-4 inline-block text-sm text-forest-600 hover:underline">
             Verify your identity to advance →
           </Link>
         )}
@@ -216,9 +216,9 @@ export default function OwnershipJourneyPage() {
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-blue-600" /> Start Building Equity
+            <Building2 className="w-5 h-5 text-forest-600" /> Start Building Equity
           </h2>
-          <Link href="/investments" className="text-xs text-blue-600 hover:underline">View all REITs</Link>
+          <Link href="/investments" className="text-xs text-forest-600 hover:underline">View all REITs</Link>
         </div>
         {reits.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-6">No REITs available yet</p>
@@ -235,7 +235,7 @@ export default function OwnershipJourneyPage() {
                   <p className="text-xs text-gray-500">{reit.market} · {reit.propertyType}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-green-600">{reit.projectedAnnualYield}% yield</p>
+                  <p className="text-sm font-bold text-forest-600">{reit.projectedAnnualYield}% yield</p>
                   <p className="text-xs text-gray-400">${reit.unitPrice}/unit</p>
                 </div>
               </Link>

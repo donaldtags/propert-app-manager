@@ -18,11 +18,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * A service provider listed on Homestead - movers, cleaners, plumbers, insurers, lawyers, solar
+ * A service provider listed on PrimeNest - movers, cleaners, plumbers, insurers, lawyers, solar
  * installers, etc. Either admin-curated (owner null) or self-registered by a SERVICE_PROVIDER
  * user (owner set); either way, {@code verified} only ever flips to true via admin review, since
  * a fraudulent "vendor" listing is a direct route to scamming a tenant/landlord who trusts
- * Homestead's vetting.
+ * PrimeNest's vetting.
  */
 @Entity
 @Table(name = "vendors", indexes = {

@@ -77,7 +77,7 @@ function MessagesContent() {
       <div className={`w-full sm:w-72 border-r border-gray-200 flex flex-col ${activeConv ? "hidden sm:flex" : "flex"}`}>
         <div className="p-4 border-b border-gray-200">
           <h1 className="font-bold text-gray-900 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-blue-600" /> Messages
+            <MessageCircle className="w-5 h-5 text-forest-600" /> Messages
           </h1>
         </div>
 
@@ -99,12 +99,12 @@ function MessagesContent() {
               <button
                 key={conv.id}
                 onClick={() => openConversation(conv)}
-                className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${activeConv?.id === conv.id ? "bg-blue-50" : ""}`}
+                className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${activeConv?.id === conv.id ? "bg-forest-50" : ""}`}
               >
                 <p className="text-sm font-medium text-gray-900 truncate">{conv.subject || "Conversation"}</p>
                 {conv.lastMessage && <p className="text-xs text-gray-500 truncate mt-0.5">{conv.lastMessage}</p>}
                 {conv.unreadCount != null && conv.unreadCount > 0 && (
-                  <span className="inline-block mt-1 text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                  <span className="inline-block mt-1 text-xs bg-forest-600 text-white px-2 py-0.5 rounded-full">
                     {conv.unreadCount}
                   </span>
                 )}
@@ -135,9 +135,9 @@ function MessagesContent() {
                 const isMe = msg.senderId === user.id;
                 return (
                   <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-xs sm:max-w-md rounded-2xl px-4 py-2.5 text-sm ${isMe ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"}`}>
+                    <div className={`max-w-xs sm:max-w-md rounded-2xl px-4 py-2.5 text-sm ${isMe ? "bg-forest-600 text-white" : "bg-gray-100 text-gray-800"}`}>
                       {msg.messageType && msg.messageType !== "GENERAL" && (
-                        <p className={`text-xs mb-1 font-medium ${isMe ? "text-blue-200" : "text-gray-400"}`}>
+                        <p className={`text-xs mb-1 font-medium ${isMe ? "text-forest-200" : "text-gray-400"}`}>
                           {msg.messageType.replace("_", " ")}
                         </p>
                       )}
@@ -154,12 +154,12 @@ function MessagesContent() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
               />
               <button
                 type="submit"
                 disabled={sending || !newMessage.trim()}
-                className="w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-colors"
+                className="w-10 h-10 bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-colors"
               >
                 <Send className="w-4 h-4" />
               </button>

@@ -82,8 +82,8 @@ const PAYMENT_CHANNELS: ChannelGroup[] = [
 
 const STATUS_META: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   CREATED: { label: "Awaiting funding", color: "bg-amber-100 text-amber-700", icon: Clock },
-  FUNDED: { label: "Held in escrow", color: "bg-blue-100 text-blue-700", icon: Lock },
-  RELEASED: { label: "Released", color: "bg-green-100 text-green-700", icon: Unlock },
+  FUNDED: { label: "Held in escrow", color: "bg-forest-100 text-forest-700", icon: Lock },
+  RELEASED: { label: "Released", color: "bg-forest-100 text-forest-700", icon: Unlock },
   DISPUTED: { label: "Disputed", color: "bg-red-100 text-red-700", icon: AlertCircle },
   REFUNDED: { label: "Refunded", color: "bg-gray-100 text-gray-700", icon: RotateCcw },
   CANCELLED: { label: "Cancelled", color: "bg-gray-100 text-gray-700", icon: Ban },
@@ -351,7 +351,7 @@ function EscrowContent() {
             <p className="text-xl font-bold text-gray-900 mt-1">{formatMoney(e.amount, e.currency)}</p>
             <p className="text-xs text-gray-400">Created {new Date(e.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</p>
             {e.fundingProvider && (
-              <p className="text-xs text-blue-600 font-medium mt-1">
+              <p className="text-xs text-forest-600 font-medium mt-1">
                 {e.status === "FUNDED" ? "Funded" : "Paid"} via {e.fundingProvider}
               </p>
             )}
@@ -360,7 +360,7 @@ function EscrowContent() {
             {e.status === "CREATED" && !isFunding && (
               <button
                 onClick={() => startFunding(e.id)}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
+                className="bg-forest-600 hover:bg-forest-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
               >
                 Fund now
               </button>
@@ -370,7 +370,7 @@ function EscrowContent() {
                 {user?.roles?.includes("ADMIN") ? (
                   <button
                     onClick={() => handleAction(e.id, "release")}
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
+                    className="bg-forest-600 hover:bg-forest-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
                   >
                     Approve release {e.releaseApprovals > 0 ? `(${e.releaseApprovals}/${e.releaseApprovalsRequired})` : ""}
                   </button>
@@ -378,7 +378,7 @@ function EscrowContent() {
                   <span className="text-xs text-gray-400 self-center">
                     {e.releaseApprovals > 0
                       ? `Release pending — ${e.releaseApprovals}/${e.releaseApprovalsRequired} admin approvals`
-                      : "Awaiting Homestead admin release approval"}
+                      : "Awaiting PrimeNest admin release approval"}
                   </span>
                 )}
                 <button
@@ -423,8 +423,8 @@ function EscrowContent() {
                             onClick={() => setFundingMethod(opt.value)}
                             className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                               fundingMethod === opt.value
-                                ? "bg-blue-600 border-blue-600 text-white"
-                                : "bg-white border-gray-200 text-gray-600 hover:border-blue-300"
+                                ? "bg-forest-600 border-forest-600 text-white"
+                                : "bg-white border-gray-200 text-gray-600 hover:border-forest-300"
                             }`}
                           >
                             {opt.label}
@@ -437,7 +437,7 @@ function EscrowContent() {
                 <button
                   onClick={() => fundingMethod && setFundStep("details")}
                   disabled={!fundingMethod}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
+                  className="bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
                 >
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
@@ -453,7 +453,7 @@ function EscrowContent() {
                       <select
                         value={fundingBank}
                         onChange={(ev) => setFundingBank(ev.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
                       >
                         <option value="">Choose a bank…</option>
                         {ZIMBABWE_BANKS.map((bank) => (
@@ -467,7 +467,7 @@ function EscrowContent() {
                         value={fundingBankAccount}
                         onChange={(ev) => setFundingBankAccount(ev.target.value.replace(/\D/g, ""))}
                         placeholder="e.g. 0123456789"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
                       />
                     </div>
                     <div>
@@ -476,7 +476,7 @@ function EscrowContent() {
                         value={fundingBankAccountName}
                         onChange={(ev) => setFundingBankAccountName(ev.target.value)}
                         placeholder="As it appears on your bank account"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
                       />
                     </div>
                   </>
@@ -492,7 +492,7 @@ function EscrowContent() {
                       value={fundingAccount}
                       onChange={(ev) => setFundingAccount(ev.target.value)}
                       placeholder="e.g. 0771 234 567"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
                     />
                   </div>
                 )}
@@ -505,7 +505,7 @@ function EscrowContent() {
                         value={cardNumber}
                         onChange={(ev) => setCardNumber(ev.target.value.replace(/[^\d\s]/g, "").slice(0, 19))}
                         placeholder="4242 4242 4242 4242"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
                       />
                     </div>
                     <div className="flex gap-3">
@@ -515,7 +515,7 @@ function EscrowContent() {
                           value={cardExpiry}
                           onChange={(ev) => setCardExpiry(ev.target.value.slice(0, 5))}
                           placeholder="MM/YY"
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
                         />
                       </div>
                       <div className="w-24">
@@ -524,7 +524,7 @@ function EscrowContent() {
                           value={cardCvv}
                           onChange={(ev) => setCardCvv(ev.target.value.replace(/\D/g, "").slice(0, 4))}
                           placeholder="123"
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
                         />
                       </div>
                     </div>
@@ -546,7 +546,7 @@ function EscrowContent() {
                   </button>
                   <button
                     onClick={() => handleContinueFromDetails(e.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
+                    className="bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
                   >
                     Continue <ArrowRight className="w-4 h-4" />
                   </button>
@@ -566,18 +566,18 @@ function EscrowContent() {
                   value={otpInput}
                   onChange={(ev) => setOtpInput(ev.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="6-digit code"
-                  className="w-40 text-center tracking-widest font-mono text-lg border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-500 bg-white"
+                  className="w-40 text-center tracking-widest font-mono text-lg border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-forest-500 bg-white"
                 />
                 {otpError && <p className="text-xs text-red-600">{otpError}</p>}
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleVerifyOtp(e.id)}
                     disabled={otpInput.length < 6}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
+                    className="bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
                   >
                     Verify & continue
                   </button>
-                  <button onClick={resendOtp} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                  <button onClick={resendOtp} className="text-xs text-forest-600 hover:text-forest-700 font-medium">
                     Resend code
                   </button>
                   <button onClick={() => setFundStep("details")} className="text-sm text-gray-500 hover:text-gray-700">
@@ -589,7 +589,7 @@ function EscrowContent() {
 
             {fundStep === "processing" && (
               <div className="flex flex-col items-center py-6 gap-3">
-                <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
                 <p className="text-sm text-gray-600">{processingLabel}</p>
                 <p className="text-xs text-gray-400">Funding {formatMoney(e.amount, e.currency)}</p>
               </div>
@@ -604,7 +604,7 @@ function EscrowContent() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Shield className="w-7 h-7 text-blue-600" /> Escrow Transactions
+          <Shield className="w-7 h-7 text-forest-600" /> Escrow Transactions
         </h1>
         <p className="text-gray-500 mt-1">Your deposits are held securely until both sides confirm the deal is done</p>
       </div>
@@ -613,11 +613,11 @@ function EscrowContent() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {[
           { icon: Plus, title: "1. Create & fund", desc: "Start an escrow for a property and pay the agreed amount." },
-          { icon: Lock, title: "2. Held securely", desc: "Homestead holds the funds — neither side can touch them alone." },
+          { icon: Lock, title: "2. Held securely", desc: "PrimeNest holds the funds — neither side can touch them alone." },
           { icon: Unlock, title: "3. Released on agreement", desc: "Funds are released once both parties confirm, or refunded if disputed." },
         ].map((step, i) => (
-          <div key={i} className="bg-blue-50/60 border border-blue-100 rounded-xl p-4">
-            <step.icon className="w-4 h-4 text-blue-600 mb-2" />
+          <div key={i} className="bg-forest-50/60 border border-forest-100 rounded-xl p-4">
+            <step.icon className="w-4 h-4 text-forest-600 mb-2" />
             <p className="text-sm font-semibold text-gray-900">{step.title}</p>
             <p className="text-xs text-gray-500 mt-0.5">{step.desc}</p>
           </div>
@@ -630,7 +630,7 @@ function EscrowContent() {
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -656,7 +656,7 @@ function EscrowContent() {
       {/* Create form */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8">
         <h2 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-blue-600" /> Create New Escrow
+          <Plus className="w-5 h-5 text-forest-600" /> Create New Escrow
         </h2>
         <p className="text-xs text-gray-500 mb-4">Typically used for security deposits or purchase deposits before keys change hands.</p>
         <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -678,7 +678,7 @@ function EscrowContent() {
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               required
               min={1}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
               placeholder="e.g. 550"
             />
           </div>
@@ -688,14 +688,14 @@ function EscrowContent() {
               type="text"
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
             />
           </div>
           <div className="sm:col-span-3">
             <button
               type="submit"
               disabled={creating}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors inline-flex items-center gap-2"
+              className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors inline-flex items-center gap-2"
             >
               {creating ? "Creating..." : "Create Escrow"} {!creating && <ArrowRight className="w-4 h-4" />}
             </button>

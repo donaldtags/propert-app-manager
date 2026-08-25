@@ -1,4 +1,4 @@
- const STORAGE_KEY = "homestead_saved_properties";
+ const STORAGE_KEY = "primenest_saved_properties";
 
 function readIds(): number[] {
   if (typeof window === "undefined") return [];

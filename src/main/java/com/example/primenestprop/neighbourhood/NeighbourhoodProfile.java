@@ -14,7 +14,7 @@ import lombok.Setter;
 
 /**
  * Admin-curated facts about a suburb - schools, hospitals, transport, shopping. Deliberately NOT
- * auto-populated from any external data source: Homestead has no live feed for crime statistics,
+ * auto-populated from any external data source: PrimeNest has no live feed for crime statistics,
  * ISP coverage, or power-outage patterns, and presenting invented numbers for those would be
  * worse than presenting nothing. What's here is only what an admin has actually verified and
  * entered by hand.

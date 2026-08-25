@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 const RISK_COLORS: Record<string, string> = {
-  LOW: "bg-green-600",
+  LOW: "bg-forest-600",
   MEDIUM: "bg-amber-500",
   HIGH: "bg-red-600",
 };
@@ -92,10 +92,10 @@ function ZseReitMarketTable() {
         </div>
         <div className="flex items-center gap-1.5 text-xs font-medium">
           <span className={`relative flex h-2 w-2 ${snapshot && !snapshot.stale ? "" : "opacity-40"}`}>
-            <span className={`absolute inline-flex h-full w-full rounded-full ${snapshot && !snapshot.stale ? "bg-green-400 animate-ping" : "bg-gray-400"} opacity-75`} />
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${snapshot && !snapshot.stale ? "bg-green-500" : "bg-gray-400"}`} />
+            <span className={`absolute inline-flex h-full w-full rounded-full ${snapshot && !snapshot.stale ? "bg-forest-400 animate-ping" : "bg-gray-400"} opacity-75`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${snapshot && !snapshot.stale ? "bg-forest-500" : "bg-gray-400"}`} />
           </span>
-          <span className={snapshot && !snapshot.stale ? "text-green-700" : "text-gray-500"}>
+          <span className={snapshot && !snapshot.stale ? "text-forest-700" : "text-gray-500"}>
             {snapshot && !snapshot.stale ? "Live" : "Delayed"}
           </span>
           <span className="text-gray-400">· updated {formatRelativeTime(snapshot?.lastUpdated ?? null, now)}</span>
@@ -132,7 +132,7 @@ function ZseReitMarketTable() {
                 return (
                   <tr key={q.ticker} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-3">
-                      <span className="inline-flex items-center justify-center font-mono text-xs font-bold bg-blue-50 text-blue-700 rounded-md px-2 py-1">
+                      <span className="inline-flex items-center justify-center font-mono text-xs font-bold bg-forest-50 text-forest-700 rounded-md px-2 py-1">
                         {q.ticker}
                       </span>
                     </td>
@@ -146,7 +146,7 @@ function ZseReitMarketTable() {
                     <td className="px-6 py-3 text-right">
                       <span
                         className={`inline-flex items-center justify-end gap-1 font-medium ${
-                          up ? "text-green-600" : down ? "text-red-600" : "text-gray-400"
+                          up ? "text-forest-600" : down ? "text-red-600" : "text-gray-400"
                         }`}
                       >
                         {up ? <ArrowUpRight className="w-3.5 h-3.5" /> : down ? <ArrowDownRight className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
@@ -341,7 +341,7 @@ export default function InvestmentsPage() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <TrendingUp className="w-7 h-7 text-blue-600" /> REIT Investments
+          <TrendingUp className="w-7 h-7 text-forest-600" /> REIT Investments
         </h1>
         <p className="text-gray-500 mt-1">Invest in verified real estate portfolios across Zimbabwe and Southern Africa</p>
       </div>
@@ -358,7 +358,7 @@ export default function InvestmentsPage() {
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -370,7 +370,7 @@ export default function InvestmentsPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
             <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <Wallet className="w-6 h-6 text-blue-600 mb-2" />
+              <Wallet className="w-6 h-6 text-forest-600 mb-2" />
               <p className="text-2xl font-bold text-gray-900">${portfolio.costBasis.toLocaleString()}</p>
               <p className="text-xs text-gray-500 mt-0.5">Cost Basis (USD)</p>
             </div>
@@ -381,11 +381,11 @@ export default function InvestmentsPage() {
             </div>
             <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
               {portfolio.gainLoss >= 0 ? (
-                <TrendingUp className="w-6 h-6 text-green-600 mb-2" />
+                <TrendingUp className="w-6 h-6 text-forest-600 mb-2" />
               ) : (
                 <TrendingDown className="w-6 h-6 text-red-600 mb-2" />
               )}
-              <p className={`text-2xl font-bold ${portfolio.gainLoss >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <p className={`text-2xl font-bold ${portfolio.gainLoss >= 0 ? "text-forest-600" : "text-red-600"}`}>
                 {portfolio.gainLoss >= 0 ? "+" : ""}${portfolio.gainLoss.toLocaleString()}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -432,8 +432,8 @@ export default function InvestmentsPage() {
               onClick={() => setCountryFilter(c)}
               className={`text-sm font-medium px-3.5 py-1.5 rounded-full border transition-colors ${
                 countryFilter === c
-                  ? "bg-blue-600 border-blue-600 text-white"
-                  : "bg-white border-gray-200 text-gray-600 hover:border-blue-300"
+                  ? "bg-forest-600 border-forest-600 text-white"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-forest-300"
               }`}
             >
               {c !== "All" && COUNTRY_FLAGS[c] ? `${COUNTRY_FLAGS[c]} ` : ""}{c}
@@ -442,7 +442,7 @@ export default function InvestmentsPage() {
         </div>
       )}
 
-      <h2 className="font-bold text-gray-900 mb-4">Invest with Homestead</h2>
+      <h2 className="font-bold text-gray-900 mb-4">Invest with PrimeNest</h2>
 
       {/* REIT cards */}
       {reitsLoading ? (
@@ -487,7 +487,7 @@ export default function InvestmentsPage() {
                       <p className="text-white font-bold leading-tight drop-shadow flex items-center gap-1.5">
                         {reit.name}
                         {reit.tickerSymbol && (
-                          <span className="font-mono text-[10px] font-bold bg-white/90 text-blue-700 rounded-md px-1.5 py-0.5">
+                          <span className="font-mono text-[10px] font-bold bg-white/90 text-forest-700 rounded-md px-1.5 py-0.5">
                             {reit.tickerSymbol}
                           </span>
                         )}
@@ -499,7 +499,7 @@ export default function InvestmentsPage() {
                   </div>
                   <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                      reit.riskLevel === "LOW" ? "bg-green-100 text-green-700" :
+                      reit.riskLevel === "LOW" ? "bg-forest-100 text-forest-700" :
                       reit.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" :
                       "bg-red-100 text-red-700"
                     }`}>
@@ -524,7 +524,7 @@ export default function InvestmentsPage() {
                       {reit.marketQuote ? (
                         <>
                           <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <Radio className="w-3.5 h-3.5 text-green-600" />
+                            <Radio className="w-3.5 h-3.5 text-forest-600" />
                             <span>Live ZSE: {reit.tickerSymbol}</span>
                           </div>
                           <div className="flex items-center gap-3">
@@ -534,7 +534,7 @@ export default function InvestmentsPage() {
                             <span
                               className={`inline-flex items-center gap-1 text-xs font-medium ${
                                 (reit.marketQuote.changeAmount ?? 0) > 0
-                                  ? "text-green-600"
+                                  ? "text-forest-600"
                                   : (reit.marketQuote.changeAmount ?? 0) < 0
                                     ? "text-red-600"
                                     : "text-gray-400"
@@ -567,7 +567,7 @@ export default function InvestmentsPage() {
                     </div>
                     <div className="bg-gray-50 rounded-xl p-3">
                       <p className="text-xs text-gray-500">Projected Yield</p>
-                      <p className="text-lg font-bold text-green-600">{reit.projectedAnnualYield}%</p>
+                      <p className="text-lg font-bold text-forest-600">{reit.projectedAnnualYield}%</p>
                     </div>
                   </div>
 
@@ -588,7 +588,7 @@ export default function InvestmentsPage() {
                   {reit.availableUnits != null && soldPct != null && (
                     <div className="mb-3">
                       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${soldPct}%` }} />
+                        <div className="h-full bg-forest-500 rounded-full" style={{ width: `${soldPct}%` }} />
                       </div>
                       <p className="text-xs text-gray-400 mt-1">{reit.availableUnits} of {reit.totalUnits} units available · {soldPct}% subscribed</p>
                     </div>
@@ -597,7 +597,7 @@ export default function InvestmentsPage() {
                   {reit.properties?.length > 0 && (
                     <button
                       onClick={() => setExpandedPortfolio(isExpanded ? null : reit.id)}
-                      className="flex items-center justify-between text-sm font-medium text-blue-600 hover:text-blue-700 mb-3 py-1"
+                      className="flex items-center justify-between text-sm font-medium text-forest-600 hover:text-forest-700 mb-3 py-1"
                     >
                       <span>View portfolio ({reit.properties.length} propert{reit.properties.length > 1 ? "ies" : "y"})</span>
                       <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
@@ -610,7 +610,7 @@ export default function InvestmentsPage() {
                         <Link
                           key={p.id}
                           href={`/properties/${p.id}`}
-                          className="group rounded-xl overflow-hidden border border-gray-200 hover:border-blue-300 transition-colors"
+                          className="group rounded-xl overflow-hidden border border-gray-200 hover:border-forest-300 transition-colors"
                         >
                           <div className="relative h-20 bg-gray-100">
                             {p.coverPhotoUrl ? (
@@ -622,7 +622,7 @@ export default function InvestmentsPage() {
                             )}
                           </div>
                           <div className="p-2">
-                            <p className="text-xs font-medium text-gray-900 truncate group-hover:text-blue-600">{p.title}</p>
+                            <p className="text-xs font-medium text-gray-900 truncate group-hover:text-forest-600">{p.title}</p>
                             <p className="text-[11px] text-gray-500 truncate">{p.suburb}, {p.city}</p>
                             <p className="text-[11px] font-semibold text-gray-700 mt-0.5">{formatMoney(p.price, p.currency)}{p.listingType === "RENT" ? "/mo" : ""}</p>
                           </div>
@@ -632,8 +632,8 @@ export default function InvestmentsPage() {
                   )}
 
                   {totalUnitsOwned > 0 && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4">
-                      <p className="text-xs text-blue-700 font-medium">
+                    <div className="bg-forest-50 border border-forest-100 rounded-xl p-3 mb-4">
+                      <p className="text-xs text-forest-700 font-medium">
                         You own {totalUnitsOwned} unit{totalUnitsOwned > 1 ? "s" : ""} · ${(totalUnitsOwned * reit.unitPrice).toLocaleString()} value
                       </p>
                     </div>
@@ -647,14 +647,14 @@ export default function InvestmentsPage() {
                           min={1}
                           value={units[reit.id] ?? "1"}
                           onChange={(e) => setUnits((u) => ({ ...u, [reit.id]: e.target.value }))}
-                          className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+                          className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
                           placeholder="Units"
                         />
                         <button
                           onClick={() => handleInvest(reit)}
                           disabled={investing === reit.id || !reit.active || reit.availableUnits === 0}
                           title={`Buy units of ${reit.name}`}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
                         >
                           <DollarSign className="w-4 h-4 shrink-0" />
                           <span className="truncate">

@@ -148,8 +148,8 @@ export default function PropertyMap({
           `<div style="min-width:160px">
             <strong style="font-size:13px">${property.title}</strong><br/>
             <span style="font-size:12px;color:#666">${property.suburb}, ${property.city}</span><br/>
-            <strong style="color:#006aff">${formatPrice(property.price, property.currency)}${property.listingType === "RENT" ? "/mo" : ""}</strong><br/>
-            <a href="/properties/${property.id}" style="font-size:12px;color:#006aff">View Details →</a>
+            <strong style="color:#1f5d42">${formatPrice(property.price, property.currency)}${property.listingType === "RENT" ? "/mo" : ""}</strong><br/>
+            <a href="/properties/${property.id}" style="font-size:12px;color:#1f5d42">View Details →</a>
           </div>`
         );
 

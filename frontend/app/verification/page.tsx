@@ -123,7 +123,7 @@ export default function VerificationPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="text-center mb-6">
-          <ShieldCheck className="w-10 h-10 text-blue-600 mx-auto mb-2" />
+          <ShieldCheck className="w-10 h-10 text-forest-600 mx-auto mb-2" />
           <h1 className="text-2xl font-bold text-gray-900">Identity Verification</h1>
         </div>
 
@@ -139,17 +139,17 @@ export default function VerificationPage() {
         )}
 
         {latest.status === "APPROVED" && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
-            <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <p className="font-semibold text-green-800">You&apos;re verified!</p>
-            <p className="text-sm text-green-700 mt-1">
+          <div className="bg-forest-50 border border-forest-200 rounded-2xl p-6 text-center">
+            <CheckCircle className="w-8 h-8 text-forest-600 mx-auto mb-2" />
+            <p className="font-semibold text-forest-800">You&apos;re verified!</p>
+            <p className="text-sm text-forest-700 mt-1">
               Your identity and face were verified on {latest.reviewedAt && new Date(latest.reviewedAt).toLocaleDateString()}.
             </p>
             <div className="flex justify-center gap-2 mt-4">
-              <span className="flex items-center gap-1 bg-white text-green-700 text-xs px-3 py-1 rounded-full border border-green-200">
+              <span className="flex items-center gap-1 bg-white text-forest-700 text-xs px-3 py-1 rounded-full border border-forest-200">
                 <ShieldCheck className="w-3 h-3" /> Identity Verified
               </span>
-              <span className="flex items-center gap-1 bg-white text-green-700 text-xs px-3 py-1 rounded-full border border-green-200">
+              <span className="flex items-center gap-1 bg-white text-forest-700 text-xs px-3 py-1 rounded-full border border-forest-200">
                 <Camera className="w-3 h-3" /> Face Verified
               </span>
             </div>
@@ -163,7 +163,7 @@ export default function VerificationPage() {
             {latest.reviewNote && <p className="text-sm text-red-700 mt-1">Reason: {latest.reviewNote}</p>}
             <button
               onClick={() => setShowWizard(true)}
-              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
+              className="mt-4 bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl"
             >
               Resubmit Verification
             </button>
@@ -178,10 +178,10 @@ export default function VerificationPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="text-center mb-6">
-        <ShieldCheck className="w-10 h-10 text-blue-600 mx-auto mb-2" />
+        <ShieldCheck className="w-10 h-10 text-forest-600 mx-auto mb-2" />
         <h1 className="text-2xl font-bold text-gray-900">Verify Your Identity</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Complete this guided process to unlock listing, applying, and receiving escrow funds on Homestead.
+          Complete this guided process to unlock listing, applying, and receiving escrow funds on PrimeNest.
         </p>
       </div>
 
@@ -193,9 +193,9 @@ export default function VerificationPage() {
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                   index < step
-                    ? "bg-green-600 text-white"
+                    ? "bg-forest-600 text-white"
                     : index === step
-                    ? "bg-blue-600 text-white"
+                    ? "bg-forest-600 text-white"
                     : "bg-gray-100 text-gray-400"
                 }`}
               >
@@ -203,7 +203,7 @@ export default function VerificationPage() {
               </div>
               <span className="text-[10px] text-gray-500 mt-1 text-center hidden sm:block">{label}</span>
             </div>
-            {index < steps.length - 1 && <div className={`h-0.5 flex-1 ${index < step ? "bg-green-600" : "bg-gray-100"}`} />}
+            {index < steps.length - 1 && <div className={`h-0.5 flex-1 ${index < step ? "bg-forest-600" : "bg-gray-100"}`} />}
           </div>
         ))}
       </div>
@@ -218,7 +218,7 @@ export default function VerificationPage() {
         {step === 0 && (
           <div className="space-y-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <UserIcon className="w-5 h-5 text-blue-600" /> Personal Information
+              <UserIcon className="w-5 h-5 text-forest-600" /> Personal Information
             </h2>
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
@@ -228,7 +228,7 @@ export default function VerificationPage() {
                 type="text"
                 value={form.legalFullName}
                 onChange={(e) => setForm((f) => ({ ...f, legalFullName: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
               />
             </div>
             <div>
@@ -239,7 +239,7 @@ export default function VerificationPage() {
                 type="date"
                 value={form.dateOfBirth}
                 onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
               />
             </div>
             <div>
@@ -250,7 +250,7 @@ export default function VerificationPage() {
                 type="text"
                 value={form.nationalIdNumber}
                 onChange={(e) => setForm((f) => ({ ...f, nationalIdNumber: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
               />
             </div>
             <div>
@@ -260,7 +260,7 @@ export default function VerificationPage() {
               <select
                 value={form.idDocumentType}
                 onChange={(e) => setForm((f) => ({ ...f, idDocumentType: e.target.value as IdDocumentType }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
               >
                 {Object.entries(ID_TYPE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -275,7 +275,7 @@ export default function VerificationPage() {
         {step === 1 && (
           <UploadStep
             title="Identity Document"
-            icon={<Upload className="w-5 h-5 text-blue-600" />}
+            icon={<Upload className="w-5 h-5 text-forest-600" />}
             slots={idSlots}
             onFileChange={(type, file) =>
               setIdSlots((slots) => slots.map((s) => (s.type === type ? { ...s, file } : s)))
@@ -286,7 +286,7 @@ export default function VerificationPage() {
         {step === 2 && (
           <UploadStep
             title="Live Selfie"
-            icon={<Camera className="w-5 h-5 text-blue-600" />}
+            icon={<Camera className="w-5 h-5 text-forest-600" />}
             slots={selfieSlots.filter((s) => s.type === "SELFIE")}
             onFileChange={(type, file) =>
               setSelfieSlots((slots) => slots.map((s) => (s.type === type ? { ...s, file } : s)))
@@ -297,7 +297,7 @@ export default function VerificationPage() {
         {step === 3 && (
           <UploadStep
             title="Selfie Holding Your ID"
-            icon={<Camera className="w-5 h-5 text-blue-600" />}
+            icon={<Camera className="w-5 h-5 text-forest-600" />}
             slots={selfieSlots.filter((s) => s.type === "SELFIE_WITH_ID")}
             onFileChange={(type, file) =>
               setSelfieSlots((slots) => slots.map((s) => (s.type === type ? { ...s, file } : s)))
@@ -308,7 +308,7 @@ export default function VerificationPage() {
         {step === 4 && (
           <div className="space-y-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-blue-600" /> Review &amp; Submit
+              <CheckCircle className="w-5 h-5 text-forest-600" /> Review &amp; Submit
             </h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between py-2 border-b border-gray-100">
@@ -330,14 +330,14 @@ export default function VerificationPage() {
               {[...idSlots, ...selfieSlots].map((slot) => (
                 <div key={slot.type} className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-500">{slot.label}</span>
-                  <span className={slot.file ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
+                  <span className={slot.file ? "text-forest-600 font-medium" : "text-red-500 font-medium"}>
                     {slot.file ? slot.file.name : "Missing"}
                   </span>
                 </div>
               ))}
             </div>
             <p className="text-xs text-gray-500">
-              Your documents are reviewed manually by a Homestead administrator and are only accessible to
+              Your documents are reviewed manually by a PrimeNest administrator and are only accessible to
               authorized reviewers.
             </p>
           </div>
@@ -355,7 +355,7 @@ export default function VerificationPage() {
           {step < steps.length - 1 ? (
             <button
               onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))}
-              className="flex items-center gap-1 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold"
+              className="flex items-center gap-1 text-sm bg-forest-600 hover:bg-forest-700 text-white px-4 py-2 rounded-xl font-semibold"
             >
               Next <ArrowRight className="w-4 h-4" />
             </button>
@@ -363,7 +363,7 @@ export default function VerificationPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex items-center gap-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-xl font-semibold"
+              className="flex items-center gap-1 text-sm bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-4 py-2 rounded-xl font-semibold"
             >
               {submitting ? "Submitting..." : "Submit for Review"}
             </button>
@@ -400,7 +400,7 @@ function UploadStep({
             onChange={(e) => onFileChange(slot.type, e.target.files?.[0] ?? null)}
             className="text-sm text-gray-600"
           />
-          {slot.file && <p className="text-xs text-green-600 mt-2">Selected: {slot.file.name}</p>}
+          {slot.file && <p className="text-xs text-forest-600 mt-2">Selected: {slot.file.name}</p>}
         </div>
       ))}
     </div>

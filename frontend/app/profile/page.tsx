@@ -22,8 +22,8 @@ import {
 import type { LandlordPassport, TenantPassport, UserRole } from "@/lib/types";
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  TENANT: "bg-blue-100 text-blue-700",
-  LANDLORD: "bg-green-100 text-green-700",
+  TENANT: "bg-forest-100 text-forest-700",
+  LANDLORD: "bg-forest-100 text-forest-700",
   AGENT: "bg-purple-100 text-purple-700",
   DIASPORA: "bg-amber-100 text-amber-700",
   INVESTOR: "bg-indigo-100 text-indigo-700",
@@ -118,7 +118,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Header card */}
-      <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white mb-6">
+      <div className="bg-gradient-to-br from-forest-600 to-forest-700 rounded-2xl p-6 text-white mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
@@ -126,7 +126,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <h1 className="text-xl font-bold">{user.fullName}</h1>
-              <p className="text-blue-100 text-sm">{user.email}</p>
+              <p className="text-forest-100 text-sm">{user.email}</p>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {user.roles?.map((role) => (
                   <span key={role} className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">
@@ -141,12 +141,12 @@ export default function ProfilePage() {
               <div className="flex items-center gap-1 text-white">
                 <Star className="w-4 h-4 fill-current text-amber-300" />
                 <span className="font-bold">{user.trustScore}</span>
-                <span className="text-blue-200 text-xs">trust score</span>
+                <span className="text-forest-200 text-xs">trust score</span>
               </div>
             )}
             {user.profileCompletion != null && (
               <div className="mt-1">
-                <div className="text-xs text-blue-200 mb-1">{user.profileCompletion}% complete</div>
+                <div className="text-xs text-forest-200 mb-1">{user.profileCompletion}% complete</div>
                 <div className="w-24 h-1.5 bg-white/20 rounded-full">
                   <div
                     className="h-full bg-white rounded-full"
@@ -197,7 +197,7 @@ export default function ProfilePage() {
       {tenantPassport && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-blue-600" /> Tenant Passport
+            <Star className="w-5 h-5 text-forest-600" /> Tenant Passport
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-gray-50 rounded-xl p-3">
@@ -226,7 +226,7 @@ export default function ProfilePage() {
       {landlordPassport && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-green-600" /> Landlord / Agent Passport
+            <Star className="w-5 h-5 text-forest-600" /> Landlord / Agent Passport
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-gray-50 rounded-xl p-3">
@@ -288,7 +288,7 @@ export default function ProfilePage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-1 text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                className="flex items-center gap-1 text-sm bg-forest-600 text-white px-3 py-1.5 rounded-lg hover:bg-forest-700 disabled:opacity-60"
               >
                 <Save className="w-4 h-4" />
                 {saving ? "Saving..." : "Save"}
@@ -297,7 +297,7 @@ export default function ProfilePage() {
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 px-3 py-1.5 border border-blue-200 rounded-lg"
+              className="flex items-center gap-1 text-sm text-forest-600 hover:text-forest-700 px-3 py-1.5 border border-forest-200 rounded-lg"
             >
               <Edit3 className="w-4 h-4" /> Edit
             </button>
@@ -331,7 +331,7 @@ export default function ProfilePage() {
                   type="text"
                   value={form[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
                 />
               ) : (
                 <p className="text-sm text-gray-900">{form[key] || <span className="text-gray-400">—</span>}</p>
@@ -346,7 +346,7 @@ export default function ProfilePage() {
                 value={form.bio}
                 onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
                 rows={3}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 resize-none"
               />
             ) : (
               <p className="text-sm text-gray-900">{form.bio || <span className="text-gray-400">—</span>}</p>
@@ -361,7 +361,7 @@ export default function ProfilePage() {
                 type="checkbox"
                 checked={form.emailNotifications}
                 onChange={(e) => setForm((f) => ({ ...f, emailNotifications: e.target.checked }))}
-                className="w-4 h-4 text-blue-600"
+                className="w-4 h-4 text-forest-600"
               />
               Email notifications
             </label>
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                 type="checkbox"
                 checked={form.smsNotifications}
                 onChange={(e) => setForm((f) => ({ ...f, smsNotifications: e.target.checked }))}
-                className="w-4 h-4 text-blue-600"
+                className="w-4 h-4 text-forest-600"
               />
               SMS notifications
             </label>

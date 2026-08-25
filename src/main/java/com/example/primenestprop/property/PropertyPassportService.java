@@ -117,7 +117,7 @@ public class PropertyPassportService {
     ) {
         List<TimelineEvent> events = new ArrayList<>();
 
-        events.add(new TimelineEvent(property.getCreatedAt(), "LISTED", "Listed on Homestead"));
+        events.add(new TimelineEvent(property.getCreatedAt(), "LISTED", "Listed on PrimeNest"));
         if (property.getVerifiedAt() != null) {
             events.add(new TimelineEvent(property.getVerifiedAt(), "VERIFIED", "Property verified"));
         }

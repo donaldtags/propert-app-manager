@@ -41,18 +41,18 @@ function workspaceTitle(roles: string[] | undefined): { title: string; subtitle:
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    AVAILABLE: "bg-green-100 text-green-700",
-    RENTED: "bg-blue-100 text-blue-700",
+    AVAILABLE: "bg-forest-100 text-forest-700",
+    RENTED: "bg-forest-100 text-forest-700",
     DRAFT: "bg-gray-100 text-gray-700",
     SOLD: "bg-purple-100 text-purple-700",
-    ACTIVE: "bg-green-100 text-green-700",
-    SIGNED: "bg-blue-100 text-blue-700",
+    ACTIVE: "bg-forest-100 text-forest-700",
+    SIGNED: "bg-forest-100 text-forest-700",
     OPEN: "bg-red-100 text-red-700",
-    RESOLVED: "bg-green-100 text-green-700",
+    RESOLVED: "bg-forest-100 text-forest-700",
     IN_PROGRESS: "bg-amber-100 text-amber-700",
-    SUCCESSFUL: "bg-green-100 text-green-700",
+    SUCCESSFUL: "bg-forest-100 text-forest-700",
     INITIATED: "bg-amber-100 text-amber-700",
-    VERIFIED: "bg-green-100 text-green-700",
+    VERIFIED: "bg-forest-100 text-forest-700",
     UNVERIFIED: "bg-gray-100 text-gray-700",
   };
   return (
@@ -64,9 +64,9 @@ function StatusBadge({ status }: { status: string }) {
 
 const OCCUPANCY_COLORS: Partial<Record<PropertyStatus, string>> = {
   DRAFT: "bg-gray-300",
-  AVAILABLE: "bg-blue-500",
+  AVAILABLE: "bg-forest-500",
   RESERVED: "bg-amber-500",
-  OCCUPIED: "bg-green-600",
+  OCCUPIED: "bg-forest-600",
   SOLD: "bg-purple-500",
   INACTIVE: "bg-gray-400",
 };
@@ -217,12 +217,12 @@ export default function LandlordDashboardPage() {
   }
 
   const kpiTiles = [
-    { icon: Home, label: "Properties", value: ownProperties.length, color: "text-blue-600" },
-    { icon: Building2, label: "Occupied Units", value: occupancy?.occupiedUnits ?? 0, color: "text-green-600" },
+    { icon: Home, label: "Properties", value: ownProperties.length, color: "text-forest-600" },
+    { icon: Building2, label: "Occupied Units", value: occupancy?.occupiedUnits ?? 0, color: "text-forest-600" },
     { icon: Building2, label: "Vacant Units", value: occupancy?.vacantUnits ?? 0, color: "text-gray-500" },
     { icon: TrendingUp, label: "Occupancy Rate", value: `${(occupancy?.occupancyRatePercent ?? 0).toFixed(1)}%`, color: "text-indigo-600" },
-    { icon: DollarSign, label: `Monthly Income (${currency})`, value: (financials?.monthlyIncome ?? 0).toLocaleString(), color: "text-green-600" },
-    { icon: DollarSign, label: `Expected Income (${currency})`, value: (financials?.expectedMonthlyIncome ?? 0).toLocaleString(), color: "text-blue-600" },
+    { icon: DollarSign, label: `Monthly Income (${currency})`, value: (financials?.monthlyIncome ?? 0).toLocaleString(), color: "text-forest-600" },
+    { icon: DollarSign, label: `Expected Income (${currency})`, value: (financials?.expectedMonthlyIncome ?? 0).toLocaleString(), color: "text-forest-600" },
     {
       icon: AlertCircle,
       label: "Outstanding Rent",
@@ -255,13 +255,13 @@ export default function LandlordDashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/landlord/subscription"
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 text-gray-700 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-forest-300 text-gray-700 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
           >
             Subscription
           </Link>
           <Link
             href="/properties/new"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+            className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
           >
             <Plus className="w-4 h-4" /> Add Property
           </Link>
@@ -284,19 +284,19 @@ export default function LandlordDashboardPage() {
       <div className="flex flex-wrap gap-3 mb-6">
         <Link
           href="/leases"
-          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 px-4 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-sm font-medium text-forest-600 hover:text-forest-700 border border-forest-200 hover:border-forest-300 px-4 py-2 rounded-xl transition-colors"
         >
           <Plus className="w-3.5 h-3.5" /> Create Lease
         </Link>
         <Link
           href="/messages"
-          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300 px-4 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-4 py-2 rounded-xl transition-colors"
         >
           <MessageCircle className="w-3.5 h-3.5" /> Message Tenants
         </Link>
         <Link
           href="/applications"
-          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300 px-4 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-4 py-2 rounded-xl transition-colors"
         >
           <FileText className="w-3.5 h-3.5" /> Applications Received
         </Link>
@@ -341,7 +341,7 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-600" /> Upcoming Lease Expiries
             </h2>
-            <Link href="/leases" className="text-xs text-blue-600 hover:underline">View all</Link>
+            <Link href="/leases" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {upcomingExpiries.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">No leases expiring in the next 30 days</p>
@@ -366,7 +366,7 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <Wrench className="w-4 h-4 text-gray-500" /> Maintenance Requests
             </h2>
-            <Link href="/maintenance" className="text-xs text-blue-600 hover:underline">View all</Link>
+            <Link href="/maintenance" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {maintenance.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">No maintenance requests</p>
@@ -413,7 +413,7 @@ export default function LandlordDashboardPage() {
                       <button
                         onClick={() => handleConfirmViewing(v.id, v.mode === "VIDEO_CALL" ? prompt("Video call link:") ?? undefined : undefined)}
                         disabled={viewingActionId === v.id}
-                        className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                       >
                         Confirm
                       </button>
@@ -434,12 +434,12 @@ export default function LandlordDashboardPage() {
                         placeholder="Enter check-in code"
                         value={checkInCode[v.id] ?? ""}
                         onChange={(e) => setCheckInCode((c) => ({ ...c, [v.id]: e.target.value }))}
-                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-500"
+                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-forest-500"
                       />
                       <button
                         onClick={() => handleCheckInViewing(v.id)}
                         disabled={viewingActionId === v.id || !checkInCode[v.id]}
-                        className="text-xs font-semibold bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                       >
                         Check In
                       </button>
@@ -473,7 +473,7 @@ export default function LandlordDashboardPage() {
                         a.status === "PENDING"
                           ? "bg-amber-100 text-amber-700"
                           : a.status === "APPROVED"
-                          ? "bg-green-100 text-green-700"
+                          ? "bg-forest-100 text-forest-700"
                           : "bg-red-100 text-red-700"
                       }`}
                     >
@@ -487,7 +487,7 @@ export default function LandlordDashboardPage() {
                       <button
                         onClick={() => handleReviewLeaseAction(a.id, "APPROVED")}
                         disabled={leaseActionReviewingId === a.id}
-                        className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                       >
                         Approve
                       </button>
@@ -512,25 +512,25 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900">My Properties</h2>
             <div className="flex items-center gap-3">
               <Link href="/landlord/featured-listings" className="text-xs text-amber-600 hover:underline font-medium">Feature a listing</Link>
-              <Link href="/properties" className="text-xs text-blue-600 hover:underline">Browse all</Link>
+              <Link href="/properties" className="text-xs text-forest-600 hover:underline">Browse all</Link>
             </div>
           </div>
           {ownProperties.length === 0 ? (
             <div className="text-center py-8">
               <Home className="w-10 h-10 mx-auto mb-3 text-gray-300" />
               <p className="text-sm text-gray-400">No properties yet</p>
-              <Link href="/properties/new" className="mt-3 inline-block text-sm text-blue-600 hover:underline">+ Add your first property</Link>
+              <Link href="/properties/new" className="mt-3 inline-block text-sm text-forest-600 hover:underline">+ Add your first property</Link>
             </div>
           ) : (
             <div className="space-y-3">
               {ownProperties.slice(0, 5).map((prop) => (
                 <div key={prop.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
-                    <Link href={`/properties/${prop.id}`} className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">
+                    <Link href={`/properties/${prop.id}`} className="text-sm font-medium text-gray-900 hover:text-forest-600 transition-colors">
                       {prop.title}
                     </Link>
                     <p className="text-xs text-gray-500">{prop.suburb}, {prop.city}</p>
-                    <p className="text-xs font-semibold text-green-600 mt-0.5">${prop.price}/mo</p>
+                    <p className="text-xs font-semibold text-forest-600 mt-0.5">${prop.price}/mo</p>
                   </div>
                   <div className="text-right flex flex-col gap-1 items-end">
                     {prop.featured && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">★ Featured</span>}
@@ -549,7 +549,7 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <FileText className="w-4 h-4 text-gray-500" /> Leases
             </h2>
-            <Link href="/leases" className="text-xs text-blue-600 hover:underline">View all</Link>
+            <Link href="/leases" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {leases.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">No leases</p>
@@ -560,7 +560,7 @@ export default function LandlordDashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-900">Lease #{lease.id}</p>
                     <p className="text-xs text-gray-500">Tenant #{lease.tenantId}</p>
-                    <p className="text-xs font-semibold text-blue-600">${lease.monthlyRent}/mo</p>
+                    <p className="text-xs font-semibold text-forest-600">${lease.monthlyRent}/mo</p>
                   </div>
                   <StatusBadge status={lease.status} />
                 </div>
@@ -573,7 +573,7 @@ export default function LandlordDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900">Recent Payments</h2>
-            <Link href="/payments" className="text-xs text-blue-600 hover:underline">View all</Link>
+            <Link href="/payments" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {payments.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">No payments yet</p>
@@ -599,9 +599,9 @@ export default function LandlordDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-blue-600" /> Recent Inquiries
+              <MessageCircle className="w-4 h-4 text-forest-600" /> Recent Inquiries
             </h2>
-            <Link href="/messages" className="text-xs text-blue-600 hover:underline">Open messages</Link>
+            <Link href="/messages" className="text-xs text-forest-600 hover:underline">Open messages</Link>
           </div>
           {inquiries.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">No inquiries yet</p>
@@ -612,7 +612,7 @@ export default function LandlordDashboardPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{inq.name}</p>
-                      <Link href={`/properties/${inq.propertyId}`} className="text-xs text-blue-600 hover:underline">
+                      <Link href={`/properties/${inq.propertyId}`} className="text-xs text-forest-600 hover:underline">
                         {inq.propertyTitle}
                       </Link>
                     </div>
@@ -620,11 +620,11 @@ export default function LandlordDashboardPage() {
                   </div>
                   <p className="text-sm text-gray-600 mt-1.5">{inq.message}</p>
                   <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                    <a href={`mailto:${inq.email}`} className="flex items-center gap-1 hover:text-blue-600">
+                    <a href={`mailto:${inq.email}`} className="flex items-center gap-1 hover:text-forest-600">
                       <Mail className="w-3 h-3" /> {inq.email}
                     </a>
                     {inq.phone && (
-                      <a href={`tel:${inq.phone}`} className="flex items-center gap-1 hover:text-blue-600">
+                      <a href={`tel:${inq.phone}`} className="flex items-center gap-1 hover:text-forest-600">
                         <Phone className="w-3 h-3" /> {inq.phone}
                       </a>
                     )}

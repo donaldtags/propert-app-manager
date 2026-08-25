@@ -1,4 +1,4 @@
-const STORAGE_KEY = "homestead_moving_checklist";
+const STORAGE_KEY = "primenest_moving_checklist";
 
 export interface MovingChecklistState {
   [taskId: string]: boolean;

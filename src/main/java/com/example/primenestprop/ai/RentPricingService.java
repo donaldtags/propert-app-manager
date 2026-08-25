@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * "How much should I charge?" - a market-comparables pricing suggestion built entirely from
- * Homestead's own live, verified-or-not listings (no external data source, no fabricated market
+ * PrimeNest's own live, verified-or-not listings (no external data source, no fabricated market
  * report). It widens the comparison pool step by step until it has a workable sample:
  *   1. Same city + suburb + exact bedroom count
  *   2. Same city + suburb, bedrooms +/- 1

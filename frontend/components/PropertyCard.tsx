@@ -68,7 +68,7 @@ export default function PropertyCard({
       onMouseLeave={onMouseLeave}
       className={`group block bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-lg ${
         highlighted
-          ? "border-blue-500 shadow-lg ring-2 ring-blue-200"
+          ? "border-forest-500 shadow-lg ring-2 ring-forest-200"
           : isFeatured
             ? "border-amber-300 shadow-md ring-1 ring-amber-200"
             : "border-gray-200 shadow-sm"
@@ -104,9 +104,9 @@ export default function PropertyCard({
           <span
             className={`text-xs font-bold px-2 py-1 rounded ${
               property.listingType === "RENT"
-                ? "bg-blue-600 text-white"
+                ? "bg-forest-600 text-white"
                 : property.listingType === "SALE"
-                ? "bg-green-600 text-white"
+                ? "bg-forest-600 text-white"
                 : "bg-purple-600 text-white"
             }`}
           >
@@ -117,7 +117,7 @@ export default function PropertyCard({
         {/* Verified badge */}
         {isVerified && (
           <div className="absolute top-3 right-3">
-            <span className="bg-white text-green-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
+            <span className="bg-white text-forest-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
               <CheckCircle className="w-3 h-3" />
               Verified
             </span>
@@ -140,7 +140,7 @@ export default function PropertyCard({
           onClick={handleToggleCompare}
           title={comparing ? "Remove from comparison" : `Add to comparison (max ${MAX_COMPARE})`}
           className={`absolute bottom-3 left-3 w-7 h-7 rounded-full flex items-center justify-center shadow transition-colors ${
-            comparing ? "bg-blue-600 text-white" : "bg-white/90 text-gray-600 hover:bg-white"
+            comparing ? "bg-forest-600 text-white" : "bg-white/90 text-gray-600 hover:bg-white"
           }`}
         >
           <Scale className="w-3.5 h-3.5" />
@@ -170,7 +170,7 @@ export default function PropertyCard({
         </p>
 
         {companyName && (
-          <p className="text-xs text-blue-700 font-medium flex items-center gap-1 mt-0.5">
+          <p className="text-xs text-forest-700 font-medium flex items-center gap-1 mt-0.5">
             <Building2 className="w-3 h-3 shrink-0" />
             {companyName}
           </p>
@@ -179,7 +179,7 @@ export default function PropertyCard({
         {/* Feature badges */}
         <div className="flex flex-wrap gap-1.5 mt-2">
           {property.escrowRequired && (
-            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-xs bg-forest-50 text-forest-700 px-2 py-0.5 rounded-full flex items-center gap-1">
               <Shield className="w-3 h-3" /> Escrow Protected
             </span>
           )}

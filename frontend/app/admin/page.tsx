@@ -349,8 +349,8 @@ export default function AdminPortalPage() {
 
   const ESCROW_STATUS_COLORS: Record<string, string> = {
     CREATED: "bg-gray-400",
-    FUNDED: "bg-blue-600",
-    RELEASED: "bg-green-600",
+    FUNDED: "bg-forest-600",
+    RELEASED: "bg-forest-600",
     DISPUTED: "bg-red-600",
     REFUNDED: "bg-amber-500",
     CANCELLED: "bg-gray-300",
@@ -476,7 +476,7 @@ export default function AdminPortalPage() {
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <ShieldCheck className="w-7 h-7 text-blue-600" /> Admin Portal
+              <ShieldCheck className="w-7 h-7 text-forest-600" /> Admin Portal
             </h1>
             <p className="text-gray-500 mt-1">Manage users, roles, property verification, and escrow oversight</p>
           </div>
@@ -487,7 +487,7 @@ export default function AdminPortalPage() {
             </div>
           )}
           {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+            <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" /> {success}
             </div>
           )}
@@ -601,7 +601,7 @@ export default function AdminPortalPage() {
                     onClick={() => setTab("users")}
                     className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 font-bold text-gray-900 hover:bg-gray-50"
                   >
-                    Recent Users <span className="text-xs font-normal text-blue-600">View all</span>
+                    Recent Users <span className="text-xs font-normal text-forest-600">View all</span>
                   </button>
                   {recentUsers.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">No users yet</div>
@@ -622,7 +622,7 @@ export default function AdminPortalPage() {
                     onClick={() => setTab("properties")}
                     className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 font-bold text-gray-900 hover:bg-gray-50"
                   >
-                    Recent Properties <span className="text-xs font-normal text-blue-600">View all</span>
+                    Recent Properties <span className="text-xs font-normal text-forest-600">View all</span>
                   </button>
                   {recentProperties.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">No properties yet</div>
@@ -643,7 +643,7 @@ export default function AdminPortalPage() {
                     onClick={() => setTab("escrows")}
                     className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 font-bold text-gray-900 hover:bg-gray-50"
                   >
-                    Recent Escrows <span className="text-xs font-normal text-blue-600">View all</span>
+                    Recent Escrows <span className="text-xs font-normal text-forest-600">View all</span>
                   </button>
                   {recentEscrows.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">No escrow transactions yet</div>
@@ -654,8 +654,8 @@ export default function AdminPortalPage() {
                           <span className="text-sm text-gray-900">#{e.id} · {e.currency} {e.amount.toLocaleString()}</span>
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                             e.status === "DISPUTED" ? "bg-red-100 text-red-700" :
-                            e.status === "FUNDED" ? "bg-blue-100 text-blue-700" :
-                            e.status === "RELEASED" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                            e.status === "FUNDED" ? "bg-forest-100 text-forest-700" :
+                            e.status === "RELEASED" ? "bg-forest-100 text-forest-700" : "bg-gray-100 text-gray-600"
                           }`}>{e.status}</span>
                         </li>
                       ))}
@@ -677,13 +677,13 @@ export default function AdminPortalPage() {
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 placeholder="Search by name or email…"
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-blue-500"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-forest-500"
               />
             </div>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-blue-500"
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-forest-500"
             >
               {["ALL", "TENANT", "LANDLORD", "AGENT", "DIASPORA", "INVESTOR", "ADMIN", "DEVELOPER", "PRIVATE"].map((r) => (
                 <option key={r} value={r}>{r}</option>
@@ -720,14 +720,14 @@ export default function AdminPortalPage() {
                       <td className="px-4 py-2.5 text-gray-600">{u.trustScore ?? "—"}</td>
                       <td className="px-4 py-2.5">
                         {u.identityVerified ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-700"><BadgeCheck className="w-3.5 h-3.5" /> Verified</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-forest-700"><BadgeCheck className="w-3.5 h-3.5" /> Verified</span>
                         ) : (
                           <span className="text-xs text-gray-400">Unverified</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         {!u.identityVerified && (
-                          <button onClick={() => handleVerifyUser(u.id)} className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                          <button onClick={() => handleVerifyUser(u.id)} className="text-xs font-medium text-forest-600 hover:text-forest-700">
                             Verify
                           </button>
                         )}
@@ -775,13 +775,13 @@ export default function AdminPortalPage() {
                     <td className="px-4 py-2.5">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         r.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                        r.status === "APPROVED" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        r.status === "APPROVED" ? "bg-forest-100 text-forest-700" : "bg-red-100 text-red-700"
                       }`}>{r.status}</span>
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       {r.status === "PENDING" && (
                         <div className="flex gap-3 justify-end">
-                          <button onClick={() => handleDecideRequest(r.id, true)} className="text-xs font-medium text-green-600 hover:text-green-700">Approve</button>
+                          <button onClick={() => handleDecideRequest(r.id, true)} className="text-xs font-medium text-forest-600 hover:text-forest-700">Approve</button>
                           <button onClick={() => handleDecideRequest(r.id, false)} className="text-xs font-medium text-red-600 hover:text-red-700">Reject</button>
                         </div>
                       )}
@@ -834,7 +834,7 @@ export default function AdminPortalPage() {
                               key={doc.id}
                               onClick={() => handleDownloadKycDoc(s.id, doc)}
                               disabled={downloadingDoc === doc.id}
-                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                              className="flex items-center gap-1 text-xs text-forest-600 hover:text-forest-700 disabled:opacity-50"
                             >
                               <Download className="w-3 h-3" /> {doc.documentType}
                             </button>
@@ -844,7 +844,7 @@ export default function AdminPortalPage() {
                       <td className="px-4 py-2.5">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                           s.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                          s.status === "APPROVED" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          s.status === "APPROVED" ? "bg-forest-100 text-forest-700" : "bg-red-100 text-red-700"
                         }`}>{s.status}</span>
                       </td>
                       <td className="px-4 py-2.5 text-right">
@@ -874,7 +874,7 @@ export default function AdminPortalPage() {
                             </div>
                           ) : (
                             <div className="flex gap-3 justify-end">
-                              <button onClick={() => handleReviewKyc(s.id, "APPROVED")} className="text-xs font-medium text-green-600 hover:text-green-700">
+                              <button onClick={() => handleReviewKyc(s.id, "APPROVED")} className="text-xs font-medium text-forest-600 hover:text-forest-700">
                                 Approve
                               </button>
                               <button
@@ -924,7 +924,7 @@ export default function AdminPortalPage() {
                     <td className="px-4 py-2.5 text-gray-600">{p.suburb}, {p.city}</td>
                     <td className="px-4 py-2.5 text-gray-600">{p.currency} {p.price.toLocaleString()}</td>
                     <td className="px-4 py-2.5 text-right">
-                      <button onClick={() => handleVerifyProperty(p.id)} className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                      <button onClick={() => handleVerifyProperty(p.id)} className="text-xs font-medium text-forest-600 hover:text-forest-700">
                         Verify
                       </button>
                     </td>
@@ -966,8 +966,8 @@ export default function AdminPortalPage() {
                     <td className="px-4 py-2.5">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         e.status === "DISPUTED" ? "bg-red-100 text-red-700" :
-                        e.status === "FUNDED" ? "bg-blue-100 text-blue-700" :
-                        e.status === "RELEASED" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                        e.status === "FUNDED" ? "bg-forest-100 text-forest-700" :
+                        e.status === "RELEASED" ? "bg-forest-100 text-forest-700" : "bg-gray-100 text-gray-600"
                       }`}>{e.status}</span>
                     </td>
                     <td className="px-4 py-2.5 text-gray-500">{e.fundingProvider ?? "—"}</td>
@@ -978,7 +978,7 @@ export default function AdminPortalPage() {
                             Approved ({e.releaseApprovals}/{e.releaseApprovalsRequired}) — waiting on another admin
                           </span>
                         ) : (
-                          <button onClick={() => handleReleaseEscrow(e.id)} className="text-xs font-medium text-green-600 hover:text-green-700">
+                          <button onClick={() => handleReleaseEscrow(e.id)} className="text-xs font-medium text-forest-600 hover:text-forest-700">
                             Approve release {e.releaseApprovals > 0 ? `(${e.releaseApprovals}/${e.releaseApprovalsRequired})` : ""}
                           </button>
                         )
@@ -1013,7 +1013,7 @@ export default function AdminPortalPage() {
               <ShieldAlert className="w-5 h-5 text-red-600" /> Fraud Signals
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Heuristic signals from Homestead's own listing data — reused photos, address duplicates,
+              Heuristic signals from PrimeNest's own listing data — reused photos, address duplicates,
               and price outliers versus comparable listings. Review each before taking action.
             </p>
           </div>
@@ -1054,7 +1054,7 @@ export default function AdminPortalPage() {
                     href={`/properties/${signal.propertyId}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                    className="shrink-0 text-sm font-semibold text-forest-600 hover:text-forest-700"
                   >
                     View listing
                   </a>
@@ -1069,7 +1069,7 @@ export default function AdminPortalPage() {
         <div className="max-w-2xl">
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-blue-600" /> Neighbourhood Facts
+              <MapPin className="w-5 h-5 text-forest-600" /> Neighbourhood Facts
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               Curate real, verified facts about a suburb — schools, hospitals, transport, shopping.
@@ -1083,7 +1083,7 @@ export default function AdminPortalPage() {
             </div>
           )}
           {nSuccess && (
-            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+            <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" /> {nSuccess}
             </div>
           )}
@@ -1095,7 +1095,7 @@ export default function AdminPortalPage() {
                 <input
                   value={nCity}
                   onChange={(e) => setNCity(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
                 />
               </div>
               <div>
@@ -1104,14 +1104,14 @@ export default function AdminPortalPage() {
                   value={nSuburb}
                   onChange={(e) => setNSuburb(e.target.value)}
                   placeholder="e.g. Borrowdale"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
                 />
               </div>
             </div>
             <button
               onClick={handleLookupNeighbourhood}
               disabled={nLoading || !nCity || !nSuburb}
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50"
+              className="text-sm font-semibold text-forest-600 hover:text-forest-700 disabled:opacity-50"
             >
               {nLoading ? "Looking up…" : "Look up existing profile"}
             </button>
@@ -1129,7 +1129,7 @@ export default function AdminPortalPage() {
                   value={value}
                   onChange={(e) => set(e.target.value)}
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 resize-none"
                 />
               </div>
             ))}
@@ -1137,7 +1137,7 @@ export default function AdminPortalPage() {
             <button
               onClick={handleSaveNeighbourhood}
               disabled={nSaving || !nCity || !nSuburb}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
+              className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
             >
               {nSaving ? "Saving…" : nLoaded ? "Update Profile" : "Create Profile"}
             </button>
@@ -1163,7 +1163,7 @@ export default function AdminPortalPage() {
             </div>
           )}
           {fpSuccess && (
-            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+            <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" /> {fpSuccess}
             </div>
           )}
@@ -1178,7 +1178,7 @@ export default function AdminPortalPage() {
                   step="0.01"
                   value={fpPrice}
                   onChange={(e) => setFpPrice(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
                 />
               </div>
               <div>
@@ -1187,7 +1187,7 @@ export default function AdminPortalPage() {
                   value={fpCurrency}
                   onChange={(e) => setFpCurrency(e.target.value.toUpperCase())}
                   maxLength={3}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
                 />
               </div>
             </div>
@@ -1198,7 +1198,7 @@ export default function AdminPortalPage() {
                 min="1"
                 value={fpDurationDays}
                 onChange={(e) => setFpDurationDays(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
               />
             </div>
 
@@ -1211,7 +1211,7 @@ export default function AdminPortalPage() {
             <button
               onClick={handleSaveFeaturedPricing}
               disabled={fpSaving || !fpPrice || !fpCurrency || !fpDurationDays}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
+              className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
             >
               {fpSaving ? "Saving…" : "Save Pricing"}
             </button>
@@ -1223,7 +1223,7 @@ export default function AdminPortalPage() {
         <div className="max-w-4xl">
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-blue-600" /> Subscription Plans
+              <CreditCard className="w-5 h-5 text-forest-600" /> Subscription Plans
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               Set the monthly price, property cap, and feature gates for each landlord/agent plan tier.
@@ -1237,7 +1237,7 @@ export default function AdminPortalPage() {
             </div>
           )}
           {planSuccess && (
-            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+            <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" /> {planSuccess}
             </div>
           )}
@@ -1266,7 +1266,7 @@ export default function AdminPortalPage() {
                         step="0.01"
                         value={draft.monthlyPrice}
                         onChange={(e) => updatePlanDraft(plan.plan, { monthlyPrice: Number(e.target.value) })}
-                        className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-blue-500"
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-forest-500"
                       />
                     </div>
                     <div>
@@ -1275,7 +1275,7 @@ export default function AdminPortalPage() {
                         value={draft.currency}
                         onChange={(e) => updatePlanDraft(plan.plan, { currency: e.target.value.toUpperCase() })}
                         maxLength={3}
-                        className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-blue-500"
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-forest-500"
                       />
                     </div>
                   </div>
@@ -1286,7 +1286,7 @@ export default function AdminPortalPage() {
                       min="0"
                       value={draft.maxProperties ?? ""}
                       onChange={(e) => updatePlanDraft(plan.plan, { maxProperties: e.target.value === "" ? null : Number(e.target.value) })}
-                      className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm outline-none focus:border-forest-500"
                     />
                   </div>
 
@@ -1307,7 +1307,7 @@ export default function AdminPortalPage() {
                   <button
                     onClick={() => handleSavePlan(plan.plan)}
                     disabled={planSaving === plan.plan}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors"
+                    className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors"
                   >
                     {planSaving === plan.plan ? "Saving…" : "Save"}
                   </button>
@@ -1322,7 +1322,7 @@ export default function AdminPortalPage() {
         <div>
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-blue-600" /> Service Vendors
+              <Wrench className="w-5 h-5 text-forest-600" /> Service Vendors
             </h2>
             <p className="text-sm text-gray-500 mt-1">
               Add and vet the movers, cleaners, tradespeople, insurers, and lawyers shown in the Services Marketplace.
@@ -1335,7 +1335,7 @@ export default function AdminPortalPage() {
             </div>
           )}
           {vSuccess && (
-            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
+            <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" /> {vSuccess}
             </div>
           )}
@@ -1347,12 +1347,12 @@ export default function AdminPortalPage() {
                 value={vName}
                 onChange={(e) => setVName(e.target.value)}
                 placeholder="Business name"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
               />
               <select
                 value={vCategory}
                 onChange={(e) => setVCategory(e.target.value as VendorCategory)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 bg-white"
               >
                 {VENDOR_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -1362,32 +1362,32 @@ export default function AdminPortalPage() {
                 value={vPhone}
                 onChange={(e) => setVPhone(e.target.value)}
                 placeholder="Phone"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
               />
               <input
                 value={vEmail}
                 onChange={(e) => setVEmail(e.target.value)}
                 placeholder="Email"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
               />
               <input
                 value={vCity}
                 onChange={(e) => setVCity(e.target.value)}
                 placeholder="City"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
               />
               <textarea
                 value={vDescription}
                 onChange={(e) => setVDescription(e.target.value)}
                 placeholder="Description"
                 rows={2}
-                className="sm:col-span-2 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 resize-none"
+                className="sm:col-span-2 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 resize-none"
               />
             </div>
             <button
               onClick={handleCreateVendor}
               disabled={vSaving || !vName}
-              className="mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
+              className="mt-4 bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
             >
               {vSaving ? "Adding…" : "Add Vendor"}
             </button>
@@ -1406,7 +1406,7 @@ export default function AdminPortalPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-gray-900">{v.businessName}</p>
-                      {v.verified && <BadgeCheck className="w-4 h-4 text-green-600" />}
+                      {v.verified && <BadgeCheck className="w-4 h-4 text-forest-600" />}
                     </div>
                     <p className="text-xs text-gray-500">{v.category} · {v.city}</p>
                   </div>
@@ -1414,7 +1414,7 @@ export default function AdminPortalPage() {
                     {!v.verified && (
                       <button
                         onClick={() => handleVerifyVendor(v.id)}
-                        className="text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 text-white px-3 py-1.5 rounded-lg"
                       >
                         Verify
                       </button>

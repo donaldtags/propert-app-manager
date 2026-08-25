@@ -39,14 +39,14 @@ const ROWS: Row[] = [
     label: "Verification",
     render: (p) =>
       p.verificationStatus === "VERIFIED" ? (
-        <span className="inline-flex items-center gap-1 text-green-700"><BadgeCheck className="w-4 h-4" /> Verified</span>
+        <span className="inline-flex items-center gap-1 text-forest-700"><BadgeCheck className="w-4 h-4" /> Verified</span>
       ) : (
         <span className="text-gray-400">Unverified</span>
       ),
   },
   {
     label: "Escrow Available",
-    render: (p) => (p.escrowRequired ? <span className="inline-flex items-center gap-1 text-blue-700"><Shield className="w-4 h-4" /> Yes</span> : "No"),
+    render: (p) => (p.escrowRequired ? <span className="inline-flex items-center gap-1 text-forest-700"><Shield className="w-4 h-4" /> Yes</span> : "No"),
   },
   {
     label: "Solar",
@@ -146,7 +146,7 @@ function ComparePageInner() {
       <div className="max-w-3xl mx-auto px-4 py-16 text-center text-gray-500">
         <Scale className="w-12 h-12 mx-auto mb-4 opacity-30" />
         <p className="text-lg font-medium">Select at least 2 properties to compare</p>
-        <Link href="/properties" className="text-sm text-blue-600 hover:underline mt-2 inline-block">
+        <Link href="/properties" className="text-sm text-forest-600 hover:underline mt-2 inline-block">
           Browse properties
         </Link>
       </div>
@@ -157,7 +157,7 @@ function ComparePageInner() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Scale className="w-7 h-7 text-blue-600" /> Compare Properties
+          <Scale className="w-7 h-7 text-forest-600" /> Compare Properties
         </h1>
         <p className="text-gray-500 mt-1">Side-by-side comparison of your selected homes</p>
       </div>
@@ -190,7 +190,7 @@ function ComparePageInner() {
                         )}
                       </div>
                       <div className="p-3">
-                        <Link href={`/properties/${p.id}`} className="text-sm font-semibold text-gray-900 hover:text-blue-600 line-clamp-2">
+                        <Link href={`/properties/${p.id}`} className="text-sm font-semibold text-gray-900 hover:text-forest-600 line-clamp-2">
                           {p.title}
                         </Link>
                       </div>

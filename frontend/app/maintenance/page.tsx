@@ -11,9 +11,9 @@ import EntityPicker from "@/components/EntityPicker";
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     OPEN: "bg-red-100 text-red-700",
-    ASSIGNED: "bg-blue-100 text-blue-700",
+    ASSIGNED: "bg-forest-100 text-forest-700",
     IN_PROGRESS: "bg-amber-100 text-amber-700",
-    RESOLVED: "bg-green-100 text-green-700",
+    RESOLVED: "bg-forest-100 text-forest-700",
     CANCELLED: "bg-gray-100 text-gray-500",
   };
   return (
@@ -156,7 +156,7 @@ export default function MaintenancePage() {
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -184,7 +184,7 @@ export default function MaintenancePage() {
             <select
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 bg-white"
             >
               {["Plumbing", "Electrical", "Roofing", "Security", "Appliances", "Pest Control", "Other"].map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -195,7 +195,7 @@ export default function MaintenancePage() {
                 href={`/services?category=${form.category === "Plumbing" ? "PLUMBING" : "ELECTRICAL"}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs text-blue-600 hover:underline mt-1.5 inline-block"
+                className="text-xs text-forest-600 hover:underline mt-1.5 inline-block"
               >
                 Need it fixed sooner? Find local {form.category.toLowerCase()} services →
               </a>
@@ -206,7 +206,7 @@ export default function MaintenancePage() {
             <select
               value={form.priority}
               onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 bg-white"
             >
               <option value="">Auto (AI-detected)</option>
               {["LOW", "NORMAL", "HIGH", "URGENT"].map((p) => (
@@ -224,7 +224,7 @@ export default function MaintenancePage() {
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 resize-none"
               placeholder="Describe the issue..."
             />
           </div>
@@ -288,7 +288,7 @@ export default function MaintenancePage() {
                 <p className="text-sm text-gray-600">{req.description}</p>
                 <p className="text-xs text-gray-400 mt-1">{new Date(req.createdAt).toLocaleDateString()}</p>
                 {req.assignedVendorName && (
-                  <p className="text-xs text-blue-700 font-medium mt-1">Assigned to {req.assignedVendorName}</p>
+                  <p className="text-xs text-forest-700 font-medium mt-1">Assigned to {req.assignedVendorName}</p>
                 )}
                 {req.photos.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -308,7 +308,7 @@ export default function MaintenancePage() {
                     <select
                       value={selectedVendor[req.id] ?? ""}
                       onChange={(e) => setSelectedVendor((s) => ({ ...s, [req.id]: e.target.value ? Number(e.target.value) : undefined }))}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-blue-500"
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-forest-500"
                     >
                       <option value="">{req.assignedVendorName ? "Reassign vendor…" : "Assign a vendor…"}</option>
                       {vendorList.map((v) => (
@@ -318,7 +318,7 @@ export default function MaintenancePage() {
                     <button
                       onClick={() => handleAssignVendor(req.id)}
                       disabled={!selectedVendor[req.id] || assigningId === req.id}
-                      className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
                     >
                       {assigningId === req.id ? "Assigning…" : "Assign"}
                     </button>
@@ -337,7 +337,7 @@ export default function MaintenancePage() {
                   )}
                   <button
                     onClick={() => handleStatusUpdate(req.id, "RESOLVED")}
-                    className="text-xs bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1.5 rounded-xl font-medium transition-colors"
+                    className="text-xs bg-forest-50 hover:bg-forest-100 text-forest-700 px-3 py-1.5 rounded-xl font-medium transition-colors"
                   >
                     Resolve
                   </button>

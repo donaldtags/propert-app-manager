@@ -72,7 +72,7 @@ class ReitCatalogSeeder implements CommandLineRunner {
 
         seedReit(issuer,
                 "Tigere Property Fund REIT", "Zimbabwe", "MIXED_USE",
-                "ZSE-listed diversified property fund (ticker TIG). This Homestead product tracks the live ZSE "
+                "ZSE-listed diversified property fund (ticker TIG). This PrimeNest product tracks the live ZSE "
                         + "quote for reference; your units are issued and settled in USD at the price below.",
                 new BigDecimal("10.00"), new BigDecimal("9.00"), "MEDIUM", new BigDecimal("40000"),
                 "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=80", "TIG",
@@ -83,7 +83,7 @@ class ReitCatalogSeeder implements CommandLineRunner {
 
         seedReit(issuer,
                 "Revitus Property Opportunities REIT", "Zimbabwe", "COMMERCIAL",
-                "ZSE-listed property opportunities fund (ticker REV). This Homestead product tracks the live ZSE "
+                "ZSE-listed property opportunities fund (ticker REV). This PrimeNest product tracks the live ZSE "
                         + "quote for reference; your units are issued and settled in USD at the price below.",
                 new BigDecimal("10.00"), new BigDecimal("9.30"), "MEDIUM", new BigDecimal("40000"),
                 "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80", "REV",

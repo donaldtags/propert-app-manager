@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
+import PrimeNestLogo from "@/components/PrimeNestLogo";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
@@ -40,7 +40,7 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center mb-6">
-            <Image src="/homestead_logo.png" alt="Homestead" width={912} height={273} className="h-11 w-auto" />
+            <PrimeNestLogo size={36} />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-gray-500 mt-1">Sign in to your account</p>
@@ -62,7 +62,7 @@ function LoginForm() {
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoComplete="username"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                 placeholder="you@example.com or +263771000001"
               />
             </div>
@@ -70,7 +70,7 @@ function LoginForm() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-medium text-gray-700">Password</label>
-                <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+                <Link href="/forgot-password" className="text-xs text-forest-600 hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -81,7 +81,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-gray-900 outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
                   placeholder="••••••••"
                 />
                 <button
@@ -97,7 +97,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors"
+              className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
@@ -105,7 +105,7 @@ function LoginForm() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Don&apos;t have an account?{" "}
-            <Link href={`/register?redirect=${encodeURIComponent(redirect)}`} className="text-blue-600 font-semibold hover:underline">
+            <Link href={`/register?redirect=${encodeURIComponent(redirect)}`} className="text-forest-600 font-semibold hover:underline">
               Create one
             </Link>
           </p>

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Heuristic fraud detection over Homestead's own listing data - no external ML model, no
+ * Heuristic fraud detection over PrimeNest's own listing data - no external ML model, no
  * fabricated "risk score". Every signal below is a plain, explainable rule an admin can verify
  * by eye:
  *  1. The same photo URL appears on two different properties (an image was reused or stolen).

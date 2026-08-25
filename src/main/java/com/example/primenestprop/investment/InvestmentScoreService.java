@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 /**
  * Computes a 0-100 Investment Score for a REIT from its own real fields: projected annual yield,
  * risk level, and demand as measured by how much of the offering has actually sold. This is a
- * deterministic, explainable formula - not a predictive ML model - since Homestead has no
+ * deterministic, explainable formula - not a predictive ML model - since PrimeNest has no
  * historical performance dataset yet to train one on; presenting anything else as "AI-predicted"
  * would be fabricating confidence the platform doesn't have.
  */

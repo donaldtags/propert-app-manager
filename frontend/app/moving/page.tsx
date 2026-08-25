@@ -134,7 +134,7 @@ export default function MovingAssistantPage() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Truck className="w-7 h-7 text-blue-600" /> Moving Assistant
+          <Truck className="w-7 h-7 text-forest-600" /> Moving Assistant
         </h1>
         <p className="text-gray-500 mt-1">We don't lose you when you move — here's everything to make it smooth</p>
       </div>
@@ -166,7 +166,7 @@ export default function MovingAssistantPage() {
                     <button
                       onClick={() => handleRequestMoveOut(lease.id)}
                       disabled={requestingLeaseId === lease.id}
-                      className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg transition-colors"
                     >
                       {requestingLeaseId === lease.id ? "Sending…" : "Request Move-Out"}
                     </button>
@@ -191,7 +191,7 @@ export default function MovingAssistantPage() {
               <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
                 <button onClick={() => handleToggle(item.id)} className="shrink-0 mt-0.5">
                   {done ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <CheckCircle2 className="w-5 h-5 text-forest-600" />
                   ) : (
                     <Circle className="w-5 h-5 text-gray-300" />
                   )}
@@ -204,7 +204,7 @@ export default function MovingAssistantPage() {
                     </p>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
-                  <Link href={item.actionHref} className="text-xs text-blue-600 hover:underline mt-1 inline-block">
+                  <Link href={item.actionHref} className="text-xs text-forest-600 hover:underline mt-1 inline-block">
                     {item.actionLabel} →
                   </Link>
                 </div>

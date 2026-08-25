@@ -63,7 +63,7 @@ export default function EntityPicker({
         type="button"
         disabled={disabled || loading}
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-left outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white disabled:bg-gray-50 disabled:text-gray-400 transition-colors"
+        className="w-full flex items-center justify-between border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-left outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white disabled:bg-gray-50 disabled:text-gray-400 transition-colors"
       >
         <span className={`truncate ${selected ? "text-gray-900" : "text-gray-400"}`}>
           {loading ? "Loading..." : selected ? selected.label : placeholder}
@@ -84,7 +84,7 @@ export default function EntityPicker({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full pl-8 pr-3 py-1.5 text-sm outline-none border border-gray-200 rounded-lg focus:border-blue-500"
+                className="w-full pl-8 pr-3 py-1.5 text-sm outline-none border border-gray-200 rounded-lg focus:border-forest-500"
               />
             </div>
           </div>
@@ -101,8 +101,8 @@ export default function EntityPicker({
                     setOpen(false);
                     setQuery("");
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm transition-colors hover:bg-blue-50 ${
-                    o.id === value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors hover:bg-forest-50 ${
+                    o.id === value ? "bg-forest-50 text-forest-700 font-medium" : "text-gray-700"
                   }`}
                 >
                   <div className="truncate">{o.label}</div>
