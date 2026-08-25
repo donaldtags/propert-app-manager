@@ -2,7 +2,7 @@ package com.example.primenestprop.viewing;
 
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -93,12 +93,12 @@ public class ViewingController {
 
     private ViewingDtos.ViewingResponse respond(ViewingRequest viewing, AppUser currentUser) {
         boolean includeCheckInMaterials = viewing.getRequester().getId().equals(currentUser.getId())
-                || currentUser.getRoles().contains(UserRole.ADMIN);
+                || currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
         return ViewingDtos.ViewingResponse.from(viewing, includeCheckInMaterials);
     }
 
     private void requireSelfOrAdmin(Long id, AppUser currentUser) {
-        if (!id.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!id.equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own viewing requests");
         }
     }

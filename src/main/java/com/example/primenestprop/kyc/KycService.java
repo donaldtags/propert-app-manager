@@ -4,7 +4,7 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.common.AuditLog;
 import com.example.primenestprop.common.AuditLogRepository;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -232,7 +232,7 @@ public class KycService {
     }
 
     private boolean isAdmin(AppUser user) {
-        return user.getRoles().contains(UserRole.ADMIN);
+        return user.hasPermission(Permission.ADMIN_OVERRIDE);
     }
 
     public record Download(KycDocument document, Resource resource) {

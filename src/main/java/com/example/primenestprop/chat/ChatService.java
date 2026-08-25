@@ -3,7 +3,7 @@ package com.example.primenestprop.chat;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -101,7 +101,7 @@ public class ChatService {
     }
 
     private void requireAdmin(AppUser user) {
-        if (!user.getRoles().contains(UserRole.ADMIN)) {
+        if (!user.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can view all conversations");
         }
     }

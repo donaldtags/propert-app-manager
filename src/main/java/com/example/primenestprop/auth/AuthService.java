@@ -1,5 +1,7 @@
 package com.example.primenestprop.auth;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.common.PasswordPolicy;
 import com.example.primenestprop.user.AppUser;
@@ -11,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -23,6 +26,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
     private static final String RESET_MESSAGE = "If this email exists, a reset link has been sent.";
+
+    /**
+     * Every authenticated request otherwise costs 2 DB round trips (session lookup + user
+     * reload) in {@link #currentUser}. Caching the resolved user per bearer token bounds that
+     * to one DB hit per token per TTL window, independent of how many requests arrive - the
+     * lever that matters for surviving high concurrent request volume, not the permission
+     * check itself (which is already O(1) in-memory, see {@link com.example.primenestprop.user.RolePermissions}).
+     * A short TTL keeps role/permission changes and session revocation visible quickly;
+     * logout evicts immediately.
+     */
+    private final Cache<String, AppUser> currentUserCache = Caffeine.newBuilder()
+            .maximumSize(100_000)
+            .expireAfterWrite(Duration.ofSeconds(30))
+            .build();
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final UserService users;
@@ -113,12 +130,20 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AppUser currentUser(String authorization) {
-        return users.require(sessionFromAuthorization(authorization).getUser().getId());
+        String token = tokenFromAuthorization(authorization);
+        AppUser cached = currentUserCache.getIfPresent(token);
+        if (cached != null) {
+            return cached;
+        }
+        AppUser user = users.require(sessionFromAuthorization(authorization).getUser().getId());
+        currentUserCache.put(token, user);
+        return user;
     }
 
     @Transactional
     public void logout(String authorization) {
         String token = tokenFromAuthorization(authorization);
+        currentUserCache.invalidate(token);
         sessions.deleteByToken(token);
     }
 

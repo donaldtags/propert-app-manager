@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import jakarta.persistence.PrePersist;
@@ -68,6 +69,23 @@ public class AppUser {
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
     private Set<UserRole> roles = new HashSet<>();
+
+    public boolean hasPermission(Permission permission) {
+        for (UserRole role : roles) {
+            if (RolePermissions.of(role).contains(permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Set<Permission> permissions() {
+        Set<Permission> result = EnumSet.noneOf(Permission.class);
+        for (UserRole role : roles) {
+            result.addAll(RolePermissions.of(role));
+        }
+        return result;
+    }
 
     @PrePersist
     @PreUpdate

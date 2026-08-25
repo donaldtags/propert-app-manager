@@ -108,7 +108,7 @@ public class UserController {
 
     @GetMapping("/{id}/tenant-passport")
     PassportDtos.TenantPassport tenantPassport(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
-        if (!currentUser.getId().equals(id) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.getId().equals(id) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             AppUser tenant = service.require(id);
             boolean hasBusinessRelationship = leases.findByTenant(tenant).stream()
                     .anyMatch(l -> l.getLandlord().getId().equals(currentUser.getId())
@@ -166,7 +166,7 @@ public class UserController {
     }
 
     private void requireSelfOrAdmin(Long id, AppUser currentUser) {
-        if (!currentUser.getId().equals(id) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.getId().equals(id) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only access your own account");
         }
     }

@@ -3,6 +3,7 @@ package com.example.primenestprop.property;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.common.ObjectStorageService;
 import com.example.primenestprop.user.AppUser;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
 import org.slf4j.Logger;
@@ -31,9 +32,6 @@ public class PropertyService {
     private static final Logger log = LoggerFactory.getLogger(PropertyService.class);
     private static final long MAX_PHOTO_SIZE = 8L * 1024L * 1024L;
     private static final Set<String> ALLOWED_PHOTO_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
-    private static final Set<UserRole> LISTING_ROLES = Set.of(
-            UserRole.LANDLORD, UserRole.AGENT, UserRole.DEVELOPER, UserRole.PRIVATE
-    );
 
     private final PropertyRepository properties;
     private final PropertyPhotoRepository photos;
@@ -67,7 +65,7 @@ public class PropertyService {
     @Transactional
     public Property create(PropertyDtos.CreatePropertyRequest request) {
         AppUser landlord = users.require(request.landlordId());
-        if (landlord.getRoles().stream().noneMatch(LISTING_ROLES::contains)) {
+        if (!landlord.hasPermission(Permission.PROPERTY_CREATE)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "landlordId must belong to a landlord, agent, developer, or private seller");
         }
 
@@ -178,7 +176,7 @@ public class PropertyService {
     private void requireOwnerOrAdmin(Property property, AppUser currentUser) {
         boolean isOwner = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
-        boolean isAdmin = currentUser.getRoles().contains(UserRole.ADMIN);
+        boolean isAdmin = currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
         if (!isOwner && !isAdmin) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the listing's landlord or agent can edit it");
         }
@@ -365,7 +363,7 @@ public class PropertyService {
     @Transactional
     public Property verify(Long id, PropertyDtos.VerifyPropertyRequest request) {
         AppUser verifier = users.require(request.verifierId());
-        if (!verifier.getRoles().contains(UserRole.AGENT) && !verifier.getRoles().contains(UserRole.ADMIN)) {
+        if (!verifier.hasPermission(Permission.PROPERTY_VERIFY)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only agents or admins can verify properties");
         }
         Property property = require(id);

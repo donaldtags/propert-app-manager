@@ -145,7 +145,7 @@ public class UserService {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only request admin access for your own account");
         }
         AppUser user = require(id);
-        if (user.getRoles().contains(UserRole.ADMIN)) {
+        if (user.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "User already has admin access");
         }
         return adminRequests.findByUserAndStatus(user, AdminRequestStatus.PENDING)

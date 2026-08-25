@@ -5,7 +5,7 @@ import com.example.primenestprop.market.ZimbabweReitMarketService;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyRepository;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.util.List;
 import java.util.Set;
@@ -44,7 +44,7 @@ public class InvestmentService {
 
     @Transactional
     public InvestmentDtos.ReitResponse createReit(InvestmentDtos.CreateReitRequest request, AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN) && !currentUser.getRoles().contains(UserRole.DEVELOPER)) {
+        if (!currentUser.hasPermission(Permission.INVESTMENT_MANAGE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins or developers can create REITs");
         }
         Reit reit = new Reit();
@@ -68,7 +68,7 @@ public class InvestmentService {
 
     @Transactional
     public InvestmentDtos.ReitResponse updateReitProperties(Long reitId, InvestmentDtos.UpdateReitPropertiesRequest request, AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN) && !currentUser.getRoles().contains(UserRole.DEVELOPER)) {
+        if (!currentUser.hasPermission(Permission.INVESTMENT_MANAGE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins or developers can manage a REIT's portfolio");
         }
         Reit reit = reits.findById(reitId)
@@ -85,7 +85,7 @@ public class InvestmentService {
 
     @Transactional
     public Investment invest(InvestmentDtos.CreateInvestmentRequest request, AppUser investor) {
-        if (!investor.getRoles().contains(UserRole.INVESTOR) && !investor.getRoles().contains(UserRole.DIASPORA)) {
+        if (!investor.hasPermission(Permission.INVESTMENT_CREATE)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only investor or diaspora accounts can invest in a REIT");
         }
         Reit reit = reits.findByIdForUpdate(request.reitId())
@@ -152,7 +152,7 @@ public class InvestmentService {
 
     @Transactional(readOnly = true)
     public List<Investment> forInvestor(Long investorId, AppUser currentUser) {
-        if (!investorId.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!investorId.equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own investments");
         }
         return investments.findByInvestor(users.require(investorId));

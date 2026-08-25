@@ -5,7 +5,7 @@ import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.TrustScoreService;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -36,11 +36,11 @@ public class LeaseService {
     public Lease create(LeaseDtos.CreateLeaseRequest request, AppUser currentUser) {
         Property property = properties.require(request.propertyId());
         AppUser tenant = users.require(request.tenantId());
-        if (!isLandlordOrRepresentingAgent(property, currentUser) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!isLandlordOrRepresentingAgent(property, currentUser) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN,
                     "Only the property landlord or the agent representing this property can create a lease for it");
         }
-        if (!tenant.getRoles().contains(UserRole.TENANT) && !tenant.getRoles().contains(UserRole.DIASPORA)) {
+        if (!tenant.hasPermission(Permission.TENANT_APPLY)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "tenantId must belong to a tenant or diaspora user");
         }
         Lease lease = new Lease();
@@ -122,7 +122,7 @@ public class LeaseService {
     }
 
     private void requireSelfOrAdmin(Long id, AppUser currentUser) {
-        if (!id.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!id.equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own leases");
         }
     }

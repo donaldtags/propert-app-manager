@@ -3,7 +3,7 @@ package com.example.primenestprop.lease;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -89,7 +89,7 @@ public class LeaseActionService {
         Property property = action.getLease().getProperty();
         boolean isLandlord = action.getLease().getLandlord().getId().equals(currentUser.getId());
         boolean isAgent = property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId());
-        boolean isAdmin = currentUser.getRoles().contains(UserRole.ADMIN);
+        boolean isAdmin = currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
         if (!isLandlord && !isAgent && !isAdmin) {
             throw new ApiException(HttpStatus.FORBIDDEN,
                     "Only the landlord or the agent representing this property can review this request");

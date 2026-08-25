@@ -4,7 +4,7 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -29,7 +29,7 @@ public class RentalApplicationService {
 
     @Transactional
     public RentalApplication create(RentalApplicationDtos.CreateApplicationRequest request, AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.TENANT) && !currentUser.getRoles().contains(UserRole.DIASPORA)) {
+        if (!currentUser.hasPermission(Permission.TENANT_APPLY)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only tenants can apply for a property");
         }
         Property property = properties.require(request.propertyId());
@@ -136,6 +136,6 @@ public class RentalApplicationService {
     }
 
     private boolean isAdmin(AppUser currentUser) {
-        return currentUser.getRoles().contains(UserRole.ADMIN);
+        return currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
     }
 }

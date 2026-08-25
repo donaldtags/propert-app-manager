@@ -4,7 +4,7 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
@@ -85,7 +85,7 @@ public class ViewingService {
         ViewingRequest viewing = require(id);
         boolean isParty = viewing.getRequester().getId().equals(currentUser.getId())
                 || isLandlordOrAgent(viewing, currentUser)
-                || currentUser.getRoles().contains(UserRole.ADMIN);
+                || currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
         if (!isParty) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only someone involved in this viewing can check it in");
         }
@@ -136,7 +136,7 @@ public class ViewingService {
     }
 
     private void assertLandlordOrAgentOrAdmin(ViewingRequest viewing, AppUser currentUser) {
-        if (isLandlordOrAgent(viewing, currentUser) || currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (isLandlordOrAgent(viewing, currentUser) || currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             return;
         }
         throw new ApiException(HttpStatus.FORBIDDEN, "Only the landlord, representing agent, or an admin can manage this viewing");

@@ -2,7 +2,7 @@ package com.example.primenestprop.lease;
 
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -161,7 +161,7 @@ public class LeaseDocumentService {
     }
 
     private boolean isAdmin(AppUser user) {
-        return user.getRoles().contains(UserRole.ADMIN);
+        return user.hasPermission(Permission.ADMIN_OVERRIDE);
     }
 
     public record Download(LeaseDocument document, Resource resource) {

@@ -2,7 +2,7 @@ package com.example.primenestprop.vendor;
 
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -39,7 +39,7 @@ public class ServiceBookingController {
             @AuthenticationPrincipal AppUser currentUser
     ) {
         if (requesterId == null) return List.of();
-        if (!requesterId.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!requesterId.equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own service bookings");
         }
         return service.forRequester(currentUser).stream().map(ServiceBookingDtos.ServiceBookingResponse::from).toList();

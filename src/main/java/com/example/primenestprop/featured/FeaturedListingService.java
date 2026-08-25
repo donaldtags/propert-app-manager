@@ -8,7 +8,7 @@ import com.example.primenestprop.payment.PaymentService;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.springframework.http.HttpStatus;
@@ -47,7 +47,7 @@ public class FeaturedListingService {
 
     @Transactional
     public FeaturedListingSettings updateSettings(FeaturedListingDtos.UpdateSettingsRequest request, AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can change the featured listing price");
         }
         FeaturedListingSettings settings = settings();
@@ -63,7 +63,7 @@ public class FeaturedListingService {
         Property property = properties.require(propertyId);
         boolean owns = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
-        if (!owns && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!owns && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the listing's landlord or agent can feature it");
         }
 

@@ -5,7 +5,7 @@ import com.example.primenestprop.lease.Lease;
 import com.example.primenestprop.lease.LeaseService;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -75,7 +75,7 @@ public class PaymentService {
         Payment payment = require(id);
         boolean isParty = payment.getPayer().getId().equals(currentUser.getId())
                 || payment.getPayee().getId().equals(currentUser.getId());
-        if (!isParty && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!isParty && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You do not have access to this payment");
         }
         return payment;
@@ -83,7 +83,7 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public List<Payment> forUser(Long userId, AppUser currentUser) {
-        if (!userId.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!userId.equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own payments");
         }
         AppUser user = users.require(userId);
@@ -120,7 +120,7 @@ public class PaymentService {
     @Transactional
     public Payment markSuccessful(Long id, AppUser currentUser) {
         Payment payment = require(id);
-        if (!payment.getPayee().getId().equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!payment.getPayee().getId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the payee can confirm this payment as successful");
         }
         payment.setStatus(PaymentStatus.SUCCESSFUL);

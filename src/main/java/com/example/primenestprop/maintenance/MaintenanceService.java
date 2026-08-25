@@ -6,7 +6,7 @@ import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.subscription.SubscriptionFeature;
 import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import com.example.primenestprop.vendor.Vendor;
 import com.example.primenestprop.vendor.VendorService;
@@ -80,7 +80,7 @@ public class MaintenanceService {
         Property property = request.getProperty();
         boolean isLandlordOrAgent = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
-        if (!isLandlordOrAgent && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!isLandlordOrAgent && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the property landlord, agent, or an admin can assign a vendor");
         }
         subscriptions.requireFeature(property.getLandlord(), SubscriptionFeature.MAINTENANCE_REQUESTS);
@@ -103,7 +103,7 @@ public class MaintenanceService {
         List<MaintenanceRequest> all = requests.findByProperty(property);
         boolean isLandlordOrAgent = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
-        if (isLandlordOrAgent || currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (isLandlordOrAgent || currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             return all;
         }
         return all.stream().filter(r -> r.getRequester().getId().equals(currentUser.getId())).toList();
@@ -135,7 +135,7 @@ public class MaintenanceService {
         Property property = request.getProperty();
         boolean isLandlordOrAgent = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
-        if (!isLandlordOrAgent && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!isLandlordOrAgent && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the property landlord, agent, or an admin can update this request");
         }
         request.setStatus(status);
@@ -208,7 +208,7 @@ public class MaintenanceService {
         boolean isLandlordOrAgent = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
         boolean isRequester = request.getRequester().getId().equals(currentUser.getId());
-        if (!isLandlordOrAgent && !isRequester && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!isLandlordOrAgent && !isRequester && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the requester, property landlord, agent, or an admin can access these photos");
         }
     }

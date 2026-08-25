@@ -7,9 +7,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.Set;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -28,13 +30,10 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         if (authorization != null && authorization.startsWith("Bearer ")) {
             try {
                 AppUser user = authService.currentUser(authorization);
-                Authentication authentication = new UsernamePasswordAuthenticationToken(
-                        user,
-                        null,
-                        user.getRoles().stream()
-                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                                .collect(Collectors.toSet())
-                );
+                Set<GrantedAuthority> authorities = new HashSet<>();
+                user.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name())));
+                user.permissions().forEach(permission -> authorities.add(new SimpleGrantedAuthority("PERM_" + permission.name())));
+                Authentication authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (RuntimeException ex) {
                 SecurityContextHolder.clearContext();

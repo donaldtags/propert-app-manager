@@ -8,7 +8,7 @@ import com.example.primenestprop.payment.PaymentService;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -65,7 +65,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionPlanSettings updatePlanSettings(SubscriptionPlan plan, SubscriptionDtos.UpdatePlanSettingsRequest request, AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can change subscription plan pricing");
         }
         SubscriptionPlanSettings row = planSettings(plan);

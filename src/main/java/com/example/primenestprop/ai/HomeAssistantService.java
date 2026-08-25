@@ -15,7 +15,7 @@ import com.example.primenestprop.payment.RentInvoiceRepository;
 import com.example.primenestprop.payment.RentInvoiceStatus;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import org.springframework.http.HttpStatus;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -87,7 +87,7 @@ public class HomeAssistantService {
         boolean isLandlord = lease.getLandlord().getId().equals(currentUser.getId());
         Property property = lease.getProperty();
         boolean isAgent = property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId());
-        boolean isAdmin = currentUser.getRoles().contains(UserRole.ADMIN);
+        boolean isAdmin = currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
         if (!isTenant && !isLandlord && !isAgent && !isAdmin) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You do not have access to this lease");
         }

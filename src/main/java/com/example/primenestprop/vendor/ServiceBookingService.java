@@ -4,7 +4,7 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -44,7 +44,7 @@ public class ServiceBookingService {
     @Transactional
     public ServiceBooking cancel(Long id, AppUser currentUser) {
         ServiceBooking booking = require(id);
-        if (!booking.getRequester().getId().equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!booking.getRequester().getId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the person who booked this service can cancel it");
         }
         if (booking.getStatus() == BookingStatus.COMPLETED || booking.getStatus() == BookingStatus.CANCELLED) {
@@ -60,7 +60,7 @@ public class ServiceBookingService {
         ServiceBooking booking = require(id);
         boolean isVendorOwner = booking.getVendor().getOwner() != null
                 && booking.getVendor().getOwner().getId().equals(currentUser.getId());
-        if (!isVendorOwner && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!isVendorOwner && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the vendor or an admin can update a service booking's status");
         }
         booking.setStatus(status);

@@ -2,7 +2,7 @@ package com.example.primenestprop.vendor;
 
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class VendorService {
 
     @Transactional
     public Vendor registerSelf(VendorDtos.SelfRegisterVendorRequest request, AppUser owner) {
-        if (!owner.getRoles().contains(UserRole.SERVICE_PROVIDER)) {
+        if (!owner.hasPermission(Permission.VENDOR_SERVICE_PROVIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Add the Service Provider role to your account first");
         }
         if (vendors.findByOwnerId(owner.getId()).isPresent()) {

@@ -9,7 +9,7 @@ import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.subscription.SubscriptionFeature;
 import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
@@ -69,7 +69,7 @@ public class EscrowService {
 
     @Transactional(readOnly = true)
     public List<EscrowTransaction> forUser(Long userId, AppUser currentUser) {
-        if (!userId.equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!userId.equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own escrow transactions");
         }
         AppUser user = users.require(userId);
@@ -80,7 +80,7 @@ public class EscrowService {
 
     @Transactional(readOnly = true)
     public List<EscrowTransaction> allForAdmin(AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can view all escrow transactions");
         }
         return escrows.findAllForAdmin();
@@ -112,7 +112,7 @@ public class EscrowService {
      */
     @Transactional
     public EscrowTransaction release(Long id, AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can approve escrow release");
         }
         EscrowTransaction escrow = require(id);
@@ -190,7 +190,7 @@ public class EscrowService {
     }
 
     private void requirePartyOrAdmin(EscrowTransaction escrow, AppUser currentUser, AppUser... allowedParties) {
-        if (currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             return;
         }
         for (AppUser party : allowedParties) {

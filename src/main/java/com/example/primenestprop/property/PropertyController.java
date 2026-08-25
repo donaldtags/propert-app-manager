@@ -6,7 +6,7 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.subscription.SubscriptionFeature;
 import com.example.primenestprop.subscription.SubscriptionService;
 import com.example.primenestprop.user.AppUser;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
@@ -46,10 +46,10 @@ public class PropertyController {
 
     @PostMapping
     PropertyResponse create(@Valid @RequestBody PropertyDtos.CreatePropertyRequest request, @AuthenticationPrincipal AppUser currentUser) {
-        if (!request.landlordId().equals(currentUser.getId()) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!request.landlordId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "landlordId must match the authenticated user");
         }
-        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             subscriptions.requirePropertyCapacity(currentUser);
         }
         Property saved = service.create(request);

@@ -25,7 +25,7 @@ import com.example.primenestprop.property.PropertyStatus;
 import com.example.primenestprop.review.LandlordRatingService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserDtos.UserResponse;
-import com.example.primenestprop.user.UserRole;
+import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -250,7 +250,7 @@ public class DashboardController {
     }
 
     private void requireAdmin(AppUser currentUser) {
-        if (!currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins can view the command center dashboard");
         }
     }
@@ -329,7 +329,7 @@ public class DashboardController {
     }
 
     private void requireSelfOrAdmin(Long id, AppUser currentUser) {
-        if (!currentUser.getId().equals(id) && !currentUser.getRoles().contains(UserRole.ADMIN)) {
+        if (!currentUser.getId().equals(id) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can only view your own dashboard");
         }
     }
