@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrimeNestLogo from "@/components/PrimeNestLogo";
@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
 
 function LoginForm() {
-  const { login } = useAuth();
+  const { user, loading: authLoading, login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get("redirect");
@@ -20,6 +20,14 @@ function LoginForm() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Someone already signed in (e.g. a token left over from a previous session) has no
+  // business seeing the login form - it just looks broken. Bounce them straight through.
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace(redirectParam ?? dashboardPathFor(user.roles));
+    }
+  }, [authLoading, user, redirectParam, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +42,10 @@ function LoginForm() {
       setLoading(false);
     }
   };
+
+  if (authLoading || user) {
+    return <div className="min-h-screen bg-gray-50" />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
