@@ -8,13 +8,16 @@ import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-/** Hibernate's schema generator adds a CHECK constraint on the user roles collection table's
- * `name` column, listing whichever UserRole values existed when the table was first created.
- * {@code ddl-auto=update} never widens that constraint when a new role enum constant is added
- * later, so on any database that already had the table, inserting a newer role (e.g.
- * SERVICE_PROVIDER) fails with a check-violation - even though the application code has no idea
- * the constraint exists. Drops it once so the column is governed by the Java enum going forward;
- * safe to run on every boot, and a no-op on databases where it's already gone or never existed. */
+/** Hibernate's schema generator fixes the shape of every column backing the UserRole enum - a
+ * CHECK constraint on Postgres, a native {@code ENUM(...)} type listing out the role names on
+ * MariaDB/MySQL - to whichever UserRole values existed when the table was first created.
+ * {@code ddl-auto=update} never widens any of these when a new role enum constant is added later
+ * (e.g. SERVICE_PROVIDER), so on any database that already had the tables, inserting the newer
+ * role fails - a Postgres check-violation, or a MariaDB/MySQL "Data truncated for column" - even
+ * though the application code has no idea any of this schema exists. Two tables carry a
+ * UserRole-shaped column: the roles lookup table itself, and {@code AppUser.roles}'s element
+ * collection table. Every fix below is safe to run on every boot and a no-op on a database where
+ * it doesn't apply or is already applied. */
 @Component
 @Order(1)
 class RoleCheckConstraintFixer implements CommandLineRunner {
@@ -27,6 +30,12 @@ class RoleCheckConstraintFixer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        dropPostgresCheckConstraint();
+        widenMariaDbColumn("roles", "name", "NOT NULL");
+        widenMariaDbColumn("app_user_roles", "roles", "DEFAULT NULL");
+    }
+
+    private void dropPostgresCheckConstraint() {
         try {
             // Postgres needs an ACCESS EXCLUSIVE lock to drop a constraint; without a timeout,
             // any lingering connection from a prior instance (e.g. mid-shutdown) can block this
@@ -41,6 +50,27 @@ class RoleCheckConstraintFixer implements CommandLineRunner {
             });
         } catch (Exception e) {
             log.debug("Skipping roles_name_check drop (not applicable, or lock unavailable, on this database): {}", e.getMessage());
+        }
+    }
+
+    /** Converts a MariaDB/MySQL native {@code ENUM(...)} role column to a plain VARCHAR, so it
+     * accepts any current or future UserRole value instead of only the ones baked in when the
+     * table was first created. {@code table}/{@code column}/{@code nullability} are always
+     * literal constants from the call sites above, never external input. */
+    private void widenMariaDbColumn(String table, String column, String nullability) {
+        try {
+            // MariaDB/MySQL's equivalent of Postgres's lock_timeout: bound how long the ALTER
+            // waits for a metadata lock from another connection, instead of hanging forever.
+            jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Void>) con -> {
+                try (Statement st = con.createStatement()) {
+                    st.execute("SET SESSION lock_wait_timeout = 5");
+                    st.execute("ALTER TABLE " + table + " MODIFY COLUMN " + column + " VARCHAR(64) " + nullability);
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            log.debug("Skipping {}.{} column widening (not applicable, or lock unavailable, on this database): {}",
+                    table, column, e.getMessage());
         }
     }
 }
