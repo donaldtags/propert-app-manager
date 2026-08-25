@@ -26,7 +26,7 @@ function VerificationRow({ label, verified }: { label: string; verified: boolean
     <div className="flex items-center justify-between text-sm py-1.5">
       <span className="text-gray-600">{label}</span>
       {verified ? (
-        <span className="flex items-center gap-1 text-green-700 font-medium">
+        <span className="flex items-center gap-1 text-forest-700 font-medium">
           <ShieldCheck className="w-4 h-4" /> Verified
         </span>
       ) : (
@@ -60,14 +60,17 @@ export default function TenantPassportPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const isTenantEligible = (u: typeof user) =>
+    !!u?.roles?.includes("TENANT") || !!u?.roles?.includes("DIASPORA");
+
   useEffect(() => {
-    if (!loading && (!user || !user.roles?.includes("TENANT"))) {
+    if (!loading && (!user || !isTenantEligible(user))) {
       router.push(user ? "/profile" : "/login?redirect=/passport");
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!user || !token || !user.roles?.includes("TENANT")) return;
+    if (!user || !token || !isTenantEligible(user)) return;
     Promise.allSettled([
       usersApi.tenantPassport(user.id, token),
       usersApi.verificationLevel(user.id, token),
@@ -124,11 +127,11 @@ export default function TenantPassportPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-gray-900">{user?.fullName}</h1>
-            {user?.identityVerified && <BadgeCheck className="w-5 h-5 text-green-600" />}
+            {user?.identityVerified && <BadgeCheck className="w-5 h-5 text-forest-600" />}
           </div>
           <p className="text-sm text-gray-500">Tenant Passport</p>
           <p className="text-xs text-gray-400 mt-1">
-            {passport?.yearsOnPlatform ?? 0} year{(passport?.yearsOnPlatform ?? 0) === 1 ? "" : "s"} on Homestead
+            {passport?.yearsOnPlatform ?? 0} year{(passport?.yearsOnPlatform ?? 0) === 1 ? "" : "s"} on PrimeNest
           </p>
         </div>
         <div className="text-right">
@@ -149,7 +152,7 @@ export default function TenantPassportPage() {
       {/* Verification */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
         <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-          <IdCard className="w-5 h-5 text-blue-600" /> Identity & Verification
+          <IdCard className="w-5 h-5 text-forest-600" /> Identity & Verification
         </h2>
         <div className="divide-y divide-gray-100">
           <VerificationRow label="Email" verified={verificationLevel?.emailVerified ?? false} />
@@ -158,7 +161,7 @@ export default function TenantPassportPage() {
           <VerificationRow label="Face Match" verified={verificationLevel?.faceVerified ?? false} />
         </div>
         {!verificationLevel?.identityVerified && (
-          <Link href="/verification" className="mt-3 inline-block text-sm text-blue-600 hover:underline">
+          <Link href="/verification" className="mt-3 inline-block text-sm text-forest-600 hover:underline">
             Complete identity verification →
           </Link>
         )}
@@ -183,7 +186,7 @@ export default function TenantPassportPage() {
         {/* Lease history */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Home className="w-5 h-5 text-blue-600" /> Lease History
+            <Home className="w-5 h-5 text-forest-600" /> Lease History
           </h2>
           {leaseList.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">No leases yet</p>
@@ -192,7 +195,7 @@ export default function TenantPassportPage() {
               {leaseList.map((lease) => (
                 <div key={lease.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
-                    <Link href={`/properties/${lease.propertyId}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">
+                    <Link href={`/properties/${lease.propertyId}`} className="text-sm font-medium text-gray-900 hover:text-forest-600">
                       Property #{lease.propertyId}
                     </Link>
                     <p className="text-xs text-gray-500">{lease.startDate} → {lease.endDate}</p>
@@ -236,7 +239,7 @@ export default function TenantPassportPage() {
                     <span
                       className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         s.status === "APPROVED"
-                          ? "bg-green-100 text-green-700"
+                          ? "bg-forest-100 text-forest-700"
                           : s.status === "REJECTED"
                           ? "bg-red-100 text-red-700"
                           : "bg-amber-100 text-amber-700"

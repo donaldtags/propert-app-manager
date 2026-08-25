@@ -1,6 +1,8 @@
 package com.example.primenestprop;
 
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -11,9 +13,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import com.example.primenestprop.user.UserDtos;
 import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
+import java.time.Instant;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +29,8 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,6 +43,9 @@ class ApiIntegrationTests {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private static final java.util.concurrent.atomic.AtomicInteger sequence = new java.util.concurrent.atomic.AtomicInteger();
 
@@ -200,7 +210,14 @@ class ApiIntegrationTests {
         long leaseId = createLease(propertyId, tenant.id(), landlord.token());
         mvc.perform(patch("/api/v1/leases/{id}/sign", leaseId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenant.token()))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SENT"));
+        // A lease only reaches SIGNED - and only then does the Property Passport timeline
+        // record a LEASE_SIGNED event - once both the tenant and the landlord have signed.
+        mvc.perform(patch("/api/v1/leases/{id}/sign", leaseId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlord.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SIGNED"));
 
         long escrowId = createEscrow(propertyId, leaseId, tenant.token());
         mvc.perform(patch("/api/v1/escrows/{id}/fund", escrowId)
@@ -226,6 +243,26 @@ class ApiIntegrationTests {
                         .param("status", "RESOLVED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("RESOLVED"));
+
+        // Property Passport: the Digital Home Timeline must reflect every lifecycle event above,
+        // in chronological order, alongside the per-category history lists it is built from.
+        mvc.perform(get("/api/v1/properties/{id}/passport", propertyId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.propertyId").value((int) propertyId))
+                .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"))
+                .andExpect(jsonPath("$.timeline", hasSize(greaterThanOrEqualTo(6))))
+                .andExpect(jsonPath("$.timeline[*].type", hasItems(
+                        "LISTED", "VERIFIED", "LEASE_CREATED", "LEASE_SIGNED",
+                        "MAINTENANCE_REQUESTED", "MAINTENANCE_RESOLVED", "ESCROW_CREATED")))
+                .andExpect(jsonPath("$.leaseHistory", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.leaseHistory[0].status").value("SIGNED"))
+                .andExpect(jsonPath("$.maintenanceHistory", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.maintenanceHistory[0].status").value("RESOLVED"))
+                .andExpect(jsonPath("$.escrowHistory", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.escrowHistory[0].status").value("FUNDED"))
+                .andExpect(jsonPath("$.healthScore.overall", greaterThanOrEqualTo(0)))
+                .andExpect(jsonPath("$.healthScore.verification").value(100));
+        assertTimelineIsChronological(propertyId);
 
         String tenantToken = tenant.token();
         MockMultipartFile payslip = new MockMultipartFile(
@@ -355,6 +392,98 @@ class ApiIntegrationTests {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tenantToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.read").value(true));
+    }
+
+    @Test
+    void propertyPassportReflectsAFreshUnverifiedPropertyWithNoHistory() throws Exception {
+        Registered landlord = registerUser("Fresh Landlord", "LANDLORD");
+        Registered agent = registerUser("Fresh Agent", "AGENT");
+        long propertyId = createProperty(landlord.id(), agent.id(), "Newly Listed Cottage", landlord.token());
+
+        mvc.perform(get("/api/v1/properties/{id}/passport", propertyId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.propertyId").value((int) propertyId))
+                .andExpect(jsonPath("$.verificationStatus").value("UNVERIFIED"))
+                .andExpect(jsonPath("$.timeline", hasSize(2)))
+                .andExpect(jsonPath("$.timeline[*].type", hasItems("LISTED", "PHOTO_ADDED")))
+                .andExpect(jsonPath("$.leaseHistory", empty()))
+                .andExpect(jsonPath("$.maintenanceHistory", empty()))
+                .andExpect(jsonPath("$.escrowHistory", empty()))
+                .andExpect(jsonPath("$.ratingCount").value(0))
+                .andExpect(jsonPath("$.healthScore.verification").value(40));
+    }
+
+    @Test
+    void tenantAndLandlordPassportsReflectHistoryAndEnforceTenantPassportAccessControl() throws Exception {
+        Registered admin = bootstrapAdmin();
+        Registered landlord = registerUser("Passport Landlord", "LANDLORD");
+        Registered agent = registerUser("Passport Agent", "AGENT");
+        // A diaspora user - not TENANT - must still be able to hold a lease and have a passport;
+        // Permission.TENANT_APPLY (not the raw role) is what actually gates lease eligibility.
+        Registered diasporaTenant = registerUser("Diaspora Tenant", "DIASPORA");
+        Registered stranger = registerUser("Unrelated Tenant", "TENANT");
+
+        long propertyId = createProperty(landlord.id(), agent.id(), "Passport Test Villa", landlord.token());
+        mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "verifierId": %s,
+                                  "note": "Verified for passport test"
+                                }
+                                """.formatted(agent.id())))
+                .andExpect(status().isOk());
+
+        long leaseId = createLease(propertyId, diasporaTenant.id(), landlord.token());
+        mvc.perform(patch("/api/v1/leases/{id}/sign", leaseId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + diasporaTenant.token()))
+                .andExpect(status().isOk());
+        mvc.perform(patch("/api/v1/leases/{id}/sign", leaseId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlord.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SIGNED"));
+
+        long maintenanceId = createMaintenance(propertyId, diasporaTenant.token());
+        mvc.perform(patch("/api/v1/maintenance/{id}/status", maintenanceId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlord.token())
+                        .param("status", "RESOLVED"))
+                .andExpect(status().isOk());
+
+        // The tenant can view their own passport.
+        mvc.perform(get("/api/v1/users/{id}/tenant-passport", diasporaTenant.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + diasporaTenant.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value((int) diasporaTenant.id()))
+                .andExpect(jsonPath("$.completedLeaseCount").value(1))
+                .andExpect(jsonPath("$.totalRentInvoices").value(0))
+                .andExpect(jsonPath("$.onTimePaymentRatePercent").doesNotExist());
+
+        // The landlord they have a lease with can view it too.
+        mvc.perform(get("/api/v1/users/{id}/tenant-passport", diasporaTenant.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + landlord.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedLeaseCount").value(1));
+
+        // An admin can always view it.
+        mvc.perform(get("/api/v1/users/{id}/tenant-passport", diasporaTenant.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token()))
+                .andExpect(status().isOk());
+
+        // A tenant with no business relationship to this tenant cannot.
+        mvc.perform(get("/api/v1/users/{id}/tenant-passport", diasporaTenant.id())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + stranger.token()))
+                .andExpect(status().isForbidden());
+
+        // The landlord passport is public and reflects the same history.
+        mvc.perform(get("/api/v1/users/{id}/landlord-passport", landlord.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value((int) landlord.id()))
+                .andExpect(jsonPath("$.propertyCount", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.completedLeaseCount").value(1))
+                .andExpect(jsonPath("$.resolvedMaintenanceCount").value(1))
+                .andExpect(jsonPath("$.totalMaintenanceCount").value(1))
+                .andExpect(jsonPath("$.maintenanceResolutionRatePercent").value(100));
     }
 
     @Test
@@ -581,6 +710,22 @@ class ApiIntegrationTests {
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + System.nanoTime() + "-" + sequence.incrementAndGet() + "@example.com";
+    }
+
+    private void assertTimelineIsChronological(long propertyId) throws Exception {
+        String response = mvc.perform(get("/api/v1/properties/{id}/passport", propertyId))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode timeline = objectMapper.readTree(response).get("timeline");
+        Instant previous = Instant.EPOCH;
+        for (JsonNode event : timeline) {
+            Instant occurredAt = Instant.parse(event.get("occurredAt").asString());
+            assertFalse(occurredAt.isBefore(previous),
+                    "Timeline events must be sorted chronologically, but " + event + " came after " + previous);
+            previous = occurredAt;
+        }
     }
 
     private long extractLong(String json, String field) {
