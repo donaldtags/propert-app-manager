@@ -7,6 +7,7 @@ import { maintenance as maintenanceApi, properties as propertiesApi, leases as l
 import type { MaintenanceRequest, Property, Vendor } from "@/lib/types";
 import { Wrench, AlertCircle, CheckCircle, Plus, Camera, Sparkles } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+import PageLoader from "@/components/PageLoader";
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -139,7 +140,7 @@ export default function MaintenancePage() {
     }
   };
 
-  if (loading) return null;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">

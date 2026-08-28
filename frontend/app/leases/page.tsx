@@ -7,6 +7,7 @@ import { leases as leasesApi, properties as propertiesApi, users as usersApi } f
 import type { Lease, LeaseDocument, LeaseDocumentType, LeaseExtraction, Property } from "@/lib/types";
 import { FileText, AlertCircle, CheckCircle, Plus, Paperclip, Download, Sparkles } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+import PageLoader from "@/components/PageLoader";
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -269,7 +270,7 @@ export default function LeasesPage() {
     }
   };
 
-  if (loading) return null;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">

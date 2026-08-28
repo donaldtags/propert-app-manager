@@ -7,6 +7,7 @@ import PrimeNestLogo from "@/components/PrimeNestLogo";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
+import PageLoader from "@/components/PageLoader";
 
 function LoginForm() {
   const { user, loading: authLoading, login } = useAuth();
@@ -44,7 +45,7 @@ function LoginForm() {
   };
 
   if (authLoading || user) {
-    return <div className="min-h-screen bg-gray-50" />;
+    return <PageLoader />;
   }
 
   return (
@@ -129,7 +130,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageLoader />}>
       <LoginForm />
     </Suspense>
   );

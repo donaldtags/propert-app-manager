@@ -7,6 +7,7 @@ import { payments as paymentsApi, properties as propertiesApi, leases as leasesA
 import type { Payment, Property, Lease } from "@/lib/types";
 import { DollarSign, AlertCircle, CheckCircle, Plus, Download, Landmark, Smartphone, CreditCard } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+import PageLoader from "@/components/PageLoader";
 
 const PAYMENT_PROVIDERS = [
   { value: "bank_transfer", label: "Bank Transfer", icon: Landmark },
@@ -157,7 +158,7 @@ export default function PaymentsPage() {
     }
   };
 
-  if (loading) return null;
+  if (loading) return <PageLoader />;
 
   const totalPaid = paymentList.filter((p) => p.status === "SUCCESSFUL" && p.payerId === user?.id).reduce((s, p) => s + p.amount, 0);
   const totalReceived = paymentList.filter((p) => p.status === "SUCCESSFUL" && p.payeeId === user?.id).reduce((s, p) => s + p.amount, 0);

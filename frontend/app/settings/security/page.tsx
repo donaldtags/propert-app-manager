@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { users as usersApi } from "@/lib/api";
 import { Shield, AlertCircle, CheckCircle, Plus, ArrowRight, Info } from "lucide-react";
 import type { UserRole } from "@/lib/types";
+import PageLoader from "@/components/PageLoader";
 
 const SELF_SERVICE_ROLES: UserRole[] = ["TENANT", "LANDLORD", "AGENT", "DIASPORA", "INVESTOR", "DEVELOPER", "PRIVATE", "SERVICE_PROVIDER"];
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
@@ -76,7 +77,7 @@ function SecuritySettingsPageInner() {
     }
   };
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageLoader />;
 
   const currentRoles = user.roles ?? [];
   const availableRoles = SELF_SERVICE_ROLES.filter((r) => !currentRoles.includes(r));
@@ -244,7 +245,7 @@ function SecuritySettingsPageInner() {
 
 export default function SecuritySettingsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PageLoader />}>
       <SecuritySettingsPageInner />
     </Suspense>
   );

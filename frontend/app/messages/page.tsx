@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { messages as messagesApi } from "@/lib/api";
 import type { Conversation, ChatMessage } from "@/lib/types";
 import { MessageCircle, Send, AlertCircle, ChevronLeft } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 function MessagesContent() {
   const { user, token, loading } = useAuth();
@@ -68,7 +69,7 @@ function MessagesContent() {
   };
 
   if (loading || !user) {
-    return <div className="flex-1 flex items-center justify-center text-gray-400">Loading...</div>;
+    return <PageLoader />;
   }
 
   return (
