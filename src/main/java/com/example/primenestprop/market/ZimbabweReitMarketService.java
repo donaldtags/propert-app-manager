@@ -19,31 +19,50 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * Polls the ZSE listed-securities price sheet and caches quotes for Zimbabwe's
- * listed REITs (Tigere Property Fund, Revitus Property Opportunities REIT).
- * There is no real-time tick feed for the ZSE, so "live" here means the cache
- * is refreshed on a timer and the frontend polls this cache.
+ * Caches quotes for Zimbabwe's listed REITs (Tigere Property Fund, Revitus Property
+ * Opportunities REIT). Prefers live data from the MyStocks Africa partner API
+ * ({@link MystocksMarketClient}) when an API key is configured; otherwise falls back to
+ * scraping a public ZSE price sheet. There is no real-time tick feed for the ZSE, so "live"
+ * here means the cache is refreshed on a timer and the frontend polls this cache.
  */
 @Service
 public class ZimbabweReitMarketService {
     private static final Logger log = LoggerFactory.getLogger(ZimbabweReitMarketService.class);
-    private static final String SOURCE_URL = "https://afx.kwayisi.org/zse/";
+    private static final String FALLBACK_SOURCE_URL = "https://afx.kwayisi.org/zse/";
+    private static final String MYSTOCKS_SOURCE = "mystocks.africa";
     private static final Map<String, String> TRACKED_REITS = Map.of(
             "TIG", "Tigere Property Fund REIT",
             "REV", "Revitus Property Opportunities REIT"
     );
     private static final long STALE_AFTER_MILLIS = 15 * 60 * 1000L;
 
+    private final MystocksMarketClient mystocksClient;
     private final AtomicReference<List<MarketQuote>> cache = new AtomicReference<>(List.of());
     private final AtomicReference<Instant> lastSuccess = new AtomicReference<>();
+    private final AtomicReference<String> lastSource = new AtomicReference<>(FALLBACK_SOURCE_URL);
+
+    public ZimbabweReitMarketService(MystocksMarketClient mystocksClient) {
+        this.mystocksClient = mystocksClient;
+    }
 
     @Scheduled(initialDelay = 0, fixedRate = 120_000)
     public void refresh() {
+        if (mystocksClient.isConfigured()) {
+            List<MarketQuote> live = fetchFromMystocks();
+            if (!live.isEmpty()) {
+                cache.set(live);
+                lastSuccess.set(Instant.now());
+                lastSource.set(MYSTOCKS_SOURCE);
+                return;
+            }
+            log.warn("MyStocks Africa returned no quotes for tracked REITs; falling back to price-sheet scrape");
+        }
         try {
             List<MarketQuote> quotes = fetch();
             if (!quotes.isEmpty()) {
                 cache.set(quotes);
                 lastSuccess.set(Instant.now());
+                lastSource.set(FALLBACK_SOURCE_URL);
             } else {
                 log.warn("ZSE REIT market refresh returned no matching rows");
             }
@@ -52,10 +71,19 @@ public class ZimbabweReitMarketService {
         }
     }
 
+    private List<MarketQuote> fetchFromMystocks() {
+        List<MarketQuote> quotes = new ArrayList<>();
+        TRACKED_REITS.forEach((ticker, name) -> {
+            MarketQuote quote = mystocksClient.fetchQuote(ticker, name);
+            if (quote != null) quotes.add(quote);
+        });
+        return quotes;
+    }
+
     public MarketSnapshot snapshot() {
         Instant success = lastSuccess.get();
         boolean stale = success == null || Instant.now().isAfter(success.plusMillis(STALE_AFTER_MILLIS));
-        return new MarketSnapshot(cache.get(), success, stale, SOURCE_URL);
+        return new MarketSnapshot(cache.get(), success, stale, lastSource.get());
     }
 
     public MarketQuote quoteFor(String ticker) {
@@ -67,7 +95,7 @@ public class ZimbabweReitMarketService {
     }
 
     private List<MarketQuote> fetch() throws IOException {
-        Document doc = Jsoup.connect(SOURCE_URL)
+        Document doc = Jsoup.connect(FALLBACK_SOURCE_URL)
                 .userAgent("Mozilla/5.0 (compatible; PrimeNestPropBot/1.0; +https://primenest.example)")
                 .timeout(10_000)
                 .get();

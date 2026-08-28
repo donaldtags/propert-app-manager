@@ -118,9 +118,9 @@ function ZseReitMarketTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-gray-500 uppercase tracking-wide bg-gray-50">
-                <th className="px-6 py-2.5 font-medium">Ticker</th>
-                <th className="px-6 py-2.5 font-medium">Name</th>
-                <th className="px-6 py-2.5 font-medium text-right">Price</th>
+                <th className="px-6 py-2.5 font-medium">Symbol</th>
+                <th className="px-6 py-2.5 font-medium">REIT Name</th>
+                <th className="px-6 py-2.5 font-medium text-right">Value</th>
                 <th className="px-6 py-2.5 font-medium text-right">Change</th>
                 <th className="px-6 py-2.5 font-medium text-right">Volume</th>
               </tr>
