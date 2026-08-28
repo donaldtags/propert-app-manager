@@ -9,6 +9,7 @@ import { Home, Plus, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X, Sp
 import { settingsRoleUrl } from "@/lib/roleGate";
 import type { UserRole } from "@/lib/types";
 import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
+import PageLoader from "@/components/PageLoader";
 
 const LISTING_TYPES = [
   { value: "RENT", label: "For Rent", desc: "Monthly rental property" },
@@ -202,7 +203,7 @@ export default function NewPropertyPage() {
   };
 
   if (loading || !user || !user.roles?.some((r) => LISTING_ROLES.includes(r))) {
-    return <div className="flex-1 flex items-center justify-center text-gray-400">Loading...</div>;
+    return <PageLoader />;
   }
 
   if (success && createdId) {

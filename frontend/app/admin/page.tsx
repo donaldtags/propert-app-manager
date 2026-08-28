@@ -54,6 +54,7 @@ import {
   Star,
   CreditCard,
 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminMessagesPanel from "@/components/AdminMessagesPanel";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
@@ -452,7 +453,7 @@ export default function AdminPortalPage() {
     }
   };
 
-  if (loading || !isAdmin) return null;
+  if (loading || !isAdmin) return <PageLoader />;
 
   const TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
     { key: "overview", label: "Overview", icon: LayoutDashboard },

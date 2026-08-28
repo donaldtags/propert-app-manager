@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { timeline as timelineApi } from "@/lib/api";
 import type { TimelineEvent, TimelineEventType } from "@/lib/types";
+import PageLoader from "@/components/PageLoader";
 import {
   History,
   AlertCircle,
@@ -85,7 +86,7 @@ export default function HomeTimelinePage() {
 
   const visibleEvents = filter === "ALL" ? events : events.filter((e) => e.type === filter);
 
-  if (loading) return null;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">

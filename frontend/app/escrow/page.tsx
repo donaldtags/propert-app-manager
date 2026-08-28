@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
+import PageLoader from "@/components/PageLoader";
 
 const ZIMBABWE_BANKS = [
   "CBZ Bank",
@@ -330,7 +331,7 @@ function EscrowContent() {
     .filter((e) => e.status === "FUNDED")
     .reduce((sum, e) => sum + e.amount, 0);
 
-  if (loading) return null;
+  if (loading) return <PageLoader />;
 
   const renderEscrowCard = (e: Escrow) => {
     const property = propertyById.get(e.propertyId);

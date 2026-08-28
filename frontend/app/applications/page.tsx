@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { applications as applicationsApi } from "@/lib/api";
 import type { ApplicationStatus, RentalApplication } from "@/lib/types";
 import { ClipboardList, AlertCircle, CheckCircle, BadgeCheck, ShieldAlert } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 const BUSINESS_ROLES = ["LANDLORD", "AGENT", "DEVELOPER", "PRIVATE"] as const;
 
@@ -96,7 +97,7 @@ export default function ApplicationsPage() {
     }
   };
 
-  if (loading) return null;
+  if (loading) return <PageLoader />;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
