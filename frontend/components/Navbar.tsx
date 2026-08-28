@@ -51,8 +51,8 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-screen-2xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center shrink-0">
-          <PrimeNestLogo size={40} />
+        <Link href="/" className="flex items-center shrink-0 min-w-0">
+          <PrimeNestLogo size={40} wordmarkClassName="hidden sm:inline" />
         </Link>
 
         {/* Desktop nav links */}
@@ -69,7 +69,7 @@ export default function Navbar() {
         </div>
 
         {/* Auth area */}
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex items-center gap-2 sm:gap-3 ml-auto">
           <Link
             href="/properties/new"
             className="hidden sm:flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-3 py-2 rounded-lg transition-colors"

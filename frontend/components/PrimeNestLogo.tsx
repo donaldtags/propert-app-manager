@@ -6,15 +6,17 @@
 export default function PrimeNestLogo({
   size = 40,
   wordmark = true,
+  wordmarkClassName = "",
   className = "",
 }: {
   size?: number;
   wordmark?: boolean;
+  wordmarkClassName?: string;
   className?: string;
 }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`} style={{ height: size }}>
-      <svg viewBox="0 0 200 200" style={{ height: size, width: size }} aria-hidden="true">
+      <svg viewBox="0 0 200 200" style={{ height: size, width: size }} aria-hidden="true" className="shrink-0">
         <rect x="60" y="30" width="28" height="150" rx="6" fill="#1F5D42" />
         <rect x="88" y="30" width="70" height="18" rx="3" fill="#C9A227" />
         <rect x="88" y="52" width="58" height="18" rx="3" fill="#C9A227" />
@@ -23,7 +25,7 @@ export default function PrimeNestLogo({
       </svg>
       {wordmark && (
         <span
-          className="font-semibold text-charcoal-900 tracking-tight"
+          className={`font-semibold text-charcoal-900 tracking-tight ${wordmarkClassName}`}
           style={{ fontSize: size * 0.5 }}
         >
           PrimeNest
