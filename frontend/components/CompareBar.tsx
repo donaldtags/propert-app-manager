@@ -19,9 +19,9 @@ export default function CompareBar() {
   if (ids.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white border border-gray-200 shadow-xl rounded-2xl px-5 py-3 flex items-center gap-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <Scale className="w-4 h-4 text-forest-600" />
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white border border-gray-200 shadow-xl rounded-2xl px-4 sm:px-5 py-3 flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-[calc(100vw-2rem)]">
+      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 whitespace-nowrap">
+        <Scale className="w-4 h-4 text-forest-600 shrink-0" />
         {ids.length} of {MAX_COMPARE} selected to compare
       </div>
       <button

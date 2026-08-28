@@ -182,6 +182,9 @@ function PropertiesContent() {
     setVerifiedOnly(false);
     setEscrowAvailable(false);
     setWaterSource("");
+    setCity("");
+    setSuburb("");
+    setSearchQuery("");
     setFiltersOpen(false);
   };
 
@@ -360,9 +363,9 @@ function PropertiesContent() {
       </div>
 
       {/* Top filter bar */}
-      <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-wrap items-center gap-3 z-20">
+      <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 z-20">
         {/* Type tabs */}
-        <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
+        <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium shrink-0">
           {(["RENT", "SALE", "SHORT_STAY"] as ListingType[]).map((t) => (
             <button
               key={t}
@@ -377,8 +380,8 @@ function PropertiesContent() {
         </div>
 
         {/* Search input */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2 min-w-48 flex-1 max-w-96">
-          <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white flex-1">
+        <form onSubmit={handleSearch} className="flex items-center gap-2 w-full sm:w-auto sm:flex-1 sm:min-w-48 sm:max-w-96">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white flex-1 min-w-0">
             <Search className="w-4 h-4 text-gray-400 shrink-0" />
             <input
               value={searchQuery}
@@ -409,7 +412,8 @@ function PropertiesContent() {
           </button>
         </form>
 
-        {/* Filters */}
+        {/* Filters + mobile list/map toggle */}
+        <div className="flex items-center justify-between gap-3 sm:contents">
         <div className="relative">
           <button
             onClick={() => (filtersOpen ? setFiltersOpen(false) : openFilters())}
@@ -429,7 +433,7 @@ function PropertiesContent() {
             <ChevronDown className="w-4 h-4" />
           </button>
           {filtersOpen && (
-            <div className="absolute top-full mt-2 left-0 bg-white border border-gray-200 rounded-xl shadow-xl p-4 z-30 w-80">
+            <div className="fixed inset-x-4 top-20 bottom-4 sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:left-0 sm:mt-2 sm:w-80 bg-white border border-gray-200 rounded-xl shadow-xl p-4 z-30 overflow-y-auto">
               {/* Price */}
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Price range ({listingType === "RENT" ? "per month" : "total"})
@@ -625,6 +629,7 @@ function PropertiesContent() {
             <Map className="w-4 h-4" />
           </button>
         </div>
+        </div>
       </div>
 
       {/* Active filter chips */}
@@ -761,7 +766,10 @@ function PropertiesContent() {
 
       {/* Click outside to close filters/sort */}
       {(filtersOpen || sortMenuOpen) && (
-        <div className="fixed inset-0 z-20" onClick={() => { setFiltersOpen(false); setSortMenuOpen(false); }} />
+        <div
+          className={`fixed inset-0 z-20 ${filtersOpen ? "bg-black/30 sm:bg-transparent" : ""}`}
+          onClick={() => { setFiltersOpen(false); setSortMenuOpen(false); }}
+        />
       )}
     </div>
   );
