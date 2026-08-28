@@ -1,37 +1,20 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import ReactDOM from "react-dom";
 import Link from "next/link";
-import { Search, Shield, Globe, Zap, TrendingUp, CheckCircle } from "lucide-react";
-import { properties } from "@/lib/api";
-import type { Property } from "@/lib/types";
-import PropertyCard from "@/components/PropertyCard";
+import { Shield, Globe, Zap, TrendingUp, CheckCircle } from "lucide-react";
+import HeroSearch from "@/components/HeroSearch";
+import FeaturedListings, { FeaturedListingsSkeleton } from "@/components/FeaturedListings";
 
-const HERO_CITIES = ["Harare", "Bulawayo", "Mutare", "Gweru"];
+const HERO_IMAGE = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1400&q=60&auto=format&fit=crop";
+
+// Serve the homepage as a static, CDN-cacheable page that revalidates in the
+// background — instant loads without freezing featured listings at build time.
+export const revalidate = 60;
 
 export default function HomePage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"RENT" | "SALE">("RENT");
-  const [query, setQuery] = useState("");
-  const [featured, setFeatured] = useState<Property[]>([]);
-  const [loadingFeatured, setLoadingFeatured] = useState(true);
-
-  useEffect(() => {
-    properties
-      .list({ listingType: "RENT" })
-      .then((data) => setFeatured(data.slice(0, 6)))
-      .catch(() => setFeatured([]))
-      .finally(() => setLoadingFeatured(false));
-  }, []);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    params.set("listingType", activeTab);
-    if (query.trim()) params.set("city", query.trim());
-    router.push(`/properties?${params.toString()}`);
-  };
+  ReactDOM.preload(HERO_IMAGE, { as: "image", fetchPriority: "high" });
+  ReactDOM.preconnect("https://images.unsplash.com");
+  ReactDOM.preconnect(new URL(process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1").origin);
 
   return (
     <div className="flex flex-col">
@@ -39,71 +22,18 @@ export default function HomePage() {
       <section
         className="relative min-h-[560px] flex items-center justify-center bg-cover bg-center"
         style={{
-          backgroundImage:
-            "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.6) 100%), url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=80')",
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.6) 100%), url('${HERO_IMAGE}')`,
         }}
       >
         <div className="relative z-10 w-full max-w-3xl px-4 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-3 leading-tight">
             Find Your Home Across Africa
           </h1>
-          <p className="text-white/80 text-lg mb-8">
+          <p className="text-white/80 text-base sm:text-lg mb-8">
             Verified listings. Escrow-protected deposits. Digital leases.
           </p>
 
-          {/* Search card */}
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200">
-              {(["RENT", "SALE"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-3.5 text-sm font-semibold transition-colors ${
-                    activeTab === tab
-                      ? "text-forest-600 border-b-2 border-forest-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {tab === "RENT" ? "For Rent" : "For Sale"}
-                </button>
-              ))}
-            </div>
-
-            {/* Search input */}
-            <form onSubmit={handleSearch} className="flex items-center p-4 gap-3">
-              <Search className="w-5 h-5 text-gray-400 shrink-0" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter city, suburb, or address..."
-                className="flex-1 text-gray-900 text-base outline-none placeholder-gray-400"
-              />
-              <button
-                type="submit"
-                className="bg-forest-600 hover:bg-forest-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
-              >
-                Search
-              </button>
-            </form>
-          </div>
-
-          {/* Quick city links */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            {HERO_CITIES.map((city) => (
-              <button
-                key={city}
-                onClick={() => {
-                  const params = new URLSearchParams({ listingType: activeTab, city });
-                  router.push(`/properties?${params.toString()}`);
-                }}
-                className="text-white/80 hover:text-white text-sm underline underline-offset-2 transition-colors"
-              >
-                {city}
-              </button>
-            ))}
-          </div>
+          <HeroSearch />
         </div>
       </section>
 
@@ -127,7 +57,7 @@ export default function HomePage() {
 
       {/* Featured listings */}
       <section className="py-12 px-4 max-w-screen-xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Featured Rentals</h2>
             <p className="text-gray-500 text-sm mt-1">Verified properties ready to move in</p>
@@ -140,30 +70,9 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {loadingFeatured ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-72 bg-gray-100 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : featured.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
-            <p className="text-lg font-medium">No listings yet</p>
-            <p className="text-sm mt-1">Be the first to list a property</p>
-            <Link
-              href="/register"
-              className="mt-4 inline-block bg-forest-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-forest-700 transition-colors"
-            >
-              Get Started
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {featured.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
-          </div>
-        )}
+        <Suspense fallback={<FeaturedListingsSkeleton />}>
+          <FeaturedListings />
+        </Suspense>
       </section>
 
       {/* Invest CTA */}
