@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense, type FormEvent } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense, type FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Search, SlidersHorizontal, X, Map, List, ChevronDown, ArrowUpDown } from "lucide-react";
@@ -91,6 +91,28 @@ function PropertiesContent() {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("city") ?? "");
+
+  const filtersRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  // Close the filters/sort dropdowns on a genuine click outside them, without swallowing the
+  // click itself — so clicking the Search button (or anything else on the page) both closes an
+  // open dropdown AND still performs its own action, instead of the click being absorbed by a
+  // full-page "click to dismiss" overlay.
+  useEffect(() => {
+    if (!filtersOpen && !sortMenuOpen) return;
+    function handlePointerDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (filtersOpen && filtersRef.current && !filtersRef.current.contains(target)) {
+        setFiltersOpen(false);
+      }
+      if (sortMenuOpen && sortRef.current && !sortRef.current.contains(target)) {
+        setSortMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [filtersOpen, sortMenuOpen]);
 
   // Draft values edited inside the filter panel; only applied to the real
   // filters (and thus the search) when the user clicks "Apply filters".
@@ -414,7 +436,7 @@ function PropertiesContent() {
 
         {/* Filters + mobile list/map toggle */}
         <div className="flex items-center justify-between gap-3 sm:contents">
-        <div className="relative">
+        <div className="relative" ref={filtersRef}>
           <button
             onClick={() => (filtersOpen ? setFiltersOpen(false) : openFilters())}
             className={`flex items-center gap-2 border rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
@@ -588,7 +610,7 @@ function PropertiesContent() {
         </span>
 
         {/* Sort */}
-        <div className="relative hidden sm:block">
+        <div className="relative hidden sm:block" ref={sortRef}>
           <button
             onClick={() => setSortMenuOpen((o) => !o)}
             className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -764,12 +786,11 @@ function PropertiesContent() {
         </div>
       </div>
 
-      {/* Click outside to close filters/sort */}
-      {(filtersOpen || sortMenuOpen) && (
-        <div
-          className={`fixed inset-0 z-20 ${filtersOpen ? "bg-black/30 sm:bg-transparent" : ""}`}
-          onClick={() => { setFiltersOpen(false); setSortMenuOpen(false); }}
-        />
+      {/* Dims the page behind the mobile filter sheet. Purely decorative (pointer-events-none) —
+          closing on an outside click is handled by the document listener above, so this never
+          intercepts clicks meant for the Search button or anything else on the page. */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-20 bg-black/30 sm:bg-transparent pointer-events-none" />
       )}
     </div>
   );

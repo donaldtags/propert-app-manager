@@ -32,7 +32,7 @@ function RegisterForm() {
   const [country, setCountry] = useState("Zimbabwe");
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
-  const [role, setRole] = useState<"TENANT" | "LANDLORD" | "AGENT" | "DEVELOPER" | "PRIVATE" | "INVESTOR">("TENANT");
+  const [role, setRole] = useState<"TENANT" | "LANDLORD" | "AGENT" | "DEVELOPER" | "PRIVATE" | "INVESTOR" | "SERVICE_PROVIDER">("TENANT");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -137,6 +137,7 @@ function RegisterForm() {
                   { value: "DEVELOPER", label: "Developer" },
                   { value: "PRIVATE", label: "Private Owner" },
                   { value: "INVESTOR", label: "Investor" },
+                  { value: "SERVICE_PROVIDER", label: "Service Provider" },
                 ] as const).map(({ value, label }) => (
                   <button
                     key={value}

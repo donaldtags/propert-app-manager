@@ -8,6 +8,7 @@ const DASHBOARD_PRIORITY: { role: UserRole; path: string }[] = [
   { role: "INVESTOR", path: "/investments" },
   { role: "TENANT", path: "/tenant" },
   { role: "ADMIN", path: "/admin" },
+  { role: "SERVICE_PROVIDER", path: "/provider" },
 ];
 
 export function dashboardPathFor(roles: UserRole[] | undefined): string {

@@ -22,7 +22,7 @@ public class AiAnthropicConfig {
 
     public AiAnthropicConfig(
             @Value("${app.ai.anthropic-api-key:}") String apiKey,
-            @Value("${app.ai.anthropic-model:claude-opus-4-8}") String modelId
+            @Value("${app.ai.anthropic-model:claude-sonnet-5}") String modelId
     ) {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("app.ai.anthropic-api-key is not set; AI property assistant will use keyword-matching fallback only.");

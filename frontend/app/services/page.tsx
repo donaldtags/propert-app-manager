@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { vendors as vendorsApi, serviceBookings as serviceBookingsApi } from "@/lib/api";
 import type { Vendor, VendorCategory, ServiceBooking } from "@/lib/types";
+import Link from "next/link";
 import {
   Wrench,
   Truck,
@@ -22,6 +23,8 @@ import {
   MapPin,
   AlertCircle,
   CheckCircle,
+  Building2,
+  ArrowRight,
   X,
 } from "lucide-react";
 
@@ -107,6 +110,18 @@ function ServicesMarketplaceContent() {
           PrimeNest-vetted movers, cleaners, tradespeople, insurers, lawyers, and more — book directly.
         </p>
       </div>
+
+      {!user?.roles?.includes("SERVICE_PROVIDER") && (
+        <Link
+          href="/provider"
+          className="flex items-center justify-between gap-3 bg-forest-50 border border-forest-200 rounded-2xl px-5 py-4 mb-6 hover:bg-forest-100 transition-colors"
+        >
+          <span className="flex items-center gap-3 text-sm font-medium text-forest-800">
+            <Building2 className="w-5 h-5 shrink-0" /> Run a moving, cleaning, or repair business? List it here and get verified.
+          </span>
+          <ArrowRight className="w-4 h-4 text-forest-700 shrink-0" />
+        </Link>
+      )}
 
       {/* Category filter */}
       <div className="flex flex-wrap gap-2 mb-6">

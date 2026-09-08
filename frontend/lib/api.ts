@@ -34,6 +34,7 @@ import type {
   NeighbourhoodProfile,
   Viewing,
   Vendor,
+  VendorCategory,
   ServiceBooking,
   RentalApplication,
   ApplicationStatus,
@@ -836,6 +837,18 @@ export const vendors = {
     data: { businessName: string; category: string; description?: string; phone?: string; email?: string; city?: string },
     token: string
   ) => request<Vendor>("/vendors", { method: "POST", body: JSON.stringify(data) }, token),
+
+  registerSelf: (
+    data: { businessName: string; category: VendorCategory; description?: string; phone?: string; city?: string },
+    token: string
+  ) => request<Vendor>("/vendors/self", { method: "POST", body: JSON.stringify(data) }, token),
+
+  mine: (token: string) => request<Vendor>("/vendors/mine", {}, token),
+
+  updateMine: (
+    data: Partial<{ businessName: string; category: VendorCategory; description: string; phone: string; city: string }>,
+    token: string
+  ) => request<Vendor>("/vendors/mine", { method: "PATCH", body: JSON.stringify(data) }, token),
 
   verify: (id: number, token: string) =>
     request<Vendor>(`/vendors/${id}/verify`, { method: "PATCH" }, token),

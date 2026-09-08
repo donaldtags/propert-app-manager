@@ -113,6 +113,9 @@ export default function Navbar() {
                   {user.roles?.includes("ADMIN") && (
                     <Link href="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm font-medium text-forest-600 hover:bg-forest-50">Admin Portal</Link>
                   )}
+                  {user.roles?.includes("SERVICE_PROVIDER") && (
+                    <Link href="/provider" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Service Provider Profile</Link>
+                  )}
                   <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Profile</Link>
                   <Link href="/messages" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Messages</Link>
                   <Link href="/settings/security" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</Link>
