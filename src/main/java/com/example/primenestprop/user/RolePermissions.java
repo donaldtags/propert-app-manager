@@ -18,7 +18,7 @@ public final class RolePermissions {
             UserRole.DEVELOPER, EnumSet.of(Permission.PROPERTY_CREATE, Permission.INVESTMENT_MANAGE),
             UserRole.PRIVATE, EnumSet.of(Permission.PROPERTY_CREATE),
             UserRole.TENANT, EnumSet.of(Permission.TENANT_APPLY),
-            UserRole.DIASPORA, EnumSet.of(Permission.TENANT_APPLY, Permission.INVESTMENT_CREATE),
+            UserRole.DIASPORA, EnumSet.of(Permission.TENANT_APPLY, Permission.INVESTMENT_CREATE, Permission.PROPERTY_CREATE),
             UserRole.INVESTOR, EnumSet.of(Permission.INVESTMENT_CREATE),
             UserRole.SERVICE_PROVIDER, EnumSet.of(Permission.VENDOR_SERVICE_PROVIDE)
     );

@@ -15,6 +15,10 @@ import type {
   MarketSnapshot,
   TenantDashboard,
   LandlordDashboard,
+  DiasporaDashboard,
+  ConstructionProject,
+  ConstructionMilestone,
+  ConstructionUpdate,
   LeaseDocument,
   LeaseExtraction,
   PropertyInquiry,
@@ -693,6 +697,9 @@ export const dashboards = {
   landlord: (landlordId: number, token: string) =>
     request<LandlordDashboard>(`/dashboards/landlords/${landlordId}`, {}, token),
 
+  diaspora: (userId: number, token: string) =>
+    request<DiasporaDashboard>(`/dashboards/diaspora/${userId}`, {}, token),
+
   adminOverview: (token: string) =>
     request<AdminDashboardOverview>("/dashboards/admin", {}, token),
 };
@@ -776,6 +783,82 @@ export const viewings = {
 
   feedback: (id: number, data: { rating: number; comment?: string }, token: string) =>
     request<Viewing>(`/viewings/${id}/feedback`, { method: "POST", body: JSON.stringify(data) }, token),
+};
+
+// Construction monitoring
+export const construction = {
+  create: (
+    data: {
+      title: string;
+      country?: string;
+      city: string;
+      address?: string;
+      contractorName?: string;
+      contractorPhone?: string;
+      contractorCompany?: string;
+      budgetTotal?: number;
+      currency?: string;
+      startDate?: string;
+      expectedCompletionDate?: string;
+      propertyId?: number;
+    },
+    token: string
+  ) => request<ConstructionProject>("/construction-projects", { method: "POST", body: JSON.stringify(data) }, token),
+
+  listByOwner: (ownerId: number, token: string) =>
+    request<ConstructionProject[]>(`/construction-projects?ownerId=${ownerId}`, {}, token),
+
+  get: (id: number, token: string) => request<ConstructionProject>(`/construction-projects/${id}`, {}, token),
+
+  update: (
+    id: number,
+    data: Partial<{
+      stage: string;
+      progressPercent: number;
+      status: string;
+      budgetTotal: number;
+      amountPaid: number;
+      contractorName: string;
+      contractorPhone: string;
+      contractorCompany: string;
+      startDate: string;
+      expectedCompletionDate: string;
+    }>,
+    token: string
+  ) => request<ConstructionProject>(`/construction-projects/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+
+  addMilestone: (
+    projectId: number,
+    data: { title: string; description?: string; amountDue?: number; targetDate?: string },
+    token: string
+  ) =>
+    request<ConstructionMilestone>(
+      `/construction-projects/${projectId}/milestones`,
+      { method: "POST", body: JSON.stringify(data) },
+      token
+    ),
+
+  listMilestones: (projectId: number, token: string) =>
+    request<ConstructionMilestone[]>(`/construction-projects/${projectId}/milestones`, {}, token),
+
+  submitMilestone: (milestoneId: number, token: string) =>
+    request<ConstructionMilestone>(`/construction-projects/milestones/${milestoneId}/submit`, { method: "PATCH" }, token),
+
+  approveMilestone: (milestoneId: number, token: string) =>
+    request<ConstructionMilestone>(`/construction-projects/milestones/${milestoneId}/approve`, { method: "PATCH" }, token),
+
+  markMilestonePaid: (milestoneId: number, token: string) =>
+    request<ConstructionMilestone>(`/construction-projects/milestones/${milestoneId}/mark-paid`, { method: "PATCH" }, token),
+
+  postUpdate: (projectId: number, note: string, token: string) =>
+    request<ConstructionUpdate>(
+      `/construction-projects/${projectId}/updates`,
+      { method: "POST", body: JSON.stringify({ note }) },
+      token
+    ),
+
+  listUpdates: (projectId: number, token: string) =>
+    request<ConstructionUpdate[]>(`/construction-projects/${projectId}/updates`, {}, token),
 };
 
 // Rental applications

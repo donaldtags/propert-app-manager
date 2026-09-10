@@ -16,6 +16,7 @@ import {
   Building2,
   TrendingUp,
   ShieldCheck,
+  HardHat,
   Menu,
   X,
 } from "lucide-react";
@@ -36,6 +37,12 @@ function buildNavItems(roles: UserRole[]): NavItem[] {
   const add = (item: NavItem) => {
     if (!items.some((i) => i.href === item.href)) items.push(item);
   };
+
+  if (roles.includes("DIASPORA")) {
+    add({ href: "/properties", label: "Browse Properties", icon: Building2 });
+    add({ href: "/investments", label: "My Investments", icon: TrendingUp });
+    add({ href: "/construction", label: "Construction", icon: HardHat });
+  }
 
   if (roles.includes("TENANT")) {
     add({ href: "/leases", label: "Leases", icon: FileText });

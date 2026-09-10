@@ -1,6 +1,9 @@
 import type { UserRole } from "./types";
 
 const DASHBOARD_PRIORITY: { role: UserRole; path: string }[] = [
+  // A diaspora user's home should win over whatever other role they also hold —
+  // the diaspora journey is meant to be their primary experience of the platform.
+  { role: "DIASPORA", path: "/diaspora" },
   { role: "LANDLORD", path: "/landlord" },
   { role: "AGENT", path: "/landlord" },
   { role: "DEVELOPER", path: "/landlord" },

@@ -379,6 +379,80 @@ export interface TenantDashboard {
   paymentTrend: MonthlyAmount[];
 }
 
+export interface DiasporaDashboard {
+  user: User;
+  ownedProperties: Property[];
+  investments: Investment[];
+  escrows: Escrow[];
+  pendingInspections: Viewing[];
+  maintenanceRequests: MaintenanceRequest[];
+  recentPayments: Payment[];
+  constructionProjects: ConstructionProject[];
+  portfolioValue: number;
+  monthlyRentalIncome: number;
+}
+
+export type ConstructionStage =
+  | "PLANNING"
+  | "FOUNDATION"
+  | "STRUCTURE"
+  | "ROOFING"
+  | "ELECTRICAL_PLUMBING"
+  | "PLASTERING"
+  | "FINISHES"
+  | "COMPLETED";
+export type ConstructionStatus = "ACTIVE" | "DELAYED" | "PAUSED" | "COMPLETED";
+export type MilestoneStatus = "PENDING" | "SUBMITTED" | "APPROVED" | "PAID";
+
+export interface ConstructionProject {
+  id: number;
+  ownerId: number;
+  propertyId?: number;
+  title: string;
+  country: string;
+  city: string;
+  address?: string;
+  contractorName?: string;
+  contractorPhone?: string;
+  contractorCompany?: string;
+  stage: ConstructionStage;
+  progressPercent: number;
+  status: ConstructionStatus;
+  budgetTotal?: number;
+  amountPaid: number;
+  amountRemaining?: number;
+  currency: string;
+  startDate?: string;
+  expectedCompletionDate?: string;
+  createdAt: string;
+  updatedAt?: string;
+  latestUpdateNote?: string;
+  latestUpdateAt?: string;
+}
+
+export interface ConstructionMilestone {
+  id: number;
+  projectId: number;
+  title: string;
+  description?: string;
+  amountDue?: number;
+  targetDate?: string;
+  status: MilestoneStatus;
+  submittedAt?: string;
+  approvedAt?: string;
+  approvedByUserId?: number;
+  createdAt: string;
+}
+
+export interface ConstructionUpdate {
+  id: number;
+  projectId: number;
+  note: string;
+  postedByUserId?: number;
+  postedByName?: string;
+  createdAt: string;
+}
+
 export interface LandlordFinancialSummary {
   monthlyIncome: number;
   expectedMonthlyIncome: number;

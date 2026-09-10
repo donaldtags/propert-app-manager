@@ -3,9 +3,15 @@ package com.example.primenestprop.dashboard;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.common.AuditLog;
 import com.example.primenestprop.common.AuditLogRepository;
+import com.example.primenestprop.construction.ConstructionDtos.ConstructionProjectResponse;
+import com.example.primenestprop.construction.ConstructionProject;
+import com.example.primenestprop.construction.ConstructionService;
 import com.example.primenestprop.escrow.EscrowDtos.EscrowResponse;
 import com.example.primenestprop.escrow.EscrowService;
 import com.example.primenestprop.escrow.EscrowTransaction;
+import com.example.primenestprop.investment.Investment;
+import com.example.primenestprop.investment.InvestmentDtos.InvestmentResponse;
+import com.example.primenestprop.investment.InvestmentService;
 import com.example.primenestprop.kyc.KycService;
 import com.example.primenestprop.lease.Lease;
 import com.example.primenestprop.lease.LeaseDtos.LeaseResponse;
@@ -27,6 +33,9 @@ import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.UserDtos.UserResponse;
 import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
+import com.example.primenestprop.viewing.ViewingDtos.ViewingResponse;
+import com.example.primenestprop.viewing.ViewingService;
+import com.example.primenestprop.viewing.ViewingStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -63,6 +72,9 @@ public class DashboardController {
     private final AuditLogRepository auditLogs;
     private final RentInvoiceService rentInvoices;
     private final LandlordRatingService landlordRatings;
+    private final InvestmentService investments;
+    private final ViewingService viewings;
+    private final ConstructionService construction;
 
     public DashboardController(
             PropertyService properties,
@@ -74,7 +86,10 @@ public class DashboardController {
             KycService kyc,
             AuditLogRepository auditLogs,
             RentInvoiceService rentInvoices,
-            LandlordRatingService landlordRatings
+            LandlordRatingService landlordRatings,
+            InvestmentService investments,
+            ViewingService viewings,
+            ConstructionService construction
     ) {
         this.properties = properties;
         this.leases = leases;
@@ -86,6 +101,9 @@ public class DashboardController {
         this.auditLogs = auditLogs;
         this.rentInvoices = rentInvoices;
         this.landlordRatings = landlordRatings;
+        this.investments = investments;
+        this.viewings = viewings;
+        this.construction = construction;
     }
 
     @GetMapping("/landlords/{landlordId}")
@@ -184,6 +202,53 @@ public class DashboardController {
                 maintenance.forRequester(tenantUser).stream().map(MaintenanceResponse::from).toList(),
                 escrows.forUser(tenantId, currentUser).stream().map(EscrowResponse::from).toList(),
                 paymentTrend(tenantId, monthStart)
+        );
+    }
+
+    @GetMapping("/diaspora/{userId}")
+    DiasporaDashboard diaspora(@PathVariable Long userId, @AuthenticationPrincipal AppUser currentUser) {
+        requireSelfOrAdmin(userId, currentUser);
+        AppUser diasporaUser = users.require(userId);
+
+        List<Property> ownedProperties = properties.forLandlord(userId);
+        List<Investment> investorPositions = investments.forInvestor(userId, currentUser);
+        List<EscrowTransaction> userEscrows = escrows.forUser(userId, currentUser);
+        List<Payment> recentPayments = payments.forUser(userId, currentUser);
+
+        List<ViewingResponse> pendingInspections = viewings.forRequester(diasporaUser).stream()
+                .filter(v -> v.getStatus() == ViewingStatus.REQUESTED || v.getStatus() == ViewingStatus.CONFIRMED)
+                .map(v -> ViewingResponse.from(v, true))
+                .toList();
+
+        List<ConstructionProjectResponse> constructionProjects = construction.forOwner(diasporaUser).stream()
+                .map(p -> ConstructionProjectResponse.from(p, construction.latestUpdateFor(p)))
+                .toList();
+
+        BigDecimal propertyValue = ownedProperties.stream()
+                .map(Property::getPrice)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal investedValue = investorPositions.stream()
+                .map(Investment::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal portfolioValue = propertyValue.add(investedValue);
+
+        Instant now = Instant.now();
+        Instant monthStart = LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        BigDecimal monthlyRentalIncome = payments.revenueForPayeeBetween(userId, monthStart, now, PRIMARY_CURRENCY);
+
+        return new DiasporaDashboard(
+                UserResponse.from(diasporaUser),
+                ownedProperties.stream().map(PropertyResponse::from).toList(),
+                investorPositions.stream().map(InvestmentResponse::from).toList(),
+                userEscrows.stream().map(EscrowResponse::from).toList(),
+                pendingInspections,
+                maintenance.forProperties(ownedProperties).stream().map(MaintenanceResponse::from).toList(),
+                recentPayments.stream().limit(RECENT_LIMIT).map(PaymentResponse::from).toList(),
+                constructionProjects,
+                portfolioValue,
+                monthlyRentalIncome
         );
     }
 
@@ -325,6 +390,20 @@ public class DashboardController {
             List<MaintenanceResponse> maintenanceRequests,
             List<EscrowResponse> escrows,
             List<MonthlyAmount> paymentTrend
+    ) {
+    }
+
+    public record DiasporaDashboard(
+            UserResponse user,
+            List<PropertyResponse> ownedProperties,
+            List<InvestmentResponse> investments,
+            List<EscrowResponse> escrows,
+            List<ViewingResponse> pendingInspections,
+            List<MaintenanceResponse> maintenanceRequests,
+            List<PaymentResponse> recentPayments,
+            List<ConstructionProjectResponse> constructionProjects,
+            BigDecimal portfolioValue,
+            BigDecimal monthlyRentalIncome
     ) {
     }
 
