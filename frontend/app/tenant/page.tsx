@@ -8,6 +8,10 @@ import { dashboards, users as usersApi, leases as leasesApi, ai as aiApi } from 
 import type { TenantDashboard, LandlordProfile, VerificationLevel, Lease, Escrow, LeaseActionRequest } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
+import StatusBadge from "@/components/StatusBadge";
+import EmptyState from "@/components/EmptyState";
+import StatTile from "@/components/StatTile";
+import AlertBanner from "@/components/AlertBanner";
 import {
   Home,
   DollarSign,
@@ -15,7 +19,6 @@ import {
   Shield,
   FileText,
   AlertCircle,
-  CheckCircle,
   Star,
   BadgeCheck,
   MessageCircle,
@@ -23,30 +26,8 @@ import {
   XCircle,
   Globe,
   Sparkles,
+  CheckCircle,
 } from "lucide-react";
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    ACTIVE: "bg-forest-100 text-forest-700",
-    SIGNED: "bg-forest-100 text-forest-700",
-    DRAFT: "bg-gray-100 text-gray-700",
-    CREATED: "bg-amber-100 text-amber-700",
-    INITIATED: "bg-amber-100 text-amber-700",
-    FUNDED: "bg-forest-100 text-forest-700",
-    RELEASED: "bg-forest-100 text-forest-700",
-    SUCCESSFUL: "bg-forest-100 text-forest-700",
-    OPEN: "bg-red-100 text-red-700",
-    RESOLVED: "bg-forest-100 text-forest-700",
-    IN_PROGRESS: "bg-forest-100 text-forest-700",
-    DISPUTED: "bg-red-100 text-red-700",
-    REFUNDED: "bg-purple-100 text-purple-700",
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors[status] ?? "bg-gray-100 text-gray-700"}`}>
-      {status.replace("_", " ")}
-    </span>
-  );
-}
 
 function ordinal(day: number): string {
   const suffixes = ["th", "st", "nd", "rd"];
@@ -203,10 +184,25 @@ export default function TenantDashboardPage() {
 
   if (loading || dashLoading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
-        ))}
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="h-8 w-48 bg-gray-100 rounded-lg animate-pulse mb-8" />
+        <div className="h-36 bg-gray-100 rounded-2xl animate-pulse mb-8" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+        <div className="h-32 bg-gray-100 rounded-2xl animate-pulse mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-52 bg-gray-100 rounded-2xl animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -229,21 +225,13 @@ export default function TenantDashboardPage() {
       </div>
 
       {user?.roles?.includes("DIASPORA") && (
-        <div className="bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-          <Globe className="w-4 h-4 shrink-0" /> Managing remotely from {user.diasporaLocation || "abroad"}
-        </div>
+        <AlertBanner variant="info" icon={Globe} className="mb-5">
+          Managing remotely from {user.diasporaLocation || "abroad"}
+        </AlertBanner>
       )}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-        </div>
-      )}
-      {actionSuccess && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 shrink-0" /> {actionSuccess}
-        </div>
-      )}
+      {error && <AlertBanner variant="error" className="mb-5">{error}</AlertBanner>}
+      {actionSuccess && <AlertBanner variant="success" className="mb-5">{actionSuccess}</AlertBanner>}
 
       {/* Home Overview */}
       {primaryLease ? (
@@ -280,27 +268,27 @@ export default function TenantDashboardPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8 text-center">
-          <Home className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-          <p className="text-sm text-gray-500">No active lease yet.</p>
-          <Link href="/properties" className="text-sm text-forest-600 hover:underline mt-1 inline-block">Browse properties</Link>
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm mb-8">
+          <EmptyState icon={Home} title="No active lease yet" action={{ label: "Browse properties", href: "/properties" }} />
         </div>
       )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {[
-          { icon: Home, label: "Active Leases", value: activeLeases.length, color: "text-forest-600" },
-          { icon: DollarSign, label: "Payments Made", value: recentPayments.filter(p => p.status === "SUCCESSFUL").length, color: "text-forest-600" },
-          { icon: Wrench, label: "Maintenance", value: maintenance.filter(m => m.status === "OPEN").length, color: "text-amber-600" },
-          { icon: Shield, label: "Escrows", value: escrows.length, color: "text-indigo-600" },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <Icon className={`w-6 h-6 ${color} mb-2`} />
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
-          </div>
-        ))}
+        <StatTile icon={Home} label="Active Leases" value={activeLeases.length} tone="forest" />
+        <StatTile
+          icon={DollarSign}
+          label="Payments Made"
+          value={recentPayments.filter((p) => p.status === "SUCCESSFUL").length}
+          tone="gold"
+        />
+        <StatTile
+          icon={Wrench}
+          label="Maintenance"
+          value={maintenance.filter((m) => m.status === "OPEN").length}
+          tone="terracotta"
+        />
+        <StatTile icon={Shield} label="Escrows" value={escrows.length} tone="forest" />
       </div>
 
       {/* Trust score + Landlord profile */}
@@ -369,7 +357,7 @@ export default function TenantDashboardPage() {
               </Link>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-6">No landlord to show yet</p>
+            <EmptyState icon={Home} title="No landlord to show yet" compact />
           )}
         </div>
       </div>
@@ -378,7 +366,7 @@ export default function TenantDashboardPage() {
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 mb-8">
         <h3 className="font-bold text-gray-900 text-sm mb-4">Payment History (Last 6 Months)</h3>
         {!dashboard?.paymentTrend || dashboard.paymentTrend.every((m) => m.amount === 0) ? (
-          <p className="text-sm text-gray-400 py-4 text-center">No payments recorded yet</p>
+          <EmptyState icon={DollarSign} title="No payments recorded yet" compact />
         ) : (
           <HorizontalBarChart data={dashboard.paymentTrend.map((m) => ({ label: m.month, value: m.amount }))} />
         )}
@@ -394,7 +382,7 @@ export default function TenantDashboardPage() {
             <Link href="/leases" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {activeLeases.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No active leases</p>
+            <EmptyState icon={FileText} title="No active leases" compact />
           ) : (
             <div className="space-y-3">
               {activeLeases.map((lease) => (
@@ -434,16 +422,17 @@ export default function TenantDashboardPage() {
                       <button
                         onClick={() => handleExplainLease(lease)}
                         disabled={explainingLeaseId === lease.id}
-                        className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 disabled:opacity-50"
+                        className="flex items-center gap-1 text-xs font-medium text-gold-600 hover:text-gold-700 disabled:opacity-50"
                       >
                         <Sparkles className="w-3 h-3" /> {explainingLeaseId === lease.id ? "Explaining…" : "Explain My Lease"}
                       </button>
                     </div>
                   )}
                   {leaseExplanations[lease.id] && (
-                    <p className="text-xs text-gray-600 mt-2 pt-2 border-t border-gray-100 leading-relaxed">
-                      {leaseExplanations[lease.id]}
-                    </p>
+                    <div className="mt-2 bg-gold-50 border border-gold-100 rounded-lg p-2.5 flex gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-gold-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-gray-700 leading-relaxed">{leaseExplanations[lease.id]}</p>
+                    </div>
                   )}
                 </div>
               ))}
@@ -460,7 +449,7 @@ export default function TenantDashboardPage() {
             <Link href="/payments" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {recentPayments.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No payments yet</p>
+            <EmptyState icon={DollarSign} title="No payments yet" compact />
           ) : (
             <div className="space-y-3">
               {recentPayments.slice(0, 5).map((payment) => (
@@ -488,14 +477,16 @@ export default function TenantDashboardPage() {
             <Link href="/maintenance" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {maintenance.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No maintenance requests</p>
+            <EmptyState icon={Wrench} title="No maintenance requests" compact />
           ) : (
             <div className="space-y-3">
               {maintenance.slice(0, 4).map((req) => (
                 <div key={req.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{req.category}</p>
-                    <p className="text-xs text-gray-500">{req.description?.slice(0, 50)}...</p>
+                    <p className="text-xs text-gray-500">
+                      {(req.description?.length ?? 0) > 50 ? `${req.description!.slice(0, 50)}...` : req.description}
+                    </p>
                   </div>
                   <StatusBadge status={req.status} />
                 </div>
@@ -508,12 +499,12 @@ export default function TenantDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-indigo-600" /> Deposit Protection
+              <Shield className="w-5 h-5 text-forest-600" /> Deposit Protection
             </h2>
             <Link href="/escrow" className="text-xs text-forest-600 hover:underline">View all</Link>
           </div>
           {escrows.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No escrow transactions</p>
+            <EmptyState icon={Shield} title="No escrow transactions" compact />
           ) : (
             <div className="space-y-4">
               {escrows.slice(0, 3).map((e) => (

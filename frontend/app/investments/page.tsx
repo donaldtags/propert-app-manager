@@ -8,13 +8,15 @@ import { useAuth } from "@/lib/auth";
 import { investments as investmentsApi, market as marketApi } from "@/lib/api";
 import type { Reit, Investment, MarketSnapshot } from "@/lib/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
+import EmptyState from "@/components/EmptyState";
+import StatTile from "@/components/StatTile";
+import AlertBanner from "@/components/AlertBanner";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import {
   TrendingUp,
   TrendingDown,
   DollarSign,
   AlertCircle,
-  CheckCircle,
   MapPin,
   ChevronDown,
   Building2,
@@ -25,6 +27,7 @@ import {
   Wallet,
   Layers,
   Globe,
+  Landmark,
 } from "lucide-react";
 
 const RISK_COLORS: Record<string, string> = {
@@ -86,7 +89,7 @@ function ZseReitMarketTable() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <div>
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
-            🇿🇼 Zimbabwe Listed REITs
+            <Landmark className="w-5 h-5 text-forest-600" /> Zimbabwe Listed REITs
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">Exchange-traded REITs on the ZSE — market data, updated automatically</p>
         </div>
@@ -103,10 +106,7 @@ function ZseReitMarketTable() {
       </div>
 
       {marketError && quotes.length === 0 ? (
-        <div className="px-6 py-8 text-center text-sm text-gray-500 flex flex-col items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-gray-400" />
-          Market data is temporarily unavailable.
-        </div>
+        <EmptyState icon={AlertCircle} title="Market data is temporarily unavailable" compact />
       ) : quotes.length === 0 ? (
         <div className="px-6 py-8 space-y-2">
           {Array.from({ length: 2 }).map((_, i) => (
@@ -204,6 +204,7 @@ export default function InvestmentsPage() {
   const [reits, setReits] = useState<Reit[]>([]);
   const [myInvestments, setMyInvestments] = useState<Investment[]>([]);
   const [reitsLoading, setReitsLoading] = useState(true);
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
   const [error, setError] = useState("");
   const [investing, setInvesting] = useState<number | null>(null);
   const [units, setUnits] = useState<Record<number, string>>({});
@@ -222,7 +223,12 @@ export default function InvestmentsPage() {
 
   useEffect(() => {
     if (user && token && user.roles?.includes("INVESTOR")) {
-      investmentsApi.listByInvestor(user.id, token).then(setMyInvestments).catch(() => {});
+      investmentsApi.listByInvestor(user.id, token)
+        .then(setMyInvestments)
+        .catch(() => {})
+        .finally(() => setPortfolioLoading(false));
+    } else {
+      setPortfolioLoading(false);
     }
   }, [user, token]);
 
@@ -347,67 +353,50 @@ export default function InvestmentsPage() {
       </div>
 
       {user?.roles?.includes("DIASPORA") && (
-        <div className="bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-          <Globe className="w-4 h-4 shrink-0" /> Managing remotely from {user.diasporaLocation || "abroad"}
-        </div>
+        <AlertBanner variant="info" icon={Globe} className="mb-5">
+          Managing remotely from {user.diasporaLocation || "abroad"}
+        </AlertBanner>
       )}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-        </div>
-      )}
-      {success && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 shrink-0" /> {success}
-        </div>
-      )}
+      {error && <AlertBanner variant="error" className="mb-5">{error}</AlertBanner>}
+      {success && <AlertBanner variant="success" className="mb-5">{success}</AlertBanner>}
 
       <ZseReitMarketTable />
 
       {/* My portfolio dashboard */}
-      {activePositions.length > 0 && (
+      {portfolioLoading ? (
+        <div className="mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      ) : activePositions.length > 0 ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+            <StatTile icon={Wallet} label="Cost Basis (USD)" value={`$${portfolio.costBasis.toLocaleString()}`} tone="forest" />
+            <StatTile icon={DollarSign} label="Current Market Value" value={`$${portfolio.marketValue.toLocaleString()}`} tone="gold" />
             <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <Wallet className="w-6 h-6 text-forest-600 mb-2" />
-              <p className="text-2xl font-bold text-gray-900">${portfolio.costBasis.toLocaleString()}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Cost Basis (USD)</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <DollarSign className="w-6 h-6 text-indigo-600 mb-2" />
-              <p className="text-2xl font-bold text-gray-900">${portfolio.marketValue.toLocaleString()}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Current Market Value</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              {portfolio.gainLoss >= 0 ? (
-                <TrendingUp className="w-6 h-6 text-forest-600 mb-2" />
-              ) : (
-                <TrendingDown className="w-6 h-6 text-red-600 mb-2" />
-              )}
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${portfolio.gainLoss >= 0 ? "bg-forest-50 text-forest-600" : "bg-red-50 text-red-600"}`}>
+                {portfolio.gainLoss >= 0 ? <TrendingUp className="w-4.5 h-4.5" /> : <TrendingDown className="w-4.5 h-4.5" />}
+              </div>
               <p className={`text-2xl font-bold ${portfolio.gainLoss >= 0 ? "text-forest-600" : "text-red-600"}`}>
                 {portfolio.gainLoss >= 0 ? "+" : ""}${portfolio.gainLoss.toLocaleString()}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 mt-1">
                 Unrealized {portfolio.gainLoss >= 0 ? "Gain" : "Loss"} ({portfolio.gainLossPercent.toFixed(1)}%)
               </p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <Layers className="w-6 h-6 text-purple-600 mb-2" />
-              <p className="text-2xl font-bold text-gray-900">{portfolio.holdings}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Holdings</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <Building2 className="w-6 h-6 text-gray-600 mb-2" />
-              <p className="text-2xl font-bold text-gray-900">{portfolio.totalUnits}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Total Units</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <TrendingUp className="w-6 h-6 text-amber-500 mb-2" />
-              <p className="text-2xl font-bold text-gray-900">${portfolio.projectedAnnualIncome.toLocaleString()}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Projected Annual Income</p>
-              <p className="text-[10px] text-gray-400 mt-1">Projected from stated yields — not a paid dividend</p>
-            </div>
+            <StatTile icon={Layers} label="Holdings" value={portfolio.holdings} tone="gold" />
+            <StatTile icon={Building2} label="Total Units" value={portfolio.totalUnits} tone="forest" />
+            <StatTile
+              icon={TrendingUp}
+              label="Projected Annual Income"
+              value={`$${portfolio.projectedAnnualIncome.toLocaleString()}`}
+              sublabel="Projected from stated yields — not a paid dividend"
+              tone="gold"
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
@@ -421,7 +410,11 @@ export default function InvestmentsPage() {
             </div>
           </div>
         </>
-      )}
+      ) : user?.roles?.includes("INVESTOR") ? (
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm mb-8">
+          <EmptyState icon={Wallet} title="You don't own any units yet" hint="Invest in a REIT below to start building your portfolio" compact />
+        </div>
+      ) : null}
 
       {/* Country filter */}
       {countries.length > 2 && (
@@ -452,10 +445,7 @@ export default function InvestmentsPage() {
           ))}
         </div>
       ) : visibleReits.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="text-lg font-medium">No REITs available yet</p>
-        </div>
+        <EmptyState icon={TrendingUp} title="No REITs available yet" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {visibleReits.map((reit) => {
@@ -572,12 +562,12 @@ export default function InvestmentsPage() {
                   </div>
 
                   {reit.investmentScore && (
-                    <div className="mb-3 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                    <div className="mb-3 bg-gold-50 border border-gold-100 rounded-xl p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Investment Score</p>
-                        <p className="text-lg font-bold text-indigo-700">{reit.investmentScore.overall}/100</p>
+                        <p className="text-xs font-semibold text-gold-700 uppercase tracking-wide">Investment Score</p>
+                        <p className="text-lg font-bold text-gold-700">{reit.investmentScore.overall}/100</p>
                       </div>
-                      <div className="flex flex-wrap gap-3 text-xs text-indigo-900">
+                      <div className="flex flex-wrap gap-3 text-xs text-gold-700">
                         <span>Yield: <strong>{reit.investmentScore.yieldTier}</strong></span>
                         <span>Risk: <strong>{reit.investmentScore.riskTier}</strong></span>
                         <span>Demand: <strong>{reit.investmentScore.demandTier}</strong></span>

@@ -53,11 +53,16 @@ import {
   Wrench,
   Star,
   CreditCard,
+  DollarSign,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminMessagesPanel from "@/components/AdminMessagesPanel";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
+import StatusBadge from "@/components/StatusBadge";
+import EmptyState from "@/components/EmptyState";
+import StatTile from "@/components/StatTile";
+import AlertBanner from "@/components/AlertBanner";
 
 type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "escrows" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
 
@@ -65,8 +70,24 @@ const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
 ];
 
+const ROLE_COLORS: Record<string, string> = {
+  ADMIN: "bg-red-100 text-red-700",
+  TENANT: "bg-forest-100 text-forest-700",
+  LANDLORD: "bg-forest-100 text-forest-700",
+  PRIVATE: "bg-forest-100 text-forest-700",
+  AGENT: "bg-gold-100 text-gold-700",
+  DEVELOPER: "bg-gold-100 text-gold-700",
+  INVESTOR: "bg-gold-100 text-gold-700",
+  DIASPORA: "bg-gold-100 text-gold-700",
+  SERVICE_PROVIDER: "bg-terracotta-500/10 text-terracotta-600",
+};
+
 function RoleBadge({ role }: { role: string }) {
-  return <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{role}</span>;
+  return (
+    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${ROLE_COLORS[role] ?? "bg-gray-100 text-gray-600"}`}>
+      {role}
+    </span>
+  );
 }
 
 export default function AdminPortalPage() {
@@ -348,12 +369,13 @@ export default function AdminPortalPage() {
     ];
   }, [overview, allEscrows.length, allUsers.length, kycSubmissions.length]);
 
+  // Kept in sync with StatusBadge's tone buckets so the chart and the badges never disagree.
   const ESCROW_STATUS_COLORS: Record<string, string> = {
-    CREATED: "bg-gray-400",
+    CREATED: "bg-amber-500",
     FUNDED: "bg-forest-600",
     RELEASED: "bg-forest-600",
     DISPUTED: "bg-red-600",
-    REFUNDED: "bg-amber-500",
+    REFUNDED: "bg-terracotta-500",
     CANCELLED: "bg-gray-300",
   };
 
@@ -482,22 +504,23 @@ export default function AdminPortalPage() {
             <p className="text-gray-500 mt-1">Manage users, roles, property verification, and escrow oversight</p>
           </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-            </div>
-          )}
-          {success && (
-            <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 shrink-0" /> {success}
-            </div>
-          )}
+          {error && <AlertBanner variant="error" className="mb-5">{error}</AlertBanner>}
+          {success && <AlertBanner variant="success" className="mb-5">{success}</AlertBanner>}
 
       {tab === "overview" && (
         <div>
           {overviewLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}
+            <div>
+              {Array.from({ length: 3 }).map((_, group) => (
+                <div key={group} className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                  {Array.from({ length: group === 2 ? 3 : 5 }).map((_, i) => (
+                    <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+                  ))}
+                </div>
+              ))}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-40 bg-gray-100 rounded-2xl animate-pulse" />)}
+              </div>
             </div>
           ) : !overview ? (
             <div className="text-center py-16 text-gray-500">
@@ -506,66 +529,36 @@ export default function AdminPortalPage() {
             </div>
           ) : (
             <>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Revenue &amp; Escrow</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Today&apos;s Revenue ({overview.revenue.currency})</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.revenue.todayRevenue.toLocaleString()}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Monthly Revenue ({overview.revenue.currency})</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.revenue.monthRevenue.toLocaleString()}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Escrow Balance ({overview.escrow.currency})</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.escrow.totalBalance.toLocaleString()}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Active Escrows</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.escrow.activeCount}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Properties Listed</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.properties.listed}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Properties Sold</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.properties.sold}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Properties Rented</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.properties.rented}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Active Leases</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.leases.active}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Occupancy Rate</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.leases.occupancyRatePercent.toFixed(1)}%</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Maintenance Open</p>
-                  <p className="text-lg font-bold text-gray-900">{overview.maintenance.open}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Pending KYC</p>
-                  <p className="text-lg font-bold text-amber-600">{overview.verification.pendingKyc}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Pending Admin Requests</p>
-                  <p className="text-lg font-bold text-amber-600">{overview.verification.pendingAdminRequests}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500">Disputed Escrows</p>
-                  <p className="text-lg font-bold text-red-600">{overview.escrow.disputedCount}</p>
-                </div>
+                <StatTile icon={DollarSign} label={`Today's Revenue (${overview.revenue.currency})`} value={overview.revenue.todayRevenue.toLocaleString()} tone="gold" emphasis />
+                <StatTile icon={DollarSign} label={`Monthly Revenue (${overview.revenue.currency})`} value={overview.revenue.monthRevenue.toLocaleString()} tone="gold" emphasis />
+                <StatTile icon={Lock} label={`Escrow Balance (${overview.escrow.currency})`} value={overview.escrow.totalBalance.toLocaleString()} tone="forest" emphasis />
+                <StatTile icon={Lock} label="Active Escrows" value={overview.escrow.activeCount} tone="forest" />
+                <StatTile icon={AlertCircle} label="Disputed Escrows" value={overview.escrow.disputedCount} tone="red" />
+              </div>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Properties &amp; Leases</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <StatTile icon={Building2} label="Properties Listed" value={overview.properties.listed} tone="forest" />
+                <StatTile icon={Building2} label="Properties Sold" value={overview.properties.sold} tone="gold" />
+                <StatTile icon={Building2} label="Properties Rented" value={overview.properties.rented} tone="forest" />
+                <StatTile icon={ScrollText} label="Active Leases" value={overview.leases.active} tone="forest" />
+                <StatTile icon={CheckCircle} label="Occupancy Rate" value={`${overview.leases.occupancyRatePercent.toFixed(1)}%`} tone="forest" emphasis />
+              </div>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Needs Your Attention</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <StatTile icon={Wrench} label="Maintenance Open" value={overview.maintenance.open} tone="terracotta" />
+                <StatTile icon={IdCard} label="Pending KYC" value={overview.verification.pendingKyc} tone="terracotta" />
+                <StatTile icon={UserCog} label="Pending Admin Requests" value={overview.verification.pendingAdminRequests} tone="terracotta" />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
                   <h3 className="font-bold text-gray-900 text-sm mb-4">Platform Totals</h3>
                   {platformTotals.length === 0 ? (
-                    <p className="text-sm text-gray-400 py-4 text-center">No data yet</p>
+                    <EmptyState icon={LayoutDashboard} title="No data yet" compact />
                   ) : (
                     <HorizontalBarChart data={platformTotals} />
                   )}
@@ -573,7 +566,7 @@ export default function AdminPortalPage() {
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
                   <h3 className="font-bold text-gray-900 text-sm mb-4">Escrows by Status</h3>
                   {escrowStatusBreakdown.length === 0 ? (
-                    <p className="text-sm text-gray-400 py-4 text-center">No escrow transactions yet</p>
+                    <EmptyState icon={Lock} title="No escrow transactions yet" compact />
                   ) : (
                     <HorizontalBarChart data={escrowStatusBreakdown} />
                   )}
@@ -653,11 +646,7 @@ export default function AdminPortalPage() {
                       {recentEscrows.map((e) => (
                         <li key={e.id} className="px-4 py-3 flex items-center justify-between gap-2">
                           <span className="text-sm text-gray-900">#{e.id} · {e.currency} {e.amount.toLocaleString()}</span>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                            e.status === "DISPUTED" ? "bg-red-100 text-red-700" :
-                            e.status === "FUNDED" ? "bg-forest-100 text-forest-700" :
-                            e.status === "RELEASED" ? "bg-forest-100 text-forest-700" : "bg-gray-100 text-gray-600"
-                          }`}>{e.status}</span>
+                          <StatusBadge status={e.status} />
                         </li>
                       ))}
                     </ul>
@@ -670,7 +659,14 @@ export default function AdminPortalPage() {
       )}
 
       {tab === "users" && (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div>
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-forest-600" /> Users
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Search, filter, and verify every account on the platform.</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -742,11 +738,19 @@ export default function AdminPortalPage() {
               </table>
             </div>
           )}
+          </div>
         </div>
       )}
 
       {tab === "requests" && (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div>
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <UserCog className="w-5 h-5 text-forest-600" /> Admin Requests
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Review requests from users asking for admin access.</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           {requestsLoading ? (
             <div className="p-4 space-y-2">
               {Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
@@ -774,10 +778,7 @@ export default function AdminPortalPage() {
                     <td className="px-4 py-2.5 text-gray-600">{r.userEmail}</td>
                     <td className="px-4 py-2.5 text-gray-400">{new Date(r.requestedAt).toLocaleDateString()}</td>
                     <td className="px-4 py-2.5">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        r.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                        r.status === "APPROVED" ? "bg-forest-100 text-forest-700" : "bg-red-100 text-red-700"
-                      }`}>{r.status}</span>
+                      <StatusBadge status={r.status} />
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       {r.status === "PENDING" && (
@@ -792,11 +793,19 @@ export default function AdminPortalPage() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
       )}
 
       {tab === "kyc" && (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div>
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <IdCard className="w-5 h-5 text-forest-600" /> Verification Queue
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Review submitted ID documents and selfies for identity verification.</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           {kycLoading ? (
             <div className="p-4 space-y-2">
               {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
@@ -894,11 +903,19 @@ export default function AdminPortalPage() {
               </table>
             </div>
           )}
+          </div>
         </div>
       )}
 
       {tab === "properties" && (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div>
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-forest-600" /> Property Verification
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Listings awaiting a verification decision before they go live.</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           {propertiesLoading ? (
             <div className="p-4 space-y-2">
               {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
@@ -934,11 +951,19 @@ export default function AdminPortalPage() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
       )}
 
       {tab === "escrows" && (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div>
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Lock className="w-5 h-5 text-forest-600" /> Escrows
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Every escrow transaction on the platform, including disputes awaiting release approval.</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           {escrowsLoading ? (
             <div className="p-4 space-y-2">
               {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
@@ -965,11 +990,7 @@ export default function AdminPortalPage() {
                     <td className="px-4 py-2.5 font-medium text-gray-900">#{e.id}</td>
                     <td className="px-4 py-2.5 text-gray-600">{e.currency} {e.amount.toLocaleString()}</td>
                     <td className="px-4 py-2.5">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        e.status === "DISPUTED" ? "bg-red-100 text-red-700" :
-                        e.status === "FUNDED" ? "bg-forest-100 text-forest-700" :
-                        e.status === "RELEASED" ? "bg-forest-100 text-forest-700" : "bg-gray-100 text-gray-600"
-                      }`}>{e.status}</span>
+                      <StatusBadge status={e.status} />
                     </td>
                     <td className="px-4 py-2.5 text-gray-500">{e.fundingProvider ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right">
@@ -993,6 +1014,7 @@ export default function AdminPortalPage() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
       )}
 
@@ -1014,7 +1036,7 @@ export default function AdminPortalPage() {
               <ShieldAlert className="w-5 h-5 text-red-600" /> Fraud Signals
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Heuristic signals from PrimeNest's own listing data — reused photos, address duplicates,
+              Heuristic signals from PrimeNest&apos;s own listing data — reused photos, address duplicates,
               and price outliers versus comparable listings. Review each before taking action.
             </p>
           </div>
