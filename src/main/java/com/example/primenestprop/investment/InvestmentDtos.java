@@ -37,7 +37,8 @@ public final class InvestmentDtos {
     public record CreateInvestmentRequest(
             @NotNull Long reitId,
             @DecimalMin("0.01") BigDecimal units,
-            String currency
+            String currency,
+            @NotBlank String provider
     ) {
     }
 

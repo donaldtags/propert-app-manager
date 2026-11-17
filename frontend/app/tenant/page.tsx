@@ -59,7 +59,7 @@ function EscrowTimeline({ escrow }: { escrow: Escrow }) {
                 step.done
                   ? isDisputed && i === 2
                     ? "bg-red-600 text-white"
-                    : "bg-forest-600 text-white"
+                    : "bg-brand-600 text-white"
                   : "bg-gray-100 text-gray-400"
               }`}
             >
@@ -67,7 +67,7 @@ function EscrowTimeline({ escrow }: { escrow: Escrow }) {
             </div>
             <span className="text-[10px] text-gray-500 mt-1 text-center">{step.label}</span>
           </div>
-          {i < steps.length - 1 && <div className={`h-0.5 flex-1 -mt-4 ${step.done ? "bg-forest-600" : "bg-gray-200"}`} />}
+          {i < steps.length - 1 && <div className={`h-0.5 flex-1 -mt-4 ${step.done ? "bg-brand-600" : "bg-gray-200"}`} />}
         </div>
       ))}
       {isCancelled && <span className="text-[10px] text-gray-400 ml-2">Cancelled</span>}
@@ -212,7 +212,7 @@ export default function TenantDashboardPage() {
       <div className="text-center py-24 text-gray-500">
         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-400" />
         <p className="text-lg font-semibold">{error}</p>
-        <Link href="/" className="mt-4 inline-block text-forest-600 hover:underline text-sm">← Home</Link>
+        <Link href="/" className="mt-4 inline-block text-brand-600 hover:underline text-sm">← Home</Link>
       </div>
     );
   }
@@ -235,10 +235,10 @@ export default function TenantDashboardPage() {
 
       {/* Home Overview */}
       {primaryLease ? (
-        <div className="bg-gradient-to-br from-forest-600 to-forest-700 rounded-2xl p-6 text-white mb-8">
+        <div className="bg-gradient-to-br from-brand-600 to-brand-700 rounded-2xl p-6 text-white mb-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-forest-100 text-xs uppercase tracking-wide">Current Home</p>
+              <p className="text-brand-100 text-xs uppercase tracking-wide">Current Home</p>
               <Link href={`/properties/${primaryLease.propertyId}`} className="text-lg font-bold hover:underline">
                 Property #{primaryLease.propertyId}
               </Link>
@@ -248,8 +248,8 @@ export default function TenantDashboardPage() {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold">${primaryLease.monthlyRent}<span className="text-sm font-normal text-forest-200">/mo</span></p>
-              <p className="text-xs text-forest-200 mt-1">
+              <p className="text-2xl font-bold">${primaryLease.monthlyRent}<span className="text-sm font-normal text-brand-200">/mo</span></p>
+              <p className="text-xs text-brand-200 mt-1">
                 Rent typically due around the {ordinal(new Date(primaryLease.startDate).getDate())} of each month
               </p>
             </div>
@@ -257,7 +257,7 @@ export default function TenantDashboardPage() {
           {landlordProfile && (
             <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-forest-100">Landlord:</span>
+                <span className="text-brand-100">Landlord:</span>
                 <span className="font-semibold">{landlordProfile.fullName}</span>
                 {landlordProfile.verified && <BadgeCheck className="w-4 h-4 text-white" />}
               </div>
@@ -307,7 +307,7 @@ export default function TenantDashboardPage() {
             <ul className="space-y-1.5">
               {trustBullets.map((b) => (
                 <li key={b} className="text-sm text-gray-700 flex items-center gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 text-forest-600 shrink-0" /> {b}
+                  <CheckCircle className="w-3.5 h-3.5 text-brand-600 shrink-0" /> {b}
                 </li>
               ))}
             </ul>
@@ -315,25 +315,25 @@ export default function TenantDashboardPage() {
             <p className="text-sm text-gray-400">Complete your profile and verification to build your trust score.</p>
           )}
           {!user?.identityVerified && (
-            <Link href="/verification" className="mt-3 inline-block text-sm text-forest-600 hover:underline">
+            <Link href="/verification" className="mt-3 inline-block text-sm text-brand-600 hover:underline">
               Verify your identity →
             </Link>
           )}
-          <Link href="/passport" className="mt-3 block text-sm text-forest-600 hover:underline">
+          <Link href="/passport" className="mt-3 block text-sm text-brand-600 hover:underline">
             View my Tenant Passport →
           </Link>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <Home className="w-5 h-5 text-forest-600" /> Landlord Relationship
+            <Home className="w-5 h-5 text-brand-600" /> Landlord Relationship
           </h2>
           {landlordProfile ? (
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Name</span>
                 <span className="font-medium text-gray-900 flex items-center gap-1">
-                  {landlordProfile.fullName} {landlordProfile.verified && <BadgeCheck className="w-3.5 h-3.5 text-forest-600" />}
+                  {landlordProfile.fullName} {landlordProfile.verified && <BadgeCheck className="w-3.5 h-3.5 text-brand-600" />}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -352,7 +352,7 @@ export default function TenantDashboardPage() {
                 <span className="text-gray-500">Properties</span>
                 <span className="font-medium text-gray-900">{landlordProfile.propertyCount}</span>
               </div>
-              <Link href="/messages" className="mt-2 inline-flex items-center gap-1 text-sm text-forest-600 hover:underline">
+              <Link href="/messages" className="mt-2 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
                 <MessageCircle className="w-3.5 h-3.5" /> Message Landlord
               </Link>
             </div>
@@ -377,9 +377,9 @@ export default function TenantDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-forest-600" /> Leases
+              <FileText className="w-5 h-5 text-brand-600" /> Leases
             </h2>
-            <Link href="/leases" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/leases" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {activeLeases.length === 0 ? (
             <EmptyState icon={FileText} title="No active leases" compact />
@@ -391,7 +391,7 @@ export default function TenantDashboardPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-900">Lease #{lease.id}</p>
                       <p className="text-xs text-gray-500">{lease.startDate} → {lease.endDate}</p>
-                      <p className="text-xs font-semibold text-forest-600 mt-0.5">${lease.monthlyRent}/mo</p>
+                      <p className="text-xs font-semibold text-brand-600 mt-0.5">${lease.monthlyRent}/mo</p>
                     </div>
                     <StatusBadge status={lease.status} />
                   </div>
@@ -403,7 +403,7 @@ export default function TenantDashboardPage() {
                         <button
                           onClick={() => handleLeaseAction(lease, "RENEWAL")}
                           disabled={sendingActionLeaseId === lease.id}
-                          className="flex items-center gap-1 text-xs font-medium text-forest-600 hover:text-forest-700 disabled:opacity-50"
+                          className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50"
                         >
                           <RefreshCw className="w-3 h-3" /> Request Renewal
                         </button>
@@ -422,15 +422,15 @@ export default function TenantDashboardPage() {
                       <button
                         onClick={() => handleExplainLease(lease)}
                         disabled={explainingLeaseId === lease.id}
-                        className="flex items-center gap-1 text-xs font-medium text-gold-600 hover:text-gold-700 disabled:opacity-50"
+                        className="flex items-center gap-1 text-xs font-medium text-silver-600 hover:text-silver-700 disabled:opacity-50"
                       >
                         <Sparkles className="w-3 h-3" /> {explainingLeaseId === lease.id ? "Explaining…" : "Explain My Lease"}
                       </button>
                     </div>
                   )}
                   {leaseExplanations[lease.id] && (
-                    <div className="mt-2 bg-gold-50 border border-gold-100 rounded-lg p-2.5 flex gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-gold-600 shrink-0 mt-0.5" />
+                    <div className="mt-2 bg-silver-50 border border-silver-100 rounded-lg p-2.5 flex gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-silver-600 shrink-0 mt-0.5" />
                       <p className="text-xs text-gray-700 leading-relaxed">{leaseExplanations[lease.id]}</p>
                     </div>
                   )}
@@ -444,9 +444,9 @@ export default function TenantDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-forest-600" /> Payments
+              <DollarSign className="w-5 h-5 text-brand-600" /> Payments
             </h2>
-            <Link href="/payments" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/payments" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {recentPayments.length === 0 ? (
             <EmptyState icon={DollarSign} title="No payments yet" compact />
@@ -474,7 +474,7 @@ export default function TenantDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <Wrench className="w-5 h-5 text-amber-600" /> Maintenance
             </h2>
-            <Link href="/maintenance" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/maintenance" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {maintenance.length === 0 ? (
             <EmptyState icon={Wrench} title="No maintenance requests" compact />
@@ -499,9 +499,9 @@ export default function TenantDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-forest-600" /> Deposit Protection
+              <Shield className="w-5 h-5 text-brand-600" /> Deposit Protection
             </h2>
-            <Link href="/escrow" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/escrow" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {escrows.length === 0 ? (
             <EmptyState icon={Shield} title="No escrow transactions" compact />
@@ -521,10 +521,10 @@ export default function TenantDashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="mt-8 bg-forest-50 border border-forest-100 rounded-2xl p-6">
+      <div className="mt-8 bg-brand-50 border border-brand-100 rounded-2xl p-6">
         <h2 className="font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <Link href="/payments" className="bg-forest-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-forest-700 transition-colors">
+          <Link href="/payments" className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
             Pay Rent
           </Link>
           <Link href="/leases" className="bg-white text-gray-700 border border-gray-200 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors">

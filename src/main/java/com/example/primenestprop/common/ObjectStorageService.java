@@ -69,6 +69,18 @@ public class ObjectStorageService {
         }
     }
 
+    public void putBytes(String key, byte[] bytes, String contentType) {
+        client.putObject(
+                PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build(),
+                RequestBody.fromBytes(bytes)
+        );
+    }
+
+    /** Reads an object fully (used for server-side image composition). */
+    public byte[] getBytes(String key) {
+        return client.getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(key).build()).asByteArray();
+    }
+
     public void delete(String key) {
         client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
     }

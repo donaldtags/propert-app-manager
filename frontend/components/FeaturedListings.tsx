@@ -25,7 +25,7 @@ export default async function FeaturedListings() {
         <p className="text-sm mt-1">Be the first to list a property</p>
         <Link
           href="/register"
-          className="mt-4 inline-block bg-forest-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-forest-700 transition-colors"
+          className="mt-4 inline-block bg-brand-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-brand-700 transition-colors"
         >
           Get Started
         </Link>

@@ -20,6 +20,12 @@ public final class PaymentDtos {
     ) {
     }
 
+    public record CheckoutRequest(@NotNull String provider) {
+    }
+
+    public record CheckoutResponse(Long paymentId, String redirectUrl) {
+    }
+
     public record PaymentResponse(
             Long id,
             Long payerId,

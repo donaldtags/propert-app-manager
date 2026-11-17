@@ -57,6 +57,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/register", "/api/v1/auth/login",
                                 "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/logs/frontend").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/payments/webhooks/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/property-search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/affordability").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/inquiries").permitAll()
@@ -67,6 +68,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/subscriptions/plans").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/subscriptions/plans/*").hasAuthority("PERM_SUBSCRIPTION_PLANS_MANAGE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/market/reits/zw").permitAll()
+                        // Seller report share links: an unguessable expiring token is the credential.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/shared/seller-reports/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/locations").permitAll()
+                        // Org public profile (brand, contact, EAC registration). /orgs/mine also matches this
+                        // pattern; its service rejects anonymous callers with 401 itself.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orgs/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/neighbourhoods").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/neighbourhoods").hasAuthority("PERM_NEIGHBOURHOOD_MANAGE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/vendors").permitAll()

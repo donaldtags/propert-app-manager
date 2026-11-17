@@ -222,7 +222,7 @@ class DemoDataSeeder implements CommandLineRunner {
                 new BigDecimal("550.00"),
                 "USD",
                 "Deposit protection"
-        ), tenant).getId(), new EscrowDtos.FundEscrowRequest(FundingMethod.ECOCASH, null), tenant);
+        ), tenant).getId(), new EscrowDtos.FundEscrowRequest(FundingMethod.BANK_TRANSFER, "CBZ Bank"), tenant);
 
         paymentService.markSuccessful(paymentService.create(new PaymentDtos.CreatePaymentRequest(
                 landlord.getId(),
@@ -255,10 +255,6 @@ class DemoDataSeeder implements CommandLineRunner {
                 null,
                 null
         ), admin);
-        investmentService.invest(new InvestmentDtos.CreateInvestmentRequest(
-                reit.id(),
-                new BigDecimal("25.00"),
-                "USD"
-        ), diasporaInvestor);
+        investmentService.seedActiveInvestment(reit.id(), new BigDecimal("25.00"), "USD", diasporaInvestor);
     }
 }

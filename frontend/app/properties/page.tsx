@@ -8,7 +8,7 @@ import { properties as propertiesApi } from "@/lib/api";
 import type { Property, ListingType } from "@/lib/types";
 import PropertyCard from "@/components/PropertyCard";
 import CompareBar from "@/components/CompareBar";
-import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS, ZIMBABWE_SUBURB_ENTRIES, resolveLocationQuery } from "@/lib/zimbabweLocations";
+import { useZimbabweLocations } from "@/lib/locations";
 
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
   ssr: false,
@@ -46,6 +46,12 @@ type SortOption = (typeof SORT_OPTIONS)[number]["value"];
 type WaterSourceFilter = "" | "MUNICIPAL" | "BOREHOLE" | "WELL" | "TANKER" | "OTHER";
 
 function PropertiesContent() {
+  const {
+    cities: ZIMBABWE_CITIES,
+    suburbs: ZIMBABWE_SUBURBS,
+    entries: ZIMBABWE_SUBURB_ENTRIES,
+    resolve: resolveLocationQuery,
+  } = useZimbabweLocations();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -393,7 +399,7 @@ function PropertiesContent() {
               key={t}
               onClick={() => setListingType(t)}
               className={`px-4 py-2 transition-colors ${
-                listingType === t ? "bg-forest-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                listingType === t ? "bg-brand-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
               }`}
             >
               {t === "SHORT_STAY" ? "Short Stay" : t === "RENT" ? "Rent" : "Buy"}
@@ -428,7 +434,7 @@ function PropertiesContent() {
           </div>
           <button
             type="submit"
-            className="shrink-0 bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="shrink-0 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             Search
           </button>
@@ -441,14 +447,14 @@ function PropertiesContent() {
             onClick={() => (filtersOpen ? setFiltersOpen(false) : openFilters())}
             className={`flex items-center gap-2 border rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               activeFilterCount > 0
-                ? "border-forest-500 bg-forest-50 text-forest-700"
+                ? "border-brand-500 bg-brand-50 text-brand-700"
                 : "border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-forest-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="bg-brand-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                 {activeFilterCount}
               </span>
             )}
@@ -472,7 +478,7 @@ function PropertiesContent() {
                     className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                       Number(draftMinPrice) === (r.min ?? 0) &&
                       (draftMaxPrice ? Number(draftMaxPrice) : undefined) === r.max
-                        ? "bg-forest-600 text-white border-forest-600"
+                        ? "bg-brand-600 text-white border-brand-600"
                         : "border-gray-200 text-gray-600 hover:border-gray-400"
                     }`}
                   >
@@ -488,7 +494,7 @@ function PropertiesContent() {
                   placeholder="Min $"
                   value={draftMinPrice}
                   onChange={(e) => setDraftMinPrice(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-forest-400"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-400"
                 />
                 <span className="text-gray-400 shrink-0">–</span>
                 <input
@@ -498,7 +504,7 @@ function PropertiesContent() {
                   placeholder="Max $"
                   value={draftMaxPrice}
                   onChange={(e) => setDraftMaxPrice(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-forest-400"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-400"
                 />
               </div>
 
@@ -512,7 +518,7 @@ function PropertiesContent() {
                       type="button"
                       onClick={() => setDraftBedrooms(String(n))}
                       className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
-                        Number(draftBedrooms) === n ? "bg-forest-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200"
+                        Number(draftBedrooms) === n ? "bg-brand-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200"
                       }`}
                     >
                       {n}+
@@ -526,7 +532,7 @@ function PropertiesContent() {
                   placeholder="Any"
                   value={draftBedrooms}
                   onChange={(e) => setDraftBedrooms(e.target.value)}
-                  className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-900 outline-none focus:border-forest-400"
+                  className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-900 outline-none focus:border-brand-400"
                 />
               </div>
 
@@ -539,7 +545,7 @@ function PropertiesContent() {
                 placeholder="Any"
                 value={draftBathrooms}
                 onChange={(e) => setDraftBathrooms(e.target.value)}
-                className="w-20 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-900 outline-none focus:border-forest-400 mb-4"
+                className="w-20 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-900 outline-none focus:border-brand-400 mb-4"
               />
 
               {/* Amenities */}
@@ -562,7 +568,7 @@ function PropertiesContent() {
                       type="checkbox"
                       checked={checked}
                       onChange={(e) => setChecked(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-forest-600 focus:ring-forest-400"
+                      className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-400"
                     />
                     <span className="text-sm text-gray-700">{label}</span>
                   </label>
@@ -574,7 +580,7 @@ function PropertiesContent() {
               <select
                 value={draftWaterSource}
                 onChange={(e) => setDraftWaterSource(e.target.value as typeof draftWaterSource)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-forest-400 bg-white mb-4"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-400 bg-white mb-4"
               >
                 <option value="">Any</option>
                 <option value="MUNICIPAL">Municipal</option>
@@ -595,7 +601,7 @@ function PropertiesContent() {
                 <button
                   type="button"
                   onClick={applyFilters}
-                  className="bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                  className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
                 >
                   Apply filters
                 </button>
@@ -626,7 +632,7 @@ function PropertiesContent() {
                   key={opt.value}
                   onClick={() => { setSortBy(opt.value); setSortMenuOpen(false); }}
                   className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                    sortBy === opt.value ? "text-forest-600 font-semibold bg-forest-50" : "text-gray-700 hover:bg-gray-50"
+                    sortBy === opt.value ? "text-brand-600 font-semibold bg-brand-50" : "text-gray-700 hover:bg-gray-50"
                   }`}
                 >
                   {opt.label}
@@ -640,13 +646,13 @@ function PropertiesContent() {
         <div className="flex rounded-lg border border-gray-200 overflow-hidden sm:hidden">
           <button
             onClick={() => setMobileView("list")}
-            className={`px-3 py-2 ${mobileView === "list" ? "bg-forest-600 text-white" : "text-gray-600"}`}
+            className={`px-3 py-2 ${mobileView === "list" ? "bg-brand-600 text-white" : "text-gray-600"}`}
           >
             <List className="w-4 h-4" />
           </button>
           <button
             onClick={() => setMobileView("map")}
-            className={`px-3 py-2 ${mobileView === "map" ? "bg-forest-600 text-white" : "text-gray-600"}`}
+            className={`px-3 py-2 ${mobileView === "map" ? "bg-brand-600 text-white" : "text-gray-600"}`}
           >
             <Map className="w-4 h-4" />
           </button>
@@ -668,7 +674,7 @@ function PropertiesContent() {
               </button>
             </span>
           ))}
-          <button onClick={clearFilters} className="text-xs font-medium text-forest-600 hover:underline ml-1">
+          <button onClick={clearFilters} className="text-xs font-medium text-brand-600 hover:underline ml-1">
             Clear all
           </button>
         </div>
@@ -689,7 +695,7 @@ function PropertiesContent() {
                 key={c}
                 onClick={() => { setCity(city === c ? "" : c); setSuburb(""); }}
                 className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                  city === c ? "bg-forest-600 text-white border-forest-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
+                  city === c ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
                 }`}
               >
                 {c}
@@ -703,7 +709,7 @@ function PropertiesContent() {
                   value={suburb}
                   onChange={(e) => setSuburb(e.target.value)}
                   placeholder={`All ${city} suburbs`}
-                  className="shrink-0 w-40 text-xs font-medium border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-600 outline-none focus:border-forest-400 placeholder-gray-500"
+                  className="shrink-0 w-40 text-xs font-medium border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-600 outline-none focus:border-brand-400 placeholder-gray-500"
                 />
                 <datalist id="browse-suburb-options">
                   {suburbOptions.map((s) => (
@@ -733,7 +739,7 @@ function PropertiesContent() {
                 <p className="text-lg font-medium">No properties found</p>
                 <p className="text-sm mt-1">Try adjusting your filters</p>
                 {activeChips.length > 0 && (
-                  <button onClick={clearFilters} className="text-sm text-forest-600 hover:underline mt-3 inline-block">
+                  <button onClick={clearFilters} className="text-sm text-brand-600 hover:underline mt-3 inline-block">
                     Clear all filters
                   </button>
                 )}

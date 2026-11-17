@@ -23,8 +23,10 @@ class PropertyLocationBackfill implements CommandLineRunner {
                 .toList();
         for (Property property : missingLocations) {
             PropertyService.Coordinates coordinates = propertyService.coordinatesFor(
-                    property.getCity(),
+                    property.getAddress(),
                     property.getSuburb(),
+                    property.getCity(),
+                    property.getCountry(),
                     property.getLatitude(),
                     property.getLongitude()
             );

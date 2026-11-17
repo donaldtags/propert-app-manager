@@ -47,4 +47,12 @@ public class SubscriptionController {
     ) {
         return service.subscribe(currentUser, request.plan());
     }
+
+    @PostMapping("/checkout")
+    com.example.primenestprop.payment.PaymentDtos.CheckoutResponse checkout(
+            @Valid @RequestBody SubscriptionDtos.UpgradeCheckoutRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return service.initiateUpgradeCheckout(currentUser, request.plan(), request.provider());
+    }
 }

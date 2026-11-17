@@ -3,13 +3,20 @@ package com.example.primenestprop.payment;
 import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.lease.Lease;
 import com.example.primenestprop.lease.LeaseService;
+import com.example.primenestprop.payment.gateway.CheckoutSession;
+import com.example.primenestprop.payment.gateway.GatewayStatus;
+import com.example.primenestprop.payment.gateway.PaymentGateway;
+import com.example.primenestprop.payment.gateway.WebhookOutcome;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,25 +28,47 @@ public class PaymentService {
     private final PropertyService properties;
     private final LeaseService leases;
     private final RentInvoiceService rentInvoices;
+    private final ApplicationEventPublisher events;
+    private final Map<String, PaymentGateway> gatewaysById;
+    private final String frontendBaseUrl;
 
     public PaymentService(
             PaymentRepository payments,
             UserService users,
             PropertyService properties,
             LeaseService leases,
-            RentInvoiceService rentInvoices
+            RentInvoiceService rentInvoices,
+            ApplicationEventPublisher events,
+            List<PaymentGateway> gateways,
+            @org.springframework.beans.factory.annotation.Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl
     ) {
         this.payments = payments;
         this.users = users;
         this.properties = properties;
         this.leases = leases;
         this.rentInvoices = rentInvoices;
+        this.events = events;
+        this.gatewaysById = gateways.stream().collect(Collectors.toMap(PaymentGateway::id, g -> g));
+        this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
     }
 
     @Transactional
     public Payment create(PaymentDtos.CreatePaymentRequest request, AppUser payer) {
+        return create(request, payer, defaultPurposeFor(request.purpose()), null, null);
+    }
+
+    /** Used by domain services (escrow, subscriptions, featured listings, investments) that
+     * need {@link PaymentSucceededEvent} to carry enough context to finish their own job. */
+    @Transactional
+    public Payment create(
+            PaymentDtos.CreatePaymentRequest request,
+            AppUser payer,
+            PaymentPurpose purposeType,
+            String metadata,
+            Long escrowTransactionId
+    ) {
         Lease lease = request.leaseId() == null ? null : leases.require(request.leaseId());
-        if (lease != null && isRentPayment(request.purpose())) {
+        if (lease != null && purposeType == PaymentPurpose.RENT) {
             if (!lease.getTenant().getId().equals(payer.getId())) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "Monthly rent must be paid by the lease tenant");
             }
@@ -61,8 +90,85 @@ public class PaymentService {
         payment.setCurrency(request.currency() == null || request.currency().isBlank() ? "USD" : request.currency());
         payment.setProvider(request.provider() == null || request.provider().isBlank() ? "manual" : request.provider());
         payment.setPurpose(request.purpose() == null || request.purpose().isBlank() ? "Rent payment" : request.purpose());
+        payment.setPurposeType(purposeType);
+        payment.setMetadata(metadata);
+        payment.setEscrowTransactionId(escrowTransactionId);
         payment.setReference("PN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         return payments.save(payment);
+    }
+
+    /** Starts a real checkout with the chosen gateway (Paynow/Stripe) and remembers how to
+     * confirm it later. Only the payer can start their own checkout. */
+    @Transactional
+    public PaymentDtos.CheckoutResponse initiateCheckout(Long id, String provider, AppUser currentUser) {
+        // Deliberately a plain lookup, not require()'s entity-graph fetch: initiateCheckout only
+        // needs payer/payee ids (available on an uninitialized lazy proxy without a query), and
+        // this call often runs moments after create() in the same transaction as another
+        // service's pessimistic-locked read (e.g. investment checkout locks a Reit row) - an
+        // entity-graph query here on top of that has triggered a Hibernate NPE in practice.
+        Payment payment = payments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Payment not found"));
+        if (!payment.getPayer().getId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the payer can start checkout for this payment");
+        }
+        if (payment.getStatus() != PaymentStatus.INITIATED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This payment has already been processed");
+        }
+        PaymentGateway gateway = gatewaysById.get(provider);
+        if (gateway == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown payment provider: " + provider);
+        }
+        String returnUrl = frontendBaseUrl + "/payments/" + payment.getId() + "/return";
+        CheckoutSession session = gateway.initiateCheckout(payment, returnUrl);
+        payment.setProvider(gateway.id());
+        payment.setProviderReference(session.providerReference());
+        payment.setCheckoutUrl(session.redirectUrl());
+        payment.setPollUrl(session.pollUrl());
+        return new PaymentDtos.CheckoutResponse(payment.getId(), session.redirectUrl());
+    }
+
+    /** Actively asks the gateway for the current status - the primary confirmation path, since
+     * it works without a publicly reachable webhook URL (fine for local/dev). */
+    @Transactional
+    public PaymentDtos.PaymentResponse confirmCheckout(Long id, AppUser currentUser) {
+        Payment payment = requireVisible(id, currentUser);
+        if (payment.getStatus() != PaymentStatus.SUCCESSFUL) {
+            PaymentGateway gateway = gatewaysById.get(payment.getProvider());
+            if (gateway == null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "This payment was not started through a gateway checkout");
+            }
+            GatewayStatus status = gateway.checkStatus(payment);
+            if (status == GatewayStatus.PAID) {
+                finalizeSuccess(payment);
+            } else if (status == GatewayStatus.CANCELLED || status == GatewayStatus.FAILED) {
+                payment.setStatus(PaymentStatus.FAILED);
+            }
+        }
+        return PaymentDtos.PaymentResponse.from(payment);
+    }
+
+    /** Production hardening: an inbound callback from the provider. Never trusted at face
+     * value - it's only a signal to re-check status through the gateway itself. */
+    @Transactional
+    public void handleWebhook(String provider, String rawBody, Map<String, String> headers) {
+        PaymentGateway gateway = gatewaysById.get(provider);
+        if (gateway == null) {
+            return;
+        }
+        WebhookOutcome outcome = gateway.handleWebhook(rawBody, headers);
+        if (outcome == null) {
+            return;
+        }
+        payments.findByProviderReference(outcome.providerReference()).ifPresent(payment -> {
+            if (payment.getStatus() == PaymentStatus.SUCCESSFUL) {
+                return;
+            }
+            GatewayStatus status = gateway.checkStatus(payment);
+            if (status == GatewayStatus.PAID) {
+                finalizeSuccess(payment);
+            } else if (status == GatewayStatus.CANCELLED || status == GatewayStatus.FAILED) {
+                payment.setStatus(PaymentStatus.FAILED);
+            }
+        });
     }
 
     @Transactional(readOnly = true)
@@ -123,10 +229,30 @@ public class PaymentService {
         if (!payment.getPayee().getId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the payee can confirm this payment as successful");
         }
+        if (gatewaysById.containsKey(payment.getProvider())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "This payment was started through " + payment.getProvider()
+                            + " checkout - it can only be confirmed by the gateway, not self-reported");
+        }
+        finalizeSuccess(payment);
+        return payment;
+    }
+
+    /** Single choke point for flipping a payment to SUCCESSFUL, whichever path got it there
+     * (manual self-report, gateway poll, or webhook) - so {@link PaymentSucceededEvent} always
+     * fires exactly once and domain listeners never have to know which path was used. */
+    private void finalizeSuccess(Payment payment) {
+        if (payment.getStatus() == PaymentStatus.SUCCESSFUL) {
+            return;
+        }
         payment.setStatus(PaymentStatus.SUCCESSFUL);
         payment.setPaidAt(Instant.now());
         rentInvoices.markPaidIfMatching(payment);
-        return payment;
+        events.publishEvent(new PaymentSucceededEvent(payment));
+    }
+
+    private PaymentPurpose defaultPurposeFor(String purpose) {
+        return isRentPayment(purpose) ? PaymentPurpose.RENT : PaymentPurpose.OTHER;
     }
 
     private boolean isRentPayment(String purpose) {

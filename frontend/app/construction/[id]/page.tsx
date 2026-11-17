@@ -171,7 +171,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
       <div className="text-center py-24 text-gray-500">
         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-400" />
         <p className="text-lg font-semibold">{error || "Project not found."}</p>
-        <Link href="/construction" className="mt-4 inline-block text-forest-600 hover:underline text-sm">← Back to projects</Link>
+        <Link href="/construction" className="mt-4 inline-block text-brand-600 hover:underline text-sm">← Back to projects</Link>
       </div>
     );
   }
@@ -182,7 +182,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <Link href="/construction" className="text-xs text-forest-600 hover:underline mb-3 inline-block">← All projects</Link>
+      <Link href="/construction" className="text-xs text-brand-600 hover:underline mb-3 inline-block">← All projects</Link>
 
       <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
         <div>
@@ -200,7 +200,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-gray-900">Construction Progress</h2>
-          <span className="text-2xl font-bold text-forest-600">{project.progressPercent}%</span>
+          <span className="text-2xl font-bold text-brand-600">{project.progressPercent}%</span>
         </div>
         <ProgressBar percent={project.progressPercent} />
         {project.latestUpdateNote && (
@@ -216,7 +216,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
               value={project.stage}
               onChange={(e) => handleProgressSave(e.target.value as ConstructionStage, project.progressPercent, project.status)}
               disabled={savingProgress}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500 disabled:opacity-60"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500 disabled:opacity-60"
             >
               {STAGES.map((s) => (
                 <option key={s} value={s}>{s.replaceAll("_", " ")}</option>
@@ -236,7 +236,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
                 if (val !== project.progressPercent) handleProgressSave(project.stage, val, project.status);
               }}
               disabled={savingProgress}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500 disabled:opacity-60"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500 disabled:opacity-60"
             />
           </div>
           <div>
@@ -245,7 +245,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
               value={project.status}
               onChange={(e) => handleProgressSave(project.stage, project.progressPercent, e.target.value as ConstructionStatus)}
               disabled={savingProgress}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500 disabled:opacity-60"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500 disabled:opacity-60"
             >
               {PROJECT_STATUSES.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -277,7 +277,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
             <h2 className="font-bold text-gray-900">Milestones</h2>
             <button
               onClick={() => setShowMilestoneForm((s) => !s)}
-              className="flex items-center gap-1 text-xs font-semibold text-forest-600 hover:text-forest-700"
+              className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
             >
               <Plus className="w-3.5 h-3.5" /> Add
             </button>
@@ -290,7 +290,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
                 value={msTitle}
                 onChange={(e) => setMsTitle(e.target.value)}
                 placeholder="e.g. Roofing complete"
-                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-forest-500"
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-500"
               />
               <div className="flex gap-2">
                 <input
@@ -299,19 +299,19 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
                   value={msAmount}
                   onChange={(e) => setMsAmount(e.target.value)}
                   placeholder="Amount due ($)"
-                  className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-forest-500"
+                  className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-500"
                 />
                 <input
                   type="date"
                   value={msTargetDate}
                   onChange={(e) => setMsTargetDate(e.target.value)}
-                  className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-forest-500"
+                  className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-500"
                 />
               </div>
               <button
                 type="submit"
                 disabled={addingMilestone}
-                className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                className="text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
               >
                 {addingMilestone ? "Adding…" : "Add Milestone"}
               </button>
@@ -346,7 +346,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
                       <button
                         onClick={() => milestoneAction(m.id, "approve")}
                         disabled={milestoneActionId === m.id}
-                        className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                       >
                         Approve
                       </button>
@@ -355,7 +355,7 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
                       <button
                         onClick={() => milestoneAction(m.id, "mark-paid")}
                         disabled={milestoneActionId === m.id}
-                        className="text-xs font-semibold bg-gold-600 hover:bg-gold-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-silver-600 hover:bg-silver-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                       >
                         Mark Paid
                       </button>
@@ -377,12 +377,12 @@ export default function ConstructionProjectDetailPage({ params }: { params: Prom
               value={updateNote}
               onChange={(e) => setUpdateNote(e.target.value)}
               placeholder="Post a progress note…"
-              className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-forest-500"
+              className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-500"
             />
             <button
               type="submit"
               disabled={postingUpdate || !updateNote.trim()}
-              className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+              className="text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
             >
               Post
             </button>

@@ -30,8 +30,8 @@ const TYPE_ICONS: Record<TimelineEventType, typeof History> = {
 };
 
 const TYPE_COLORS: Record<TimelineEventType, string> = {
-  LEASE: "bg-forest-100 text-forest-600",
-  PAYMENT: "bg-forest-100 text-forest-600",
+  LEASE: "bg-brand-100 text-brand-600",
+  PAYMENT: "bg-brand-100 text-brand-600",
   MAINTENANCE: "bg-amber-100 text-amber-600",
   ESCROW: "bg-indigo-100 text-indigo-600",
   DOCUMENT: "bg-gray-100 text-gray-600",
@@ -92,7 +92,7 @@ export default function HomeTimelinePage() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <History className="w-7 h-7 text-forest-600" /> Home Timeline
+          <History className="w-7 h-7 text-brand-600" /> Home Timeline
         </h1>
         <p className="text-gray-500 mt-1">Every payment, maintenance update, document, and milestone in your home journey</p>
       </div>
@@ -109,7 +109,7 @@ export default function HomeTimelinePage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-              filter === f ? "bg-forest-600 text-white border-forest-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
+              filter === f ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
             }`}
           >
             {f === "ALL" ? "All" : TYPE_LABELS[f]}

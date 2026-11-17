@@ -154,7 +154,11 @@ public final class PropertyDtos {
             List<String> photoUrls,
             List<String> imageUrls,
             List<String> photos,
-            List<PhotoResponse> photoDetails
+            List<PhotoResponse> photoDetails,
+            Long organisationId,
+            TitleType titleType,
+            /** Buyer-facing risk markers, e.g. "CESSION". Empty when none apply. */
+            List<String> riskFlags
     ) {
         public static PropertyResponse from(Property property) {
             List<String> urls = property.getPhotos().stream()
@@ -216,7 +220,10 @@ public final class PropertyDtos {
                     urls,
                     urls,
                     urls,
-                    photoDetails
+                    photoDetails,
+                    property.getOrganisationId(),
+                    property.getTitleType(),
+                    property.getTitleType() == TitleType.CESSION ? List.of("CESSION") : List.of()
             );
         }
     }

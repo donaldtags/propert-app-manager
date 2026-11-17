@@ -23,7 +23,7 @@ export default function EmptyState({
       {action && (
         <Link
           href={action.href}
-          className="inline-block text-sm font-medium text-forest-600 hover:underline mt-3"
+          className="inline-block text-sm font-medium text-brand-600 hover:underline mt-3"
         >
           {action.label}
         </Link>

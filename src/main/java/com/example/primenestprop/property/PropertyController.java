@@ -44,6 +44,17 @@ public class PropertyController {
         this.subscriptions = subscriptions;
     }
 
+    /** Address lookup for the listing form's map picker. Returns best matches first. */
+    @GetMapping("/geocode")
+    List<GeocodingService.GeocodeResult> geocode(
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) String suburb,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String country
+    ) {
+        return service.geocode(address, suburb, city, country);
+    }
+
     @PostMapping
     PropertyResponse create(@Valid @RequestBody PropertyDtos.CreatePropertyRequest request, @AuthenticationPrincipal AppUser currentUser) {
         if (!request.landlordId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
@@ -93,8 +104,8 @@ public class PropertyController {
     }
 
     @GetMapping("/{id}")
-    PropertyResponse get(@PathVariable Long id) {
-        return PropertyResponse.from(service.require(id));
+    PropertyResponse get(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
+        return PropertyResponse.from(service.requireVisible(id, currentUser));
     }
 
     @GetMapping("/{id}/passport")
@@ -103,8 +114,9 @@ public class PropertyController {
     }
 
     @PostMapping("/{id}/photos")
-    PropertyResponse uploadPhotos(@PathVariable Long id, @ModelAttribute UploadPhotosRequest request) {
-        return PropertyResponse.from(service.uploadPhotos(id, request.files()));
+    PropertyResponse uploadPhotos(@PathVariable Long id, @ModelAttribute UploadPhotosRequest request,
+                                  @AuthenticationPrincipal AppUser currentUser) {
+        return PropertyResponse.from(service.uploadPhotos(id, request.files(), currentUser));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{id}/photos/{photoId}")

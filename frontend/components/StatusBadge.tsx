@@ -14,7 +14,7 @@ const DANGER = new Set([
 const NOTABLE = new Set(["REFUNDED", "SOLD", "OCCUPIED", "EXITED"]);
 
 const TONE_CLASSES = {
-  success: "bg-forest-100 text-forest-700",
+  success: "bg-brand-100 text-brand-700",
   warning: "bg-amber-100 text-amber-700",
   danger: "bg-red-100 text-red-700",
   notable: "bg-terracotta-500/10 text-terracotta-600",

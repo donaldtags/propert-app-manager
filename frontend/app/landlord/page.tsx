@@ -45,9 +45,9 @@ function workspaceTitle(roles: string[] | undefined): { title: string; subtitle:
 
 const OCCUPANCY_COLORS: Partial<Record<PropertyStatus, string>> = {
   DRAFT: "bg-gray-300",
-  AVAILABLE: "bg-forest-500",
+  AVAILABLE: "bg-brand-500",
   RESERVED: "bg-amber-500",
-  OCCUPIED: "bg-forest-600",
+  OCCUPIED: "bg-brand-600",
   SOLD: "bg-purple-500",
   INACTIVE: "bg-gray-400",
 };
@@ -284,13 +284,13 @@ export default function LandlordDashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/landlord/subscription"
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-forest-300 text-gray-700 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-brand-300 text-gray-700 px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
           >
             Subscription
           </Link>
           <Link
             href="/properties/new"
-            className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors"
           >
             <Plus className="w-4 h-4" /> Add Property
           </Link>
@@ -309,19 +309,19 @@ export default function LandlordDashboardPage() {
       <div className="flex flex-wrap gap-3 mb-6">
         <Link
           href="/leases"
-          className="flex items-center gap-1.5 text-sm font-medium text-forest-600 hover:text-forest-700 border border-forest-200 hover:border-forest-300 px-4 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 border border-brand-200 hover:border-brand-300 px-4 py-2 rounded-xl transition-colors"
         >
           <Plus className="w-3.5 h-3.5" /> Create Lease
         </Link>
         <Link
           href="/messages"
-          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-4 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-brand-600 border border-gray-200 hover:border-brand-300 px-4 py-2 rounded-xl transition-colors"
         >
           <MessageCircle className="w-3.5 h-3.5" /> Message Tenants
         </Link>
         <Link
           href="/applications"
-          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-4 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-brand-600 border border-gray-200 hover:border-brand-300 px-4 py-2 rounded-xl transition-colors"
         >
           <FileText className="w-3.5 h-3.5" /> Applications Received
         </Link>
@@ -368,7 +368,7 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-600" /> Upcoming Lease Expiries
             </h2>
-            <Link href="/leases" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/leases" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {upcomingExpiries.length === 0 ? (
             <EmptyState icon={Clock} title="No leases expiring in the next 30 days" compact />
@@ -393,7 +393,7 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <Wrench className="w-4 h-4 text-gray-500" /> Maintenance Requests
             </h2>
-            <Link href="/maintenance" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/maintenance" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {maintenance.length === 0 ? (
             <EmptyState icon={Wrench} title="No maintenance requests" compact />
@@ -445,14 +445,14 @@ export default function LandlordDashboardPage() {
                           placeholder="Video call link (optional)"
                           value={videoLinkDraft[v.id] ?? ""}
                           onChange={(e) => setVideoLinkDraft((c) => ({ ...c, [v.id]: e.target.value }))}
-                          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-forest-500 mb-2"
+                          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-500 mb-2"
                         />
                       )}
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleConfirmViewing(v.id, videoLinkDraft[v.id] || undefined)}
                           disabled={viewingActionId === v.id}
-                          className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                          className="text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                         >
                           Confirm
                         </button>
@@ -474,12 +474,12 @@ export default function LandlordDashboardPage() {
                         placeholder="Enter check-in code"
                         value={checkInCode[v.id] ?? ""}
                         onChange={(e) => setCheckInCode((c) => ({ ...c, [v.id]: e.target.value }))}
-                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-forest-500"
+                        className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-500"
                       />
                       <button
                         onClick={() => handleCheckInViewing(v.id)}
                         disabled={viewingActionId === v.id || !checkInCode[v.id]}
-                        className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                       >
                         Check In
                       </button>
@@ -517,7 +517,7 @@ export default function LandlordDashboardPage() {
                       <button
                         onClick={() => handleReviewLeaseAction(a.id, "APPROVED")}
                         disabled={leaseActionReviewingId === a.id}
-                        className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg"
                       >
                         Approve
                       </button>
@@ -542,7 +542,7 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <FileText className="w-4 h-4 text-gray-500" /> Leases
             </h2>
-            <Link href="/leases" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/leases" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {leases.length === 0 ? (
             <EmptyState icon={FileText} title="No leases" compact />
@@ -553,7 +553,7 @@ export default function LandlordDashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-900">Lease #{lease.id}</p>
                     <p className="text-xs text-gray-500">Tenant #{lease.tenantId}</p>
-                    <p className="text-xs font-semibold text-forest-600">${lease.monthlyRent}/mo</p>
+                    <p className="text-xs font-semibold text-brand-600">${lease.monthlyRent}/mo</p>
                   </div>
                   <StatusBadge status={lease.status} />
                 </div>
@@ -568,7 +568,7 @@ export default function LandlordDashboardPage() {
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-gray-500" /> Recent Payments
             </h2>
-            <Link href="/payments" className="text-xs text-forest-600 hover:underline">View all</Link>
+            <Link href="/payments" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {payments.length === 0 ? (
             <EmptyState icon={DollarSign} title="No payments yet" compact />
@@ -594,11 +594,11 @@ export default function LandlordDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <Home className="w-4 h-4 text-forest-600" /> My Properties
+              <Home className="w-4 h-4 text-brand-600" /> My Properties
             </h2>
             <div className="flex items-center gap-3">
-              <Link href="/landlord/featured-listings" className="text-xs text-gold-600 hover:underline font-medium">Feature a listing</Link>
-              <Link href="/properties" className="text-xs text-forest-600 hover:underline">Browse all</Link>
+              <Link href="/landlord/featured-listings" className="text-xs text-silver-600 hover:underline font-medium">Feature a listing</Link>
+              <Link href="/properties" className="text-xs text-brand-600 hover:underline">Browse all</Link>
             </div>
           </div>
           {ownProperties.length === 0 ? (
@@ -608,14 +608,14 @@ export default function LandlordDashboardPage() {
               {ownProperties.slice(0, 6).map((prop) => (
                 <div key={prop.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
-                    <Link href={`/properties/${prop.id}`} className="text-sm font-medium text-gray-900 hover:text-forest-600 transition-colors">
+                    <Link href={`/properties/${prop.id}`} className="text-sm font-medium text-gray-900 hover:text-brand-600 transition-colors">
                       {prop.title}
                     </Link>
                     <p className="text-xs text-gray-500">{prop.suburb}, {prop.city}</p>
-                    <p className="text-xs font-semibold text-forest-600 mt-0.5">${prop.price}/mo</p>
+                    <p className="text-xs font-semibold text-brand-600 mt-0.5">${prop.price}/mo</p>
                   </div>
                   <div className="text-right flex flex-col gap-1 items-end">
-                    {prop.featured && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gold-100 text-gold-700">★ Featured</span>}
+                    {prop.featured && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-silver-100 text-silver-700">★ Featured</span>}
                     <StatusBadge status={prop.status} />
                     <StatusBadge status={prop.verificationStatus} />
                   </div>
@@ -629,9 +629,9 @@ export default function LandlordDashboardPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-forest-600" /> Recent Inquiries
+              <MessageCircle className="w-4 h-4 text-brand-600" /> Recent Inquiries
             </h2>
-            <Link href="/messages" className="text-xs text-forest-600 hover:underline">Open messages</Link>
+            <Link href="/messages" className="text-xs text-brand-600 hover:underline">Open messages</Link>
           </div>
           {inquiries.length === 0 ? (
             <EmptyState icon={MessageCircle} title="No inquiries yet" compact />
@@ -642,7 +642,7 @@ export default function LandlordDashboardPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{inq.name}</p>
-                      <Link href={`/properties/${inq.propertyId}`} className="text-xs text-forest-600 hover:underline">
+                      <Link href={`/properties/${inq.propertyId}`} className="text-xs text-brand-600 hover:underline">
                         {inq.propertyTitle}
                       </Link>
                     </div>
@@ -650,11 +650,11 @@ export default function LandlordDashboardPage() {
                   </div>
                   <p className="text-sm text-gray-600 mt-1.5">{inq.message}</p>
                   <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                    <a href={`mailto:${inq.email}`} className="flex items-center gap-1 hover:text-forest-600">
+                    <a href={`mailto:${inq.email}`} className="flex items-center gap-1 hover:text-brand-600">
                       <Mail className="w-3 h-3" /> {inq.email}
                     </a>
                     {inq.phone && (
-                      <a href={`tel:${inq.phone}`} className="flex items-center gap-1 hover:text-forest-600">
+                      <a href={`tel:${inq.phone}`} className="flex items-center gap-1 hover:text-brand-600">
                         <Phone className="w-3 h-3" /> {inq.phone}
                       </a>
                     )}

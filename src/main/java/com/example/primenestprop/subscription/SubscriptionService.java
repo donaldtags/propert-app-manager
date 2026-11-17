@@ -4,7 +4,9 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.common.PlatformAccountService;
 import com.example.primenestprop.payment.Payment;
 import com.example.primenestprop.payment.PaymentDtos;
+import com.example.primenestprop.payment.PaymentPurpose;
 import com.example.primenestprop.payment.PaymentService;
+import com.example.primenestprop.payment.PaymentSucceededEvent;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
@@ -15,6 +17,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,39 +111,90 @@ public class SubscriptionService {
         );
     }
 
+    /** Only handles the free Starter tier now - a paid upgrade must go through a real checkout
+     * (see {@link #initiateUpgradeCheckout}) instead of self-confirming its own payment. */
     @Transactional
     public SubscriptionDtos.SubscriptionResponse subscribe(AppUser user, SubscriptionPlan targetPlan) {
-        LandlordSubscription subscription = subscriptionFor(user);
-        SubscriptionPlanSettings settings = planSettings(targetPlan);
-
-        if (targetPlan == SubscriptionPlan.STARTER) {
-            subscription.setPlan(SubscriptionPlan.STARTER);
-            subscription.setStatus(SubscriptionStatus.ACTIVE);
-            subscription.setCurrentPeriodEnd(null);
-            subscription.setPastDueSince(null);
-        } else {
-            AppUser platformAccount = platformAccountService.billingAccount();
-            Payment payment = payments.create(new PaymentDtos.CreatePaymentRequest(
-                    platformAccount.getId(),
-                    null,
-                    null,
-                    settings.getMonthlyPrice(),
-                    settings.getCurrency(),
-                    "platform",
-                    "Subscription: " + targetPlan + " plan"
-            ), user);
-            payments.markSuccessful(payment.getId(), platformAccount);
-
-            subscription.setPlan(targetPlan);
-            subscription.setStatus(SubscriptionStatus.ACTIVE);
-            subscription.setCurrentPeriodEnd(Instant.now().plus(BILLING_PERIOD_DAYS, ChronoUnit.DAYS));
-            subscription.setPastDueSince(null);
+        if (targetPlan != SubscriptionPlan.STARTER) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Upgrading to a paid plan requires checkout - use POST /subscriptions/checkout");
         }
+        LandlordSubscription subscription = subscriptionFor(user);
+        subscription.setPlan(SubscriptionPlan.STARTER);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setCurrentPeriodEnd(null);
+        subscription.setPastDueSince(null);
         subscription.setUpdatedAt(Instant.now());
         return describe(user);
     }
 
-    /** Renews everyone whose paid period has lapsed; called by the daily billing sweep. */
+    /** Starts a real Paynow/Stripe checkout for a paid plan upgrade; the upgrade itself is
+     * applied by {@link #onPaymentSucceeded} once the gateway confirms payment. */
+    @Transactional
+    public PaymentDtos.CheckoutResponse initiateUpgradeCheckout(AppUser user, SubscriptionPlan targetPlan, String provider) {
+        if (targetPlan == SubscriptionPlan.STARTER) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Starter is free - use POST /subscriptions/subscribe instead");
+        }
+        SubscriptionPlanSettings settings = planSettings(targetPlan);
+        AppUser platformAccount = platformAccountService.billingAccount();
+        Payment payment = payments.create(
+                new PaymentDtos.CreatePaymentRequest(
+                        platformAccount.getId(),
+                        null,
+                        null,
+                        settings.getMonthlyPrice(),
+                        settings.getCurrency(),
+                        provider,
+                        "Subscription: " + targetPlan + " plan"
+                ),
+                user,
+                PaymentPurpose.SUBSCRIPTION,
+                "plan=" + targetPlan,
+                null
+        );
+        return payments.initiateCheckout(payment.getId(), provider, user);
+    }
+
+    @EventListener
+    @Transactional
+    public void onPaymentSucceeded(PaymentSucceededEvent event) {
+        Payment payment = event.payment();
+        if (payment.getPurposeType() != PaymentPurpose.SUBSCRIPTION) {
+            return;
+        }
+        SubscriptionPlan targetPlan = planFromMetadata(payment.getMetadata());
+        if (targetPlan == null) {
+            return;
+        }
+        LandlordSubscription subscription = subscriptionFor(payment.getPayer());
+        subscription.setPlan(targetPlan);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setCurrentPeriodEnd(Instant.now().plus(BILLING_PERIOD_DAYS, ChronoUnit.DAYS));
+        subscription.setPastDueSince(null);
+        subscription.setUpdatedAt(Instant.now());
+    }
+
+    private SubscriptionPlan planFromMetadata(String metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        for (String part : metadata.split(",")) {
+            String[] kv = part.split("=", 2);
+            if (kv.length == 2 && kv[0].equals("plan")) {
+                try {
+                    return SubscriptionPlan.valueOf(kv[1]);
+                } catch (IllegalArgumentException e) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Renews everyone whose paid period has lapsed; called by the daily billing sweep.
+     * Still self-confirmed rather than gateway-charged: a true unattended renewal needs a
+     * stored payment method (Stripe Customer + card-on-file, or equivalent), which is a
+     * separate feature from the checkout-redirect flow this integration adds. */
     @Transactional
     public void renewDuePaidSubscriptions() {
         for (LandlordSubscription subscription : subscriptions.findByStatusAndCurrentPeriodEndBefore(SubscriptionStatus.ACTIVE, Instant.now())) {

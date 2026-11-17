@@ -1,5 +1,6 @@
 "use client";
 
+import CessionBadge from "./CessionBadge";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -68,7 +69,7 @@ export default function PropertyCard({
       onMouseLeave={onMouseLeave}
       className={`group block bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-lg ${
         highlighted
-          ? "border-forest-500 shadow-lg ring-2 ring-forest-200"
+          ? "border-brand-500 shadow-lg ring-2 ring-brand-200"
           : isFeatured
             ? "border-amber-300 shadow-md ring-1 ring-amber-200"
             : "border-gray-200 shadow-sm"
@@ -104,9 +105,9 @@ export default function PropertyCard({
           <span
             className={`text-xs font-bold px-2 py-1 rounded ${
               property.listingType === "RENT"
-                ? "bg-forest-600 text-white"
+                ? "bg-brand-600 text-white"
                 : property.listingType === "SALE"
-                ? "bg-forest-600 text-white"
+                ? "bg-brand-600 text-white"
                 : "bg-purple-600 text-white"
             }`}
           >
@@ -114,13 +115,16 @@ export default function PropertyCard({
           </span>
         </div>
 
-        {/* Verified badge */}
-        {isVerified && (
-          <div className="absolute top-3 right-3">
-            <span className="bg-white text-forest-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
-              <CheckCircle className="w-3 h-3" />
-              Verified
-            </span>
+        {/* Verified / risk badges */}
+        {(isVerified || property.riskFlags?.includes("CESSION")) && (
+          <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+            {isVerified && (
+              <span className="bg-white text-brand-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
+                <CheckCircle className="w-3 h-3" />
+                Verified
+              </span>
+            )}
+            {property.riskFlags?.includes("CESSION") && <CessionBadge className="shadow" />}
           </div>
         )}
 
@@ -140,7 +144,7 @@ export default function PropertyCard({
           onClick={handleToggleCompare}
           title={comparing ? "Remove from comparison" : `Add to comparison (max ${MAX_COMPARE})`}
           className={`absolute bottom-3 left-3 w-7 h-7 rounded-full flex items-center justify-center shadow transition-colors ${
-            comparing ? "bg-forest-600 text-white" : "bg-white/90 text-gray-600 hover:bg-white"
+            comparing ? "bg-brand-600 text-white" : "bg-white/90 text-gray-600 hover:bg-white"
           }`}
         >
           <Scale className="w-3.5 h-3.5" />
@@ -170,7 +174,7 @@ export default function PropertyCard({
         </p>
 
         {companyName && (
-          <p className="text-xs text-forest-700 font-medium flex items-center gap-1 mt-0.5">
+          <p className="text-xs text-brand-700 font-medium flex items-center gap-1 mt-0.5">
             <Building2 className="w-3 h-3 shrink-0" />
             {companyName}
           </p>
@@ -179,7 +183,7 @@ export default function PropertyCard({
         {/* Feature badges */}
         <div className="flex flex-wrap gap-1.5 mt-2">
           {property.escrowRequired && (
-            <span className="text-xs bg-forest-50 text-forest-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full flex items-center gap-1">
               <Shield className="w-3 h-3" /> Escrow Protected
             </span>
           )}

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { subscriptions as subscriptionsApi } from "@/lib/api";
 import type { PlanSettings, SubscriptionInfo, SubscriptionFeature, SubscriptionPlan } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
+import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 import {
   CreditCard,
   AlertCircle,
@@ -56,6 +57,8 @@ export default function SubscriptionPage() {
   const [mine, setMine] = useState<SubscriptionInfo | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [switchingTo, setSwitchingTo] = useState<SubscriptionPlan | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null);
+  const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -92,6 +95,8 @@ export default function SubscriptionPage() {
     [plans]
   );
 
+  /** Only ever called for the free Starter tier - a paid upgrade goes through
+   * handleUpgradeCheckout instead, since it needs a real Paynow/Stripe checkout. */
   const handleSwitch = async (plan: SubscriptionPlan) => {
     if (!token) return;
     setSwitchingTo(plan);
@@ -100,15 +105,24 @@ export default function SubscriptionPage() {
     try {
       const updated = await subscriptionsApi.subscribe(plan, token);
       setMine(updated);
-      setSuccess(
-        plan === "STARTER"
-          ? "Switched to the Starter plan."
-          : `Upgraded to ${plan} — charged ${updated.currentPeriodEnd ? "" : ""}renews on ${updated.currentPeriodEnd ? formatDate(updated.currentPeriodEnd) : "next cycle"}.`
-      );
+      setSuccess("Switched to the Starter plan.");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not change plan.");
     } finally {
       setSwitchingTo(null);
+    }
+  };
+
+  const handleUpgradeCheckout = async (plan: SubscriptionPlan, provider: "paynow" | "stripe") => {
+    if (!token) return;
+    setError(""); setSuccess("");
+    setCheckoutProvider(provider);
+    try {
+      const checkout = await subscriptionsApi.checkout(plan, provider, token);
+      window.location.href = checkout.redirectUrl;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not start checkout.");
+      setCheckoutProvider(null);
     }
   };
 
@@ -130,28 +144,28 @@ export default function SubscriptionPage() {
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <CreditCard className="w-6 h-6 text-forest-600" /> Subscription Plan
+          <CreditCard className="w-6 h-6 text-brand-600" /> Subscription Plan
         </h1>
-        <p className="text-gray-500 mt-1">Choose the plan that fits your portfolio. Prices are set by PrimeNest.</p>
+        <p className="text-gray-500 mt-1">Choose the plan that fits your portfolio. Prices are set by EstateX.</p>
       </div>
 
       {mine && (
-        <div className="bg-forest-50 border border-forest-100 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div className="bg-brand-50 border border-brand-100 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <Building2 className="w-5 h-5 text-forest-600" />
+            <Building2 className="w-5 h-5 text-brand-600" />
             <div>
-              <p className="text-sm font-semibold text-forest-900">
+              <p className="text-sm font-semibold text-brand-900">
                 Current plan: {mine.plan} · {mine.activePropertyCount}{mine.maxProperties != null ? ` / ${mine.maxProperties}` : ""} properties used
               </p>
               {mine.currentPeriodEnd && (
-                <p className="text-xs text-forest-700 mt-0.5">
+                <p className="text-xs text-brand-700 mt-0.5">
                   Renews on {formatDate(mine.currentPeriodEnd)} · status {mine.status}
                   {mine.status === "PAST_DUE" && " — renewal failed, will downgrade if not resolved"}
                 </p>
               )}
             </div>
           </div>
-          <Link href="/payments" className="text-xs text-forest-700 underline">View billing history</Link>
+          <Link href="/payments" className="text-xs text-brand-700 underline">View billing history</Link>
         </div>
       )}
 
@@ -161,7 +175,7 @@ export default function SubscriptionPage() {
         </div>
       )}
       {success && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 text-brand-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -174,7 +188,7 @@ export default function SubscriptionPage() {
             <div
               key={plan.plan}
               className={`bg-white rounded-2xl p-6 border shadow-sm flex flex-col ${
-                isCurrent ? "border-forest-500 ring-2 ring-forest-100" : "border-gray-200"
+                isCurrent ? "border-brand-500 ring-2 ring-brand-100" : "border-gray-200"
               }`}
             >
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{plan.plan}</p>
@@ -190,7 +204,7 @@ export default function SubscriptionPage() {
                 {(Object.keys(FEATURE_LABELS) as SubscriptionFeature[]).map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-sm">
                     {enabled.includes(feature) ? (
-                      <Check className="w-4 h-4 text-forest-600 shrink-0" />
+                      <Check className="w-4 h-4 text-brand-600 shrink-0" />
                     ) : (
                       <X className="w-4 h-4 text-gray-300 shrink-0" />
                     )}
@@ -201,17 +215,34 @@ export default function SubscriptionPage() {
                 ))}
               </ul>
 
-              <button
-                onClick={() => handleSwitch(plan.plan)}
-                disabled={isCurrent || switchingTo === plan.plan}
-                className={`mt-5 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                  isCurrent
-                    ? "bg-gray-100 text-gray-400 cursor-default"
-                    : "bg-forest-600 hover:bg-forest-700 text-white disabled:opacity-60"
-                }`}
-              >
-                {isCurrent ? "Current plan" : switchingTo === plan.plan ? "Processing..." : plan.monthlyPrice > 0 ? "Upgrade" : "Switch to Starter"}
-              </button>
+              {!isCurrent && plan.monthlyPrice > 0 && checkoutPlan === plan.plan ? (
+                <div className="mt-5">
+                  <PaymentProviderPicker
+                    loadingProvider={checkoutProvider}
+                    onChoose={(provider) => handleUpgradeCheckout(plan.plan, provider)}
+                  />
+                  {!checkoutProvider && (
+                    <button
+                      onClick={() => setCheckoutPlan(null)}
+                      className="mt-2 text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => (plan.monthlyPrice > 0 ? setCheckoutPlan(plan.plan) : handleSwitch(plan.plan))}
+                  disabled={isCurrent || switchingTo === plan.plan}
+                  className={`mt-5 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    isCurrent
+                      ? "bg-gray-100 text-gray-400 cursor-default"
+                      : "bg-brand-600 hover:bg-brand-700 text-white disabled:opacity-60"
+                  }`}
+                >
+                  {isCurrent ? "Current plan" : switchingTo === plan.plan ? "Processing..." : plan.monthlyPrice > 0 ? "Upgrade" : "Switch to Starter"}
+                </button>
+              )}
             </div>
           );
         })}

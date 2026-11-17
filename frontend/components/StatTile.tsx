@@ -1,8 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 
 const TONE_CLASSES = {
-  forest: "bg-forest-50 text-forest-600",
-  gold: "bg-gold-50 text-gold-600",
+  forest: "bg-brand-50 text-brand-600",
+  gold: "bg-silver-50 text-silver-600",
   terracotta: "bg-terracotta-500/10 text-terracotta-600",
   red: "bg-red-50 text-red-600",
   gray: "bg-gray-100 text-gray-600",
@@ -27,7 +27,7 @@ export default function StatTile({
   return (
     <div
       className={`bg-white border rounded-2xl shadow-sm p-5 ${
-        emphasis ? "border-forest-200 ring-1 ring-forest-100" : "border-gray-200"
+        emphasis ? "border-brand-200 ring-1 ring-brand-100" : "border-gray-200"
       }`}
     >
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${TONE_CLASSES[tone]}`}>

@@ -114,6 +114,12 @@ public class NotificationService {
         }
     }
 
+    /** Sends one notification; repeated calls for the same user/type/relatedId are ignored. */
+    @Transactional
+    public void notify(AppUser user, NotificationType type, Long relatedId, String title, String message) {
+        create(user, type, relatedId, title, message);
+    }
+
     private void create(AppUser user, NotificationType type, Long relatedId, String title, String message) {
         if (notifications.existsByUserAndTypeAndRelatedId(user, type, relatedId)) {
             return;

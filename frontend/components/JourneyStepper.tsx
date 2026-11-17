@@ -17,20 +17,20 @@ export default function JourneyStepper({ stage, label }: { stage: JourneyStage; 
                 <div
                   className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                     active
-                      ? "bg-forest-600 text-white ring-2 ring-forest-200"
+                      ? "bg-brand-600 text-white ring-2 ring-brand-200"
                       : done
-                        ? "bg-forest-600 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-gray-100 text-gray-400"
                   }`}
                 >
                   {done ? <CheckCircle className="w-3 h-3" /> : i + 1}
                 </div>
-                <span className={`text-[9px] mt-1 text-center leading-tight ${active ? "text-forest-700 font-semibold" : "text-gray-400"}`}>
+                <span className={`text-[9px] mt-1 text-center leading-tight ${active ? "text-brand-700 font-semibold" : "text-gray-400"}`}>
                   {s.label}
                 </span>
               </div>
               {i < JOURNEY_STAGES.length - 1 && (
-                <div className={`h-0.5 w-3 mt-2.5 ${done ? "bg-forest-600" : "bg-gray-200"}`} />
+                <div className={`h-0.5 w-3 mt-2.5 ${done ? "bg-brand-600" : "bg-gray-200"}`} />
               )}
             </div>
           );

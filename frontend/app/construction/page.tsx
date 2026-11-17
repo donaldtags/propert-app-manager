@@ -99,7 +99,7 @@ export default function ConstructionProjectsPage() {
         </div>
         <button
           onClick={() => setShowForm((s) => !s)}
-          className="flex items-center gap-1.5 bg-forest-600 hover:bg-forest-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+          className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
         >
           <Plus className="w-4 h-4" /> Start a Project
         </button>
@@ -118,7 +118,7 @@ export default function ConstructionProjectsPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="My House — Harare"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -128,7 +128,7 @@ export default function ConstructionProjectsPage() {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Harare"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -136,7 +136,7 @@ export default function ConstructionProjectsPage() {
               <input
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -147,7 +147,7 @@ export default function ConstructionProjectsPage() {
                 value={budgetTotal}
                 onChange={(e) => setBudgetTotal(e.target.value)}
                 placeholder="45000"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -155,7 +155,7 @@ export default function ConstructionProjectsPage() {
               <input
                 value={contractorName}
                 onChange={(e) => setContractorName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -163,7 +163,7 @@ export default function ConstructionProjectsPage() {
               <input
                 value={contractorPhone}
                 onChange={(e) => setContractorPhone(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -172,7 +172,7 @@ export default function ConstructionProjectsPage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -181,7 +181,7 @@ export default function ConstructionProjectsPage() {
                 type="date"
                 value={expectedCompletionDate}
                 onChange={(e) => setExpectedCompletionDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
               />
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function ConstructionProjectsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
             >
               {saving ? "Creating…" : "Create Project"}
             </button>
@@ -218,7 +218,7 @@ export default function ConstructionProjectsPage() {
             <Link
               key={p.id}
               href={`/construction/${p.id}`}
-              className="block bg-white border border-gray-200 rounded-2xl shadow-sm p-5 hover:border-forest-300 transition-colors"
+              className="block bg-white border border-gray-200 rounded-2xl shadow-sm p-5 hover:border-brand-300 transition-colors"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <h3 className="font-bold text-gray-900">{p.title}</h3>

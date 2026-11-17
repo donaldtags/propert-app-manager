@@ -96,4 +96,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     long countByStatus(PropertyStatus status);
 
     List<Property> findTop10ByOrderByCreatedAtDesc();
+
+    /** Comparable listings for pricing (intake). */
+    List<Property> findTop100ByListingTypeAndCityIgnoreCaseAndBedroomsBetweenAndStatusInAndIdNotOrderByCreatedAtDesc(
+            ListingType listingType, String city, int minBedrooms, int maxBedrooms,
+            java.util.Collection<PropertyStatus> statuses, Long excludeId);
 }

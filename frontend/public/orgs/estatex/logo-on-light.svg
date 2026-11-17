@@ -1,0 +1,7 @@
+<!-- PLACEHOLDER: replace with the official ESTATEX artwork (on-light variant). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" role="img" aria-label="ESTATEX">
+  <rect width="64" height="64" rx="12" fill="#0B1D32"/>
+  <path d="M18 46 L46 18 M18 18 L32 32 M36 36 L46 46" stroke="#C9CED4" stroke-width="6" stroke-linecap="round"/>
+  <path d="M14 24 L32 10 L50 24" fill="none" stroke="#C9CED4" stroke-width="3" stroke-linejoin="round" opacity="0.55"/>
+  <text x="80" y="42" font-family="Montserrat, Arial, sans-serif" font-weight="600" font-size="26" letter-spacing="4" fill="#0B1D32">ESTATEX</text>
+</svg>

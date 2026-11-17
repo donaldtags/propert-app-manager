@@ -16,9 +16,13 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import com.example.primenestprop.organisation.OrgAccessService;
+import com.example.primenestprop.organisation.OrgPermission;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +43,9 @@ public class PropertyService {
     private final UserService users;
     private final ObjectStorageService objectStorage;
     private final PropertyBillingService billing;
+    private final GeocodingService geocoding;
+    private final OrgAccessService orgAccess;
+    private final ApplicationEventPublisher events;
     private final Path photoStorageRoot;
     private final String publicBaseUrl;
 
@@ -49,6 +56,9 @@ public class PropertyService {
             UserService users,
             ObjectStorageService objectStorage,
             PropertyBillingService billing,
+            GeocodingService geocoding,
+            OrgAccessService orgAccess,
+            ApplicationEventPublisher events,
             @Value("${app.storage.property-photos:storage/property-photos}") String photoStorageRoot,
             @Value("${app.public-base-url:http://localhost:8081}") String publicBaseUrl
     ) {
@@ -58,14 +68,29 @@ public class PropertyService {
         this.users = users;
         this.objectStorage = objectStorage;
         this.billing = billing;
+        this.geocoding = geocoding;
+        this.orgAccess = orgAccess;
+        this.events = events;
         this.photoStorageRoot = Path.of(photoStorageRoot);
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }
 
     @Transactional
     public Property create(PropertyDtos.CreatePropertyRequest request) {
+        return create(request, null, null);
+    }
+
+    /**
+     * Creates an independent listing ({@code organisationId == null}: live immediately and billed
+     * per listing, as before) or an organisation listing, which starts as DRAFT and only goes live
+     * through the workspace publish flow once every compliance gate is met. Organisation listings
+     * aren't billed per listing.
+     */
+    @Transactional
+    public Property create(PropertyDtos.CreatePropertyRequest request, Long organisationId, TitleType titleType) {
         AppUser landlord = users.require(request.landlordId());
-        if (!landlord.hasPermission(Permission.PROPERTY_CREATE)) {
+        boolean organisationListing = organisationId != null;
+        if (!organisationListing && !landlord.hasPermission(Permission.PROPERTY_CREATE)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "landlordId must belong to a landlord, agent, developer, or private seller");
         }
 
@@ -73,7 +98,9 @@ public class PropertyService {
         property.setTitle(request.title());
         property.setDescription(request.description());
         property.setListingType(request.listingType());
-        property.setStatus(PropertyStatus.AVAILABLE);
+        property.setStatus(organisationListing ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
+        property.setOrganisationId(organisationId);
+        property.setTitleType(titleType);
         property.setCity(request.city());
         property.setSuburb(request.suburb());
         property.setAddress(request.address());
@@ -82,7 +109,8 @@ public class PropertyService {
         property.setBathrooms(request.bathrooms());
         property.setPrice(request.price());
         property.setCurrency(request.currency() == null || request.currency().isBlank() ? "USD" : request.currency());
-        Coordinates coordinates = coordinatesFor(request.city(), request.suburb(), request.latitude(), request.longitude());
+        Coordinates coordinates = coordinatesFor(request.address(), request.suburb(), request.city(), property.getCountry(),
+                request.latitude(), request.longitude());
         property.setLatitude(coordinates.latitude());
         property.setLongitude(coordinates.longitude());
         property.setDiasporaFriendly(request.diasporaFriendly());
@@ -105,7 +133,9 @@ public class PropertyService {
             property.setAgent(agent);
         }
         Property saved = properties.save(property);
-        billing.chargeForNewListing(saved, landlord);
+        if (!organisationListing) {
+            billing.chargeForNewListing(saved, landlord);
+        }
         savePhotoUrls(saved, requestPhotoUrls(request));
         return saved;
     }
@@ -114,9 +144,19 @@ public class PropertyService {
     public Property update(Long id, PropertyDtos.UpdatePropertyRequest request, AppUser currentUser) {
         Property property = require(id);
         requireOwnerOrAdmin(property, currentUser);
+        if (property.isOrganisationListing() && request.status() == PropertyStatus.AVAILABLE
+                && property.getStatus() != PropertyStatus.AVAILABLE) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Agency listings go live through the workspace publish step, once every compliance check is met.");
+        }
+        boolean priceChanged = request.price() != null
+                && (property.getPrice() == null || request.price().compareTo(property.getPrice()) != 0);
         if (request.title() != null) property.setTitle(request.title());
         if (request.description() != null) property.setDescription(request.description());
         if (request.listingType() != null) property.setListingType(request.listingType());
+        boolean locationTextChanged = changed(request.address(), property.getAddress())
+                || changed(request.suburb(), property.getSuburb())
+                || changed(request.city(), property.getCity());
         if (request.city() != null) property.setCity(request.city());
         if (request.suburb() != null) property.setSuburb(request.suburb());
         if (request.address() != null) property.setAddress(request.address());
@@ -125,8 +165,16 @@ public class PropertyService {
         if (request.bathrooms() != null) property.setBathrooms(request.bathrooms());
         if (request.price() != null) property.setPrice(request.price());
         if (request.currency() != null) property.setCurrency(request.currency());
-        if (request.latitude() != null) property.setLatitude(request.latitude());
-        if (request.longitude() != null) property.setLongitude(request.longitude());
+        if (request.latitude() != null && request.longitude() != null) {
+            property.setLatitude(request.latitude());
+            property.setLongitude(request.longitude());
+        } else if (locationTextChanged) {
+            // The address moved but no pin came with it: re-locate from the new address.
+            Coordinates coordinates = coordinatesFor(property.getAddress(), property.getSuburb(), property.getCity(),
+                    property.getCountry(), null, null);
+            property.setLatitude(coordinates.latitude());
+            property.setLongitude(coordinates.longitude());
+        }
         if (request.diasporaFriendly() != null) property.setDiasporaFriendly(request.diasporaFriendly());
         if (request.escrowRequired() != null) property.setEscrowRequired(request.escrowRequired());
         if (request.solarInstalled() != null) property.setSolarInstalled(request.solarInstalled());
@@ -139,6 +187,12 @@ public class PropertyService {
         if (request.petsAllowed() != null) property.setPetsAllowed(request.petsAllowed());
         if (request.virtualTourUrl() != null) property.setVirtualTourUrl(request.virtualTourUrl());
         if (request.status() != null) property.setStatus(request.status());
+        if (property.isOrganisationListing() && (priceChanged || locationTextChanged)) {
+            List<String> fields = new java.util.ArrayList<>();
+            if (priceChanged) fields.add("price");
+            if (locationTextChanged) fields.add("address");
+            events.publishEvent(new PropertyMaterialChangeEvent(property.getId(), fields, currentUser));
+        }
         return property;
     }
 
@@ -174,6 +228,13 @@ public class PropertyService {
     }
 
     private void requireOwnerOrAdmin(Property property, AppUser currentUser) {
+        if (currentUser == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Sign in to edit listings");
+        }
+        if (property.isOrganisationListing()
+                && orgAccess.can(currentUser, property.getOrganisationId(), OrgPermission.LISTING_EDIT)) {
+            return;
+        }
         boolean isOwner = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
         boolean isAdmin = currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
@@ -189,6 +250,56 @@ public class PropertyService {
     public Property forceDisableEscrow(Property property) {
         property.setEscrowRequired(false);
         return properties.save(property);
+    }
+
+    /**
+     * Bytes of a photo this platform stored itself (local disk inside the photo root, or our S3
+     * bucket). Photos that are only external URLs are never fetched server-side (no SSRF).
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<byte[]> readStoredPhoto(Long propertyId) {
+        Property property = require(propertyId);
+        for (PropertyPhoto photo : property.getPhotos()) {
+            String key = photo.getStorageKey();
+            if (key == null || key.startsWith("http://") || key.startsWith("https://")) {
+                continue;
+            }
+            try {
+                if (objectStorage.isConfigured()) {
+                    return java.util.Optional.of(objectStorage.getBytes(key));
+                }
+                Path root = photoStorageRoot.toAbsolutePath().normalize();
+                Path file = Path.of(key).toAbsolutePath().normalize();
+                if (file.startsWith(root) && Files.isRegularFile(file)) {
+                    return java.util.Optional.of(Files.readAllBytes(file));
+                }
+            } catch (Exception e) {
+                log.debug("Could not read stored photo {} for property {}: {}", photo.getId(), propertyId, e.getMessage());
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    /** Used by the agency title-verification flow, which is what "verified listing" means for org listings. */
+    @Transactional
+    public void setVerification(Property property, VerificationStatus status) {
+        property.setVerificationStatus(status);
+        property.setVerifiedAt(status == VerificationStatus.VERIFIED ? Instant.now() : null);
+    }
+
+    /**
+     * Public read. An organisation listing that hasn't been published yet (DRAFT) is invisible
+     * (404) to everyone except the listing's own staff, so unapproved listings never leak.
+     */
+    @Transactional(readOnly = true)
+    public Property requireVisible(Long id, AppUser viewer) {
+        Property property = require(id);
+        if (property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT
+                && !orgAccess.can(viewer, property.getOrganisationId(), OrgPermission.ORG_VIEW)
+                && (viewer == null || !viewer.hasPermission(Permission.ADMIN_OVERRIDE))) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");
+        }
+        return property;
     }
 
     public Property require(Long id) {
@@ -295,7 +406,7 @@ public class PropertyService {
 
     @Transactional
     public void submitInquiry(Long id, PropertyDtos.InquiryRequest request) {
-        Property property = require(id);
+        Property property = requireVisible(id, null);
         PropertyInquiry inquiry = new PropertyInquiry();
         inquiry.setProperty(property);
         inquiry.setName(request.name());
@@ -303,6 +414,10 @@ public class PropertyService {
         inquiry.setPhone(request.phone());
         inquiry.setMessage(request.message());
         inquiries.save(inquiry);
+        if (property.isOrganisationListing()) {
+            events.publishEvent(new PropertyInquirySubmittedEvent(property.getId(), property.getOrganisationId(),
+                    request.name(), request.email(), request.phone(), request.message()));
+        }
         log.info("Inquiry for property '{}' (id={}): from {} <{}> phone={} - {}",
                 property.getTitle(), id, request.name(), request.email(), request.phone(), request.message());
     }
@@ -315,8 +430,9 @@ public class PropertyService {
     }
 
     @Transactional
-    public Property uploadPhotos(Long id, List<MultipartFile> files) {
+    public Property uploadPhotos(Long id, List<MultipartFile> files, AppUser currentUser) {
         Property property = require(id);
+        requireOwnerOrAdmin(property, currentUser);
         if (files == null || files.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "At least one photo is required");
         }
@@ -420,9 +536,23 @@ public class PropertyService {
         }
     }
 
-    Coordinates coordinatesFor(String city, String suburb, BigDecimal latitude, BigDecimal longitude) {
+    public List<GeocodingService.GeocodeResult> geocode(String address, String suburb, String city, String country) {
+        return geocoding.candidates(address, suburb, city, country, 5);
+    }
+
+    private static boolean changed(String requested, String current) {
+        return requested != null && !requested.trim().equalsIgnoreCase(current == null ? "" : current.trim());
+    }
+
+    /** Owner-supplied pin first, then the ArcGIS geocoder, then a rough suburb centroid. */
+    Coordinates coordinatesFor(String address, String suburb, String city, String country,
+                               BigDecimal latitude, BigDecimal longitude) {
         if (latitude != null && longitude != null) {
             return new Coordinates(latitude, longitude);
+        }
+        Optional<GeocodingService.GeocodeResult> geocoded = geocoding.geocode(address, suburb, city, country);
+        if (geocoded.isPresent()) {
+            return new Coordinates(geocoded.get().latitude(), geocoded.get().longitude());
         }
         String key = (suburb == null ? "" : suburb.trim().toLowerCase()) + ","
                 + (city == null ? "" : city.trim().toLowerCase());

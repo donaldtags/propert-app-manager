@@ -23,13 +23,4 @@ public final class FeaturedListingDtos {
     ) {
     }
 
-    public record FeatureListingResponse(
-            Long propertyId,
-            boolean featured,
-            Instant featuredUntil,
-            Long paymentId,
-            BigDecimal amountCharged,
-            String currency
-    ) {
-    }
 }

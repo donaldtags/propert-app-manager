@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Menu, X, ChevronDown } from "lucide-react";
 import NotificationBell from "./NotificationBell";
-import PrimeNestLogo from "./PrimeNestLogo";
+import EstateXLogo from "./EstateXLogo";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -52,7 +52,7 @@ export default function Navbar() {
       <div className="max-w-screen-2xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 min-w-0">
-          <PrimeNestLogo size={40} wordmarkClassName="hidden sm:inline" />
+          <EstateXLogo size={40} wordmarkClassName="hidden sm:inline" />
         </Link>
 
         {/* Desktop nav links */}
@@ -61,7 +61,7 @@ export default function Navbar() {
             <Link
               key={l.href}
               href={l.href}
-              className={`hover:text-forest-600 transition-colors ${pathname === l.href.split("?")[0] ? "text-forest-600" : ""}`}
+              className={`hover:text-brand-600 transition-colors ${pathname === l.href.split("?")[0] ? "text-brand-600" : ""}`}
             >
               {l.label}
             </Link>
@@ -72,7 +72,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3 ml-auto">
           <Link
             href="/properties/new"
-            className="hidden sm:flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-3 py-2 rounded-lg transition-colors"
+            className="hidden sm:flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-brand-600 border border-gray-200 hover:border-brand-300 px-3 py-2 rounded-lg transition-colors"
           >
             + List Property
           </Link>
@@ -85,9 +85,9 @@ export default function Navbar() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-forest-600 transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-brand-600 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-forest-100 text-forest-700 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs">
                   {user.fullName?.charAt(0).toUpperCase()}
                 </div>
                 <span className="hidden sm:block max-w-28 truncate">{user.fullName}</span>
@@ -111,7 +111,7 @@ export default function Navbar() {
                     <Link href="/investments" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Investments</Link>
                   )}
                   {user.roles?.includes("ADMIN") && (
-                    <Link href="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm font-medium text-forest-600 hover:bg-forest-50">Admin Portal</Link>
+                    <Link href="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50">Admin Portal</Link>
                   )}
                   {user.roles?.includes("SERVICE_PROVIDER") && (
                     <Link href="/provider" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Service Provider Profile</Link>
@@ -129,12 +129,12 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-forest-600 transition-colors hidden sm:block">
+              <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-brand-600 transition-colors hidden sm:block">
                 Sign In
               </Link>
               <Link
                 href="/register"
-                className="text-sm font-semibold bg-forest-600 hover:bg-forest-700 text-white px-4 py-2 rounded-lg transition-colors"
+                className="text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 Register
               </Link>
@@ -159,7 +159,7 @@ export default function Navbar() {
               key={l.href}
               href={l.href}
               onClick={() => setMenuOpen(false)}
-              className="block py-2 text-sm font-medium text-gray-700 hover:text-forest-600"
+              className="block py-2 text-sm font-medium text-gray-700 hover:text-brand-600"
             >
               {l.label}
             </Link>

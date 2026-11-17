@@ -8,8 +8,9 @@ import { properties as propertiesApi, ai as aiApi } from "@/lib/api";
 import { Home, Plus, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X, Sparkles } from "lucide-react";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import type { UserRole } from "@/lib/types";
-import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
+import { useZimbabweLocations } from "@/lib/locations";
 import PageLoader from "@/components/PageLoader";
+import LocationPicker from "@/components/LocationPicker";
 
 const LISTING_TYPES = [
   { value: "RENT", label: "For Rent", desc: "Monthly rental property" },
@@ -20,6 +21,7 @@ const LISTING_TYPES = [
 const LISTING_ROLES: UserRole[] = ["LANDLORD", "AGENT", "DEVELOPER", "PRIVATE"];
 
 export default function NewPropertyPage() {
+  const { cities: ZIMBABWE_CITIES, suburbs: ZIMBABWE_SUBURBS } = useZimbabweLocations();
   const { user, token, loading } = useAuth();
   const router = useRouter();
 
@@ -210,7 +212,7 @@ export default function NewPropertyPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-2xl border border-gray-200 p-10 shadow-sm text-center max-w-md">
-          <CheckCircle className="w-16 h-16 text-forest-500 mx-auto mb-4" />
+          <CheckCircle className="w-16 h-16 text-brand-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Property Listed!</h2>
           <p className="text-gray-500 mb-6">
             Your property has been created. An agent or admin can verify it to give it a Verified badge.
@@ -223,7 +225,7 @@ export default function NewPropertyPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href={`/properties/${createdId}`}
-              className="bg-forest-600 hover:bg-forest-700 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3 rounded-xl transition-colors"
             >
               View Listing
             </Link>
@@ -243,11 +245,11 @@ export default function NewPropertyPage() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <Link href="/properties" className="text-sm text-forest-600 hover:underline flex items-center gap-1 mb-4">
+        <Link href="/properties" className="text-sm text-brand-600 hover:underline flex items-center gap-1 mb-4">
           ← Back to listings
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Plus className="w-7 h-7 text-forest-600" /> List a Property
+          <Plus className="w-7 h-7 text-brand-600" /> List a Property
         </h1>
         <p className="text-gray-500 mt-1">Fill in the details below. Your listing goes live immediately.</p>
       </div>
@@ -281,11 +283,11 @@ export default function NewPropertyPage() {
                 onClick={() => setForm((f) => ({ ...f, listingType: t.value }))}
                 className={`p-4 rounded-xl border-2 text-left transition-all ${
                   form.listingType === t.value
-                    ? "border-forest-600 bg-forest-50"
+                    ? "border-brand-600 bg-brand-50"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                <p className={`font-bold text-sm ${form.listingType === t.value ? "text-forest-700" : "text-gray-900"}`}>{t.label}</p>
+                <p className={`font-bold text-sm ${form.listingType === t.value ? "text-brand-700" : "text-gray-900"}`}>{t.label}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
               </button>
             ))}
@@ -304,7 +306,7 @@ export default function NewPropertyPage() {
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               required
               placeholder="e.g. Borrowdale Garden Apartment"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
 
@@ -315,7 +317,7 @@ export default function NewPropertyPage() {
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={4}
               placeholder="Describe the property, features, nearby amenities..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 resize-none"
             />
           </div>
 
@@ -325,7 +327,7 @@ export default function NewPropertyPage() {
               <select
                 value={form.bedrooms}
                 onChange={(e) => setForm((f) => ({ ...f, bedrooms: Number(e.target.value) }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
               >
                 {[0, 1, 2, 3, 4, 5, 6].map((n) => (
                   <option key={n} value={n}>{n}</option>
@@ -337,7 +339,7 @@ export default function NewPropertyPage() {
               <select
                 value={form.bathrooms}
                 onChange={(e) => setForm((f) => ({ ...f, bathrooms: Number(e.target.value) }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
               >
                 {[0, 1, 2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>{n}</option>
@@ -366,7 +368,7 @@ export default function NewPropertyPage() {
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                 required
                 placeholder="e.g. 550"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
               {suggestionError && <p className="text-xs text-red-600 mt-1.5">{suggestionError}</p>}
               {rentSuggestion && (
@@ -399,7 +401,7 @@ export default function NewPropertyPage() {
               <select
                 value={form.currency}
                 onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
               >
                 <option value="USD">USD</option>
                 <option value="ZWL">ZWL</option>
@@ -423,7 +425,7 @@ export default function NewPropertyPage() {
                 onChange={(e) => setForm((f) => ({ ...f, city: e.target.value, suburb: "" }))}
                 required
                 placeholder="Start typing a city..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
               <datalist id="city-options">
                 {ZIMBABWE_CITIES.map((c) => (
@@ -440,7 +442,7 @@ export default function NewPropertyPage() {
                 onChange={(e) => setForm((f) => ({ ...f, suburb: e.target.value }))}
                 required
                 placeholder="Start typing a suburb..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
               <datalist id="suburb-options">
                 {suburbs.map((s) => (
@@ -456,42 +458,29 @@ export default function NewPropertyPage() {
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
               placeholder="e.g. 15 Borrowdale Road"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Latitude (optional)</label>
-              <input
-                type="number"
-                step="any"
-                value={form.latitude}
-                onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))}
-                placeholder="e.g. -17.7834"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Longitude (optional)</label>
-              <input
-                type="number"
-                step="any"
-                value={form.longitude}
-                onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))}
-                placeholder="e.g. 31.0672"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pin the exact house</label>
+            <LocationPicker
+              value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude) } : null}
+              onChange={(loc) =>
+                setForm((f) => ({ ...f, latitude: loc ? String(loc.latitude) : "", longitude: loc ? String(loc.longitude) : "" }))
+              }
+              address={form.address}
+              suburb={form.suburb}
+              city={form.city}
+              country={form.country}
+              token={token}
+            />
           </div>
-          <p className="text-xs text-gray-400">
-            If you leave coordinates blank, the backend auto-fills common Zimbabwe suburb coordinates.
-          </p>
         </div>
 
         {/* Photos */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-forest-600" /> Photos
+            <ImageIcon className="w-5 h-5 text-brand-600" /> Photos
           </h2>
           <p className="text-xs text-gray-500 mb-3">Upload photos from your device, or paste image URLs. Photos make your listing stand out.</p>
 
@@ -507,7 +496,7 @@ export default function NewPropertyPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-300 hover:border-forest-400 hover:bg-forest-50/50 rounded-xl px-4 py-6 text-sm font-semibold text-gray-600 hover:text-forest-700 transition-colors mb-4"
+            className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/50 rounded-xl px-4 py-6 text-sm font-semibold text-gray-600 hover:text-brand-700 transition-colors mb-4"
           >
             <Upload className="w-5 h-5" />
             Upload photos
@@ -543,12 +532,12 @@ export default function NewPropertyPage() {
               onChange={(e) => setPhotoInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPhoto(); } }}
               placeholder="Or paste an image URL..."
-              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
             <button
               type="button"
               onClick={addPhoto}
-              className="bg-forest-600 hover:bg-forest-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
             >
               Add
             </button>
@@ -601,7 +590,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, escrowRequired: !f.escrowRequired }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.escrowRequired ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.escrowRequired ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.escrowRequired ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -619,7 +608,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, solarInstalled: !f.solarInstalled }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.solarInstalled ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.solarInstalled ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.solarInstalled ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -628,7 +617,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, backupPower: !f.backupPower }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.backupPower ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.backupPower ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.backupPower ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -637,7 +626,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, furnished: !f.furnished }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.furnished ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.furnished ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.furnished ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -646,7 +635,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, internetAvailable: !f.internetAvailable }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.internetAvailable ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.internetAvailable ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.internetAvailable ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -655,7 +644,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, securityFeatures: !f.securityFeatures }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.securityFeatures ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.securityFeatures ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.securityFeatures ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -664,7 +653,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, parkingAvailable: !f.parkingAvailable }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.parkingAvailable ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.parkingAvailable ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.parkingAvailable ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -673,7 +662,7 @@ export default function NewPropertyPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <div
                 onClick={() => setForm((f) => ({ ...f, petsAllowed: !f.petsAllowed }))}
-                className={`w-12 h-6 rounded-full transition-colors relative ${form.petsAllowed ? "bg-forest-600" : "bg-gray-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${form.petsAllowed ? "bg-brand-600" : "bg-gray-200"}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.petsAllowed ? "translate-x-7" : "translate-x-1"}`} />
               </div>
@@ -686,7 +675,7 @@ export default function NewPropertyPage() {
             <select
               value={form.waterSource}
               onChange={(e) => setForm((f) => ({ ...f, waterSource: e.target.value as typeof f.waterSource }))}
-              className="w-full sm:w-64 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 bg-white"
+              className="w-full sm:w-64 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 bg-white"
             >
               <option value="">Not specified</option>
               <option value="MUNICIPAL">Municipal</option>
@@ -704,13 +693,13 @@ export default function NewPropertyPage() {
               value={form.virtualTourUrl}
               onChange={(e) => setForm((f) => ({ ...f, virtualTourUrl: e.target.value }))}
               placeholder="YouTube, Vimeo, or Matterport embed link"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
             />
           </div>
         </div>
 
         {/* Billing notice */}
-        <div className="bg-forest-50 border border-forest-200 text-forest-800 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+        <div className="bg-brand-50 border border-brand-200 text-brand-800 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <p>
             Listing a property costs <strong>$7.00/month</strong>, billed automatically to your account.
@@ -723,7 +712,7 @@ export default function NewPropertyPage() {
           <button
             type="submit"
             disabled={submitting || !user}
-            className="flex-1 sm:flex-none bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-bold py-3.5 px-10 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-bold py-3.5 px-10 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <Home className="w-5 h-5" />
             {submitting ? "Publishing..." : "Publish Listing — $7.00/mo"}

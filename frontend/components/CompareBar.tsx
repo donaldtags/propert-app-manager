@@ -21,13 +21,13 @@ export default function CompareBar() {
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white border border-gray-200 shadow-xl rounded-2xl px-4 sm:px-5 py-3 flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-[calc(100vw-2rem)]">
       <div className="flex items-center gap-2 text-sm font-medium text-gray-700 whitespace-nowrap">
-        <Scale className="w-4 h-4 text-forest-600 shrink-0" />
+        <Scale className="w-4 h-4 text-brand-600 shrink-0" />
         {ids.length} of {MAX_COMPARE} selected to compare
       </div>
       <button
         onClick={() => router.push(`/properties/compare?ids=${ids.join(",")}`)}
         disabled={ids.length < 2}
-        className="bg-forest-600 hover:bg-forest-700 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+        className="bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
       >
         Compare
       </button>

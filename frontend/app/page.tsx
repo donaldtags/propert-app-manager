@@ -41,8 +41,8 @@ export default function HomePage() {
       <section className="bg-gray-50 border-b border-gray-200 py-10 px-4">
         <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
           {[
-            { icon: CheckCircle, color: "text-forest-600", label: "Verified Listings", desc: "Every property vetted by certified agents" },
-            { icon: Shield, color: "text-forest-600", label: "Escrow Protected", desc: "Deposits held safely until keys are received" },
+            { icon: CheckCircle, color: "text-brand-600", label: "Verified Listings", desc: "Every property vetted by certified agents" },
+            { icon: Shield, color: "text-brand-600", label: "Escrow Protected", desc: "Deposits held safely until keys are received" },
             { icon: Globe, color: "text-amber-600", label: "Diaspora Friendly", desc: "Manage property remotely from abroad" },
             { icon: Zap, color: "text-purple-600", label: "Digital Leases", desc: "Sign legally-binding leases online" },
           ].map(({ icon: Icon, color, label, desc }) => (
@@ -64,7 +64,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/properties?listingType=RENT"
-            className="text-forest-600 text-sm font-semibold hover:underline flex items-center gap-1"
+            className="text-brand-600 text-sm font-semibold hover:underline flex items-center gap-1"
           >
             View all <span aria-hidden>→</span>
           </Link>
@@ -76,16 +76,16 @@ export default function HomePage() {
       </section>
 
       {/* Invest CTA */}
-      <section className="bg-forest-600 py-16 px-4 text-center text-white">
+      <section className="bg-brand-600 py-16 px-4 text-center text-white">
         <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-80" />
         <h2 className="text-3xl font-bold mb-3">Invest in African Real Estate</h2>
-        <p className="text-forest-100 max-w-xl mx-auto mb-6">
+        <p className="text-brand-100 max-w-xl mx-auto mb-6">
           Buy REIT units starting from $10. Earn projected yields and grow your
           portfolio across Zimbabwe and beyond.
         </p>
         <Link
           href="/investments"
-          className="bg-white text-forest-600 font-bold px-8 py-3 rounded-xl hover:bg-forest-50 transition-colors inline-block"
+          className="bg-white text-brand-600 font-bold px-8 py-3 rounded-xl hover:bg-brand-50 transition-colors inline-block"
         >
           Explore REITs
         </Link>
@@ -94,7 +94,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 text-sm py-8 px-4">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} PrimeNest. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} EstateX. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="/properties" className="hover:text-white">Browse</Link>
             <Link href="/investments" className="hover:text-white">Invest</Link>

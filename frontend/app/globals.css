@@ -1,45 +1,130 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   EstateX theme
+   Platform brand: Midnight Navy #0B1D32, Warm Ivory #F5F2EA, Slate Grey #788391,
+   Silver #C9CED4. Headings Montserrat, body Inter. No gold.
+   ========================================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f2ea;
+  --foreground: #0b1d32;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-montserrat);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Semantic tokens: used by organisation workspace screens (/orgs/**). They follow the
+     active organisation's theme and light/dark mode; see .ex-theme below and lib/orgTheme.ts. */
+  --color-primary: var(--ex-primary);
+  --color-on-primary: var(--ex-on-primary);
+  --color-surface: var(--ex-surface);
+  --color-raised: var(--ex-raised);
+  --color-ink: var(--ex-ink);
+  --color-muted: var(--ex-muted);
+  --color-accent: var(--ex-accent);
+  --color-line: var(--ex-line);
+  --color-danger: var(--ex-danger);
+  --color-success: var(--ex-success);
+  --color-warning: var(--ex-warning);
 }
 
-/* PrimeNest brand — Forest Green replaces the generic product blue everywhere. */
+/* Brand scales used by existing platform screens. "brand" replaced EstateX's forest green and
+   "silver" replaced its gold. brand-700 is deliberately a touch LIGHTER than brand-600: 600 is
+   already near-black navy, so a darker hover would be invisible. */
 @theme {
-  --color-forest-50: #eff6f1;
-  --color-forest-100: #dceee2;
-  --color-forest-200: #b9ddc7;
-  --color-forest-300: #8fc7a7;
-  --color-forest-400: #5fa97f;
-  --color-forest-500: #3b8862;
-  --color-forest-600: #1f5d42;
-  --color-forest-700: #184a35;
-  --color-forest-800: #123726;
-  --color-forest-900: #0d291c;
-  --color-gold-50: #fbf6e7;
-  --color-gold-100: #f5eac6;
-  --color-gold-500: #c9a227;
-  --color-gold-600: #9c7d1c;
-  --color-gold-700: #7a6115;
+  --color-brand-50: #f1f3f6;
+  --color-brand-100: #e1e6ee;
+  --color-brand-200: #c3cdda;
+  --color-brand-300: #95a5ba;
+  --color-brand-400: #5e7590;
+  --color-brand-500: #34506f;
+  --color-brand-600: #0b1d32;
+  --color-brand-700: #1a3352;
+  --color-brand-800: #071425;
+  --color-brand-900: #040c17;
+  --color-silver-50: #f4f5f7;
+  --color-silver-100: #e4e7eb;
+  --color-silver-200: #c9ced4;
+  --color-silver-500: #788391;
+  --color-silver-600: #5e6873;
+  --color-silver-700: #474f58;
   --color-terracotta-500: #b85c38;
   --color-terracotta-600: #9a4a2c;
   --color-brown-600: #5a3a29;
-  --color-ivory-50: #f8f3e7;
-  --color-charcoal-900: #202522;
+  --color-ivory-50: #f5f2ea;
+  --color-charcoal-900: #0b1d32;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, .font-heading {
+  font-family: var(--font-heading), var(--font-sans), Arial, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   Organisation workspace theme. The workspace layout sets --org-* variables
+   inline from the organisation's theme tokens (API), and data-mode to
+   light | dark | system. Fallbacks are the EstateX values.
+   -------------------------------------------------------------------------- */
+.ex-theme {
+  --ex-primary: var(--org-light-primary, #0b1d32);
+  --ex-on-primary: var(--org-light-on-primary, #f5f2ea);
+  --ex-surface: var(--org-light-surface, #f5f2ea);
+  --ex-raised: #ffffff;
+  --ex-ink: var(--org-light-text, #0b1d32);
+  --ex-muted: var(--org-light-muted, #5e6873);
+  --ex-accent: var(--org-light-accent, #c9ced4);
+  --ex-line: color-mix(in srgb, var(--ex-ink) 14%, transparent);
+  --ex-danger: #b42318;
+  --ex-success: #1e7a4c;
+  --ex-warning: #8a5a00;
+  background: var(--ex-surface);
+  color: var(--ex-ink);
+  font-family: var(--org-body-font, var(--font-inter)), Arial, sans-serif;
+  color-scheme: light;
+}
+
+.ex-theme h1, .ex-theme h2, .ex-theme h3, .ex-theme .font-heading {
+  font-family: var(--org-heading-font, var(--font-montserrat)), Arial, sans-serif;
+}
+
+.ex-theme[data-mode="dark"] {
+  --ex-primary: var(--org-dark-primary, #c9ced4);
+  --ex-on-primary: var(--org-dark-on-primary, #0b1d32);
+  --ex-surface: var(--org-dark-surface, #0b1d32);
+  --ex-raised: color-mix(in srgb, var(--ex-surface) 86%, #ffffff);
+  --ex-ink: var(--org-dark-text, #f5f2ea);
+  --ex-muted: var(--org-dark-muted, #a3abb5);
+  --ex-accent: var(--org-dark-accent, #788391);
+  --ex-danger: #f97066;
+  --ex-success: #6ce9a6;
+  --ex-warning: #fdb022;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ex-theme[data-mode="system"] {
+    --ex-primary: var(--org-dark-primary, #c9ced4);
+    --ex-on-primary: var(--org-dark-on-primary, #0b1d32);
+    --ex-surface: var(--org-dark-surface, #0b1d32);
+    --ex-raised: color-mix(in srgb, var(--ex-surface) 86%, #ffffff);
+    --ex-ink: var(--org-dark-text, #f5f2ea);
+    --ex-muted: var(--org-dark-muted, #a3abb5);
+    --ex-accent: var(--org-dark-accent, #788391);
+    --ex-danger: #f97066;
+    --ex-success: #6ce9a6;
+    --ex-warning: #fdb022;
+    color-scheme: dark;
+  }
 }
 
 /* Leaflet map overrides */
@@ -50,7 +135,7 @@ body {
 }
 
 .price-marker {
-  background: #1f5d42;
+  background: #0b1d32;
   color: white;
   border-radius: 4px;
   padding: 4px 8px;
@@ -71,11 +156,41 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1f5d42;
+  background: #0b1d32;
   color: white;
   border-radius: 50%;
   font-size: 13px;
   font-weight: 700;
   border: 3px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* "This exact house" pin used on the property page and the listing location picker */
+.house-pin {
+  width: 32px;
+  height: 32px;
+  background: #0b1d32;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.house-pin span {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+}
+
+.you-are-here {
+  width: 16px;
+  height: 16px;
+  background: #2563eb;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25);
 }
