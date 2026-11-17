@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import type { OrgAuditEntry } from "@/lib/types";
 import { useOrgWorkspace, ws } from "@/components/workspace/OrgWorkspace";
 
-const formatter = new Intl.DateTimeFormat("en-ZW", {
+const formatter = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
   timeZone: "Africa/Harare",

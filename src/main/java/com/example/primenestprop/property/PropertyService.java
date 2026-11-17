@@ -19,7 +19,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import com.example.primenestprop.organisation.OrgAccessService;
+import com.example.primenestprop.organisation.OrgPermission;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +44,8 @@ public class PropertyService {
     private final ObjectStorageService objectStorage;
     private final PropertyBillingService billing;
     private final GeocodingService geocoding;
+    private final OrgAccessService orgAccess;
+    private final ApplicationEventPublisher events;
     private final Path photoStorageRoot;
     private final String publicBaseUrl;
 
@@ -52,6 +57,8 @@ public class PropertyService {
             ObjectStorageService objectStorage,
             PropertyBillingService billing,
             GeocodingService geocoding,
+            OrgAccessService orgAccess,
+            ApplicationEventPublisher events,
             @Value("${app.storage.property-photos:storage/property-photos}") String photoStorageRoot,
             @Value("${app.public-base-url:http://localhost:8081}") String publicBaseUrl
     ) {
@@ -62,14 +69,28 @@ public class PropertyService {
         this.objectStorage = objectStorage;
         this.billing = billing;
         this.geocoding = geocoding;
+        this.orgAccess = orgAccess;
+        this.events = events;
         this.photoStorageRoot = Path.of(photoStorageRoot);
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }
 
     @Transactional
     public Property create(PropertyDtos.CreatePropertyRequest request) {
+        return create(request, null, null);
+    }
+
+    /**
+     * Creates an independent listing ({@code organisationId == null}: live immediately and billed
+     * per listing, as before) or an organisation listing, which starts as DRAFT and only goes live
+     * through the workspace publish flow once every compliance gate is met. Organisation listings
+     * aren't billed per listing.
+     */
+    @Transactional
+    public Property create(PropertyDtos.CreatePropertyRequest request, Long organisationId, TitleType titleType) {
         AppUser landlord = users.require(request.landlordId());
-        if (!landlord.hasPermission(Permission.PROPERTY_CREATE)) {
+        boolean organisationListing = organisationId != null;
+        if (!organisationListing && !landlord.hasPermission(Permission.PROPERTY_CREATE)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "landlordId must belong to a landlord, agent, developer, or private seller");
         }
 
@@ -77,7 +98,9 @@ public class PropertyService {
         property.setTitle(request.title());
         property.setDescription(request.description());
         property.setListingType(request.listingType());
-        property.setStatus(PropertyStatus.AVAILABLE);
+        property.setStatus(organisationListing ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
+        property.setOrganisationId(organisationId);
+        property.setTitleType(titleType);
         property.setCity(request.city());
         property.setSuburb(request.suburb());
         property.setAddress(request.address());
@@ -110,7 +133,9 @@ public class PropertyService {
             property.setAgent(agent);
         }
         Property saved = properties.save(property);
-        billing.chargeForNewListing(saved, landlord);
+        if (!organisationListing) {
+            billing.chargeForNewListing(saved, landlord);
+        }
         savePhotoUrls(saved, requestPhotoUrls(request));
         return saved;
     }
@@ -119,6 +144,13 @@ public class PropertyService {
     public Property update(Long id, PropertyDtos.UpdatePropertyRequest request, AppUser currentUser) {
         Property property = require(id);
         requireOwnerOrAdmin(property, currentUser);
+        if (property.isOrganisationListing() && request.status() == PropertyStatus.AVAILABLE
+                && property.getStatus() != PropertyStatus.AVAILABLE) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Agency listings go live through the workspace publish step, once every compliance check is met.");
+        }
+        boolean priceChanged = request.price() != null
+                && (property.getPrice() == null || request.price().compareTo(property.getPrice()) != 0);
         if (request.title() != null) property.setTitle(request.title());
         if (request.description() != null) property.setDescription(request.description());
         if (request.listingType() != null) property.setListingType(request.listingType());
@@ -155,6 +187,12 @@ public class PropertyService {
         if (request.petsAllowed() != null) property.setPetsAllowed(request.petsAllowed());
         if (request.virtualTourUrl() != null) property.setVirtualTourUrl(request.virtualTourUrl());
         if (request.status() != null) property.setStatus(request.status());
+        if (property.isOrganisationListing() && (priceChanged || locationTextChanged)) {
+            List<String> fields = new java.util.ArrayList<>();
+            if (priceChanged) fields.add("price");
+            if (locationTextChanged) fields.add("address");
+            events.publishEvent(new PropertyMaterialChangeEvent(property.getId(), fields, currentUser));
+        }
         return property;
     }
 
@@ -190,6 +228,13 @@ public class PropertyService {
     }
 
     private void requireOwnerOrAdmin(Property property, AppUser currentUser) {
+        if (currentUser == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Sign in to edit listings");
+        }
+        if (property.isOrganisationListing()
+                && orgAccess.can(currentUser, property.getOrganisationId(), OrgPermission.LISTING_EDIT)) {
+            return;
+        }
         boolean isOwner = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
         boolean isAdmin = currentUser.hasPermission(Permission.ADMIN_OVERRIDE);
@@ -205,6 +250,28 @@ public class PropertyService {
     public Property forceDisableEscrow(Property property) {
         property.setEscrowRequired(false);
         return properties.save(property);
+    }
+
+    /** Used by the agency title-verification flow, which is what "verified listing" means for org listings. */
+    @Transactional
+    public void setVerification(Property property, VerificationStatus status) {
+        property.setVerificationStatus(status);
+        property.setVerifiedAt(status == VerificationStatus.VERIFIED ? Instant.now() : null);
+    }
+
+    /**
+     * Public read. An organisation listing that hasn't been published yet (DRAFT) is invisible
+     * (404) to everyone except the listing's own staff, so unapproved listings never leak.
+     */
+    @Transactional(readOnly = true)
+    public Property requireVisible(Long id, AppUser viewer) {
+        Property property = require(id);
+        if (property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT
+                && !orgAccess.can(viewer, property.getOrganisationId(), OrgPermission.ORG_VIEW)
+                && (viewer == null || !viewer.hasPermission(Permission.ADMIN_OVERRIDE))) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");
+        }
+        return property;
     }
 
     public Property require(Long id) {
@@ -331,8 +398,9 @@ public class PropertyService {
     }
 
     @Transactional
-    public Property uploadPhotos(Long id, List<MultipartFile> files) {
+    public Property uploadPhotos(Long id, List<MultipartFile> files, AppUser currentUser) {
         Property property = require(id);
+        requireOwnerOrAdmin(property, currentUser);
         if (files == null || files.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "At least one photo is required");
         }

@@ -10,6 +10,8 @@ public enum OrgPermission {
 
     LISTING_CREATE,
     LISTING_EDIT,
+    /** Confirm ownership/title documents were checked. ORG_ADMIN and PREA. */
+    TITLE_VERIFY,
     /** PREA only. */
     LISTING_APPROVE_PUBLISH,
     /** PREA only. */

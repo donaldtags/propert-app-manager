@@ -79,6 +79,26 @@ public class OrgAccessService {
         throw new ApiException(HttpStatus.FORBIDDEN, "Your role in " + context.organisation().getName() + " does not allow this");
     }
 
+    /** Same as {@link #require} for code that holds an organisation id rather than a slug. */
+    @Transactional(readOnly = true)
+    public OrgContext requireById(AppUser user, Long organisationId, OrgPermission permission) {
+        Organisation organisation = organisations.findById(organisationId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Organisation not found"));
+        return require(user, organisation.getSlug(), permission);
+    }
+
+    /** True when the user may act with {@code permission} in the organisation; never throws for a signed-in user. */
+    @Transactional(readOnly = true)
+    public boolean can(AppUser user, Long organisationId, OrgPermission permission) {
+        if (user == null || organisationId == null) {
+            return false;
+        }
+        OrganisationMembership membership = memberships.findByOrganisationIdAndUserId(organisationId, user.getId())
+                .filter(OrganisationMembership::isActive)
+                .orElse(null);
+        return effectivePermissions(user, membership).contains(permission);
+    }
+
     static Set<OrgPermission> effectivePermissions(AppUser user, OrganisationMembership membership) {
         Set<OrgPermission> result = EnumSet.noneOf(OrgPermission.class);
         if (membership != null) {

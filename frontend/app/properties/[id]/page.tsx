@@ -1,5 +1,6 @@
 "use client";
 
+import CessionBadge, { CESSION_EXPLANATION } from "@/components/CessionBadge";
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -723,6 +724,12 @@ export default function PropertyDetailPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
+                {property.riskFlags?.includes("CESSION") && (
+                  <>
+                    <CessionBadge size="md" />
+                    <p className="basis-full order-last text-xs text-amber-800">{CESSION_EXPLANATION}</p>
+                  </>
+                )}
                 {property.verificationStatus === "VERIFIED" && (
                   <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200">
                     <CheckCircle className="w-3.5 h-3.5" /> Verified

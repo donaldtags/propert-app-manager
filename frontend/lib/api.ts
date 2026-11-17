@@ -63,6 +63,13 @@ import type {
   UpdateOrganisationRequest,
   LocationNode,
   DensityTier,
+  OrgListingSummary,
+  OrgListingDetail,
+  CreateOrgListingRequest,
+  CreateMandateRequest,
+  Mandate,
+  TitleType,
+  TitleVerificationStatus,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -1092,6 +1099,88 @@ export const organisations = {
 
   audit: (slug: string, token: string, limit = 100) =>
     request<OrgAuditEntry[]>(`/orgs/${encodeURIComponent(slug)}/audit?limit=${limit}`, {}, token),
+};
+
+// Organisation listings, compliance gates and mandates
+const orgPath = (slug: string) => `/orgs/${encodeURIComponent(slug)}`;
+
+export const orgListings = {
+  list: (slug: string, token: string) => request<OrgListingSummary[]>(`${orgPath(slug)}/listings`, {}, token),
+
+  get: (slug: string, id: number, token: string) =>
+    request<OrgListingDetail>(`${orgPath(slug)}/listings/${id}`, {}, token),
+
+  create: (slug: string, data: CreateOrgListingRequest, token: string) =>
+    request<OrgListingDetail>(`${orgPath(slug)}/listings`, { method: "POST", body: JSON.stringify(data) }, token),
+
+  setTitle: (slug: string, id: number, data: { titleType: TitleType; titleReference?: string }, token: string) =>
+    request<OrgListingDetail>(`${orgPath(slug)}/listings/${id}/title`, { method: "PUT", body: JSON.stringify(data) }, token),
+
+  verifyTitle: (slug: string, id: number, data: { status: TitleVerificationStatus; notes?: string }, token: string) =>
+    request<OrgListingDetail>(
+      `${orgPath(slug)}/listings/${id}/title-verification`,
+      { method: "POST", body: JSON.stringify(data) },
+      token
+    ),
+
+  setConsent: (slug: string, id: number, data: { photos: boolean; address: boolean }, token: string) =>
+    request<OrgListingDetail>(`${orgPath(slug)}/listings/${id}/consent`, { method: "PUT", body: JSON.stringify(data) }, token),
+
+  approve: (slug: string, id: number, token: string) =>
+    request<OrgListingDetail>(`${orgPath(slug)}/listings/${id}/approve`, { method: "POST" }, token),
+
+  publish: (slug: string, id: number, token: string) =>
+    request<OrgListingDetail>(`${orgPath(slug)}/listings/${id}/publish`, { method: "POST" }, token),
+
+  unpublish: (slug: string, id: number, reason: string | undefined, token: string) =>
+    request<OrgListingDetail>(
+      `${orgPath(slug)}/listings/${id}/unpublish`,
+      { method: "POST", body: JSON.stringify({ reason }) },
+      token
+    ),
+
+  createMandate: (slug: string, id: number, data: CreateMandateRequest, token: string) =>
+    request<Mandate>(`${orgPath(slug)}/listings/${id}/mandates`, { method: "POST", body: JSON.stringify(data) }, token),
+
+  attachSignedMandate: async (slug: string, mandateId: number, file: File, ownerSignedOn: string, token: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    const q = ownerSignedOn ? `?ownerSignedOn=${encodeURIComponent(ownerSignedOn)}` : "";
+    const res = await fetch(`${BASE}${orgPath(slug)}/mandates/${mandateId}/signed-document${q}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) {
+      let message = res.statusText;
+      try {
+        message = (await res.json()).message ?? message;
+      } catch {}
+      throw new Error(message);
+    }
+    return (await res.json()) as Mandate;
+  },
+
+  signOffMandate: (slug: string, mandateId: number, token: string) =>
+    request<Mandate>(`${orgPath(slug)}/mandates/${mandateId}/sign-off`, { method: "POST" }, token),
+
+  cancelMandate: (slug: string, mandateId: number, reason: string | undefined, token: string) =>
+    request<Mandate>(
+      `${orgPath(slug)}/mandates/${mandateId}/cancel`,
+      { method: "POST", body: JSON.stringify({ reason }) },
+      token
+    ),
+
+  /** Opens the signed mandate in a new tab (fetched with auth, shown as a blob URL). */
+  openSignedMandate: async (slug: string, mandateId: number, token: string) => {
+    const res = await fetch(`${BASE}${orgPath(slug)}/mandates/${mandateId}/signed-document`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Could not open the signed mandate");
+    const url = URL.createObjectURL(await res.blob());
+    window.open(url, "_blank", "noopener");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
 };
 
 // Location reference data (provinces, cities/towns, suburbs)

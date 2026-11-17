@@ -1,5 +1,6 @@
 "use client";
 
+import CessionBadge from "./CessionBadge";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -114,13 +115,16 @@ export default function PropertyCard({
           </span>
         </div>
 
-        {/* Verified badge */}
-        {isVerified && (
-          <div className="absolute top-3 right-3">
-            <span className="bg-white text-brand-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
-              <CheckCircle className="w-3 h-3" />
-              Verified
-            </span>
+        {/* Verified / risk badges */}
+        {(isVerified || property.riskFlags?.includes("CESSION")) && (
+          <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+            {isVerified && (
+              <span className="bg-white text-brand-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
+                <CheckCircle className="w-3 h-3" />
+                Verified
+              </span>
+            )}
+            {property.riskFlags?.includes("CESSION") && <CessionBadge className="shadow" />}
           </div>
         )}
 

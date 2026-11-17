@@ -104,8 +104,8 @@ public class PropertyController {
     }
 
     @GetMapping("/{id}")
-    PropertyResponse get(@PathVariable Long id) {
-        return PropertyResponse.from(service.require(id));
+    PropertyResponse get(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
+        return PropertyResponse.from(service.requireVisible(id, currentUser));
     }
 
     @GetMapping("/{id}/passport")
@@ -114,8 +114,9 @@ public class PropertyController {
     }
 
     @PostMapping("/{id}/photos")
-    PropertyResponse uploadPhotos(@PathVariable Long id, @ModelAttribute UploadPhotosRequest request) {
-        return PropertyResponse.from(service.uploadPhotos(id, request.files()));
+    PropertyResponse uploadPhotos(@PathVariable Long id, @ModelAttribute UploadPhotosRequest request,
+                                  @AuthenticationPrincipal AppUser currentUser) {
+        return PropertyResponse.from(service.uploadPhotos(id, request.files(), currentUser));
     }
 
     @org.springframework.web.bind.annotation.DeleteMapping("/{id}/photos/{photoId}")

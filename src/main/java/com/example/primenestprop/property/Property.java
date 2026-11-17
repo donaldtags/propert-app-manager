@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -86,6 +87,16 @@ public class Property {
     private boolean featured;
     private Instant featuredUntil;
 
+    /** Set when an organisation workspace (e.g. ESTATEX) holds this listing; null = independent listing. */
+    @Column(name = "organisation_id")
+    private Long organisationId;
+
+    // String-backed enum: see Location.typeCode for why (no CHECK constraint drift).
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @Column(name = "title_type", length = 20)
+    private String titleTypeCode;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private AppUser landlord;
 
@@ -98,4 +109,16 @@ public class Property {
     @OneToMany(mappedBy = "property")
     @OrderBy("primaryPhoto DESC, sortOrder ASC, id ASC")
     private List<PropertyPhoto> photos = new ArrayList<>();
+
+    public TitleType getTitleType() {
+        return titleTypeCode == null ? null : TitleType.valueOf(titleTypeCode);
+    }
+
+    public void setTitleType(TitleType titleType) {
+        this.titleTypeCode = titleType == null ? null : titleType.name();
+    }
+
+    public boolean isOrganisationListing() {
+        return organisationId != null;
+    }
 }

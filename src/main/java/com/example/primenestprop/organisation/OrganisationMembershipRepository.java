@@ -13,4 +13,7 @@ public interface OrganisationMembershipRepository extends JpaRepository<Organisa
 
     @EntityGraph(attributePaths = "user")
     List<OrganisationMembership> findByOrganisationIdOrderByCreatedAtAsc(Long organisationId);
+
+    @EntityGraph(attributePaths = "user")
+    List<OrganisationMembership> findByOrganisationIdAndActiveTrue(Long organisationId);
 }

@@ -1,4 +1,6 @@
 export type ListingType = "RENT" | "SALE" | "SHORT_STAY";
+export type TitleType = "TITLE_DEED" | "SECTIONAL_TITLE" | "CESSION";
+
 export type PropertyStatus = "DRAFT" | "AVAILABLE" | "RESERVED" | "OCCUPIED" | "SOLD" | "INACTIVE";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 export type WaterSource = "MUNICIPAL" | "BOREHOLE" | "WELL" | "TANKER" | "OTHER";
@@ -85,6 +87,11 @@ export interface Property {
   imageUrls: string[];
   photos: string[];
   photoDetails: { id: number; url: string }[];
+  /** Set when an agency workspace holds the listing. */
+  organisationId?: number;
+  titleType?: TitleType;
+  /** Buyer-facing risk markers, e.g. "CESSION". */
+  riskFlags?: string[];
 }
 
 export interface FeaturedListingSettings {
@@ -880,6 +887,7 @@ export type OrgPermission =
   | "AUDIT_VIEW"
   | "LISTING_CREATE"
   | "LISTING_EDIT"
+  | "TITLE_VERIFY"
   | "LISTING_APPROVE_PUBLISH"
   | "MANDATE_SIGN_OFF"
   | "TRUST_LEDGER_VIEW"
@@ -1021,4 +1029,118 @@ export interface LocationNode {
   latitude?: number;
   longitude?: number;
   verified: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Organisation listings & compliance gates (EstateX Phase 1b)
+// ---------------------------------------------------------------------------
+
+export type TitleVerificationStatus = "NOT_STARTED" | "IN_PROGRESS" | "VERIFIED" | "FAILED";
+export type MandateType = "SOLE" | "OPEN";
+export type MandateStatus = "DRAFT" | "AWAITING_SIGN_OFF" | "ACTIVE" | "EXPIRED" | "CANCELLED" | "SUPERSEDED";
+export type ComplianceCheckKey = "TITLE_TYPE" | "TITLE_VERIFIED" | "MANDATE" | "OWNER_CONSENT" | "PREA_APPROVAL";
+
+export interface ComplianceCheck {
+  key: ComplianceCheckKey;
+  label: string;
+  met: boolean;
+  detail: string;
+}
+
+export interface ListingCompliance {
+  titleVerificationStatus: TitleVerificationStatus;
+  titleReference?: string;
+  titleVerificationNotes?: string;
+  titleVerifiedAt?: string;
+  titleVerifiedByName?: string;
+  ownerConsentPhotos: boolean;
+  ownerConsentAddress: boolean;
+  consentRecordedAt?: string;
+  preaApprovedAt?: string;
+  preaApprovedByName?: string;
+  materialChangedAt?: string;
+  activeMandateId?: number;
+  publishedAt?: string;
+  division?: Division;
+  negotiatorUserId?: number;
+  negotiatorName?: string;
+  checks: ComplianceCheck[];
+  publishable: boolean;
+  readyForApproval: boolean;
+  version: number;
+}
+
+export interface Mandate {
+  id: number;
+  propertyId: number;
+  type: MandateType;
+  status: MandateStatus;
+  startDate: string;
+  expiryDate: string;
+  ownerName: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  askingPriceCents?: number;
+  minimumPriceCents?: number;
+  currency: string;
+  commissionBps?: number;
+  offerAuthority?: string;
+  hasSignedDocument: boolean;
+  documentFileName?: string;
+  ownerSignedOn?: string;
+  preaSignedOffAt?: string;
+  preaSignedOffByName?: string;
+  createdAt: string;
+  version: number;
+}
+
+export interface OrgListingSummary {
+  propertyId: number;
+  title: string;
+  listingType: ListingType;
+  status: PropertyStatus;
+  city: string;
+  suburb: string;
+  priceCents?: number;
+  currency: string;
+  titleType?: TitleType;
+  riskFlags: string[];
+  negotiatorName?: string;
+  publishable: boolean;
+  openChecks: number;
+  createdAt: string;
+}
+
+export interface OrgListingDetail {
+  property: Property;
+  compliance: ListingCompliance;
+  mandates: Mandate[];
+}
+
+export interface CreateOrgListingRequest {
+  title: string;
+  description?: string;
+  listingType: ListingType;
+  city: string;
+  suburb: string;
+  address?: string;
+  bedrooms: number;
+  bathrooms: number;
+  priceCents: number;
+  currency?: "USD" | "ZWG";
+  titleType?: TitleType;
+}
+
+export interface CreateMandateRequest {
+  clientId?: string;
+  type: MandateType;
+  startDate: string;
+  expiryDate: string;
+  ownerName: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  askingPriceCents?: number;
+  minimumPriceCents?: number;
+  commissionBps?: number;
+  offerAuthority?: string;
 }

@@ -1,6 +1,6 @@
 # ESTATEX Integration Plan
 
-Status: **APPROVED 2026-11-17.** Phase 1a done (branch `feature/estatex`), awaiting review before Phase 1b.
+Status: **APPROVED 2026-11-17.** Phases 1a and 1b done (branch `feature/estatex`), awaiting review before Phase 1c.
 
 ### Decisions (answers to §9)
 - **D1 (Q1).** The target is the Next.js web app, made into an installable, offline-capable PWA. There is no Flutter app.
@@ -10,6 +10,7 @@ Status: **APPROVED 2026-11-17.** Phase 1a done (branch `feature/estatex`), await
 - **D5 (Q5–Q7).** New dependencies approved: Flyway, `idb`, a service worker, a Java PDF library (OpenHTMLtoPDF) and Vitest.
 - **D6 (Q9).** The pre-existing uncommitted work was committed as `e803b01` on the new branch `feature/estatex`. Nothing was committed to `main`.
 - **D7 (Q10).** Sale commission defaults to **5%**. Other fees use common Zimbabwe agency practice as editable org settings: letting fee = 1 month's rent, management fee = 10% of rent collected. The ESTATEX PREA should confirm them.
+- **D9 (Phase 1b questions).** Expired mandates are **auto-unpublished** just after midnight Harare. **Price, address and title type** are the material fields whose change withdraws PREA approval.
 - **D8 (Q8, Q11, defaults applied).** The yield calculator is staff-only for now. Logos live in `frontend/public/orgs/estatex/`.
 
 ### Baseline before any EstateX code (commit `e803b01`)
@@ -353,8 +354,55 @@ Every province, city and town listed below gets suburbs/townships in the seed JS
 - Should a listing with an **expired** mandate be unpublished automatically at Harare midnight (planned), or only flagged for the PREA?
 - Should "material edit resets PREA approval" cover exactly price, address and title type? Any other fields?
 
+### Phase 1b: Compliance gates, mandates, trust ledger, commission (DONE 2026-11-17)
+
+**Built: backend**
+- `Property` gains two nullable columns: `organisation_id` and `title_type` (`TITLE_DEED | SECTIONAL_TITLE | CESSION`, string-backed). `PropertyResponse` adds `organisationId`, `titleType` and `riskFlags` (`["CESSION"]`).
+- `listing/` package:
+  - `ListingCompliance` (one row per org listing, `@Version`): title verification, owner consent, PREA approval, `materialChangedAt`, active mandate, publish history.
+  - `Mandate` (sole/open, start and expiry dates, owner, asking/minimum price in cents, commission bps defaulting to the org's 5% for sales, offer authority, signed document, PREA sign-off). Statuses: DRAFT → AWAITING_SIGN_OFF → ACTIVE → EXPIRED / CANCELLED / SUPERSEDED.
+  - `PublicationGuard`: a pure function evaluating the 5 gates (title type, title verified, in-date PREA-signed mandate, owner consent to photos **and** address, PREA approval after the last material change).
+  - `OrgListingService`, `MandateService`, `OrgListingController`.
+  - `MandateExpiryJob`: cron `0 5 0 * * *` Africa/Harare, plus a catch-up run on startup.
+- **Enforced server-side:**
+  - Org listings are created as DRAFT and aren't billed per listing.
+  - `PATCH /properties/{id}` can't set an org listing to AVAILABLE (409); the only route is `POST /orgs/{slug}/listings/{id}/publish`, which runs the guard.
+  - Only the PREA can approve a listing or sign off a mandate; ORG_ADMIN and platform ADMIN get 403.
+  - A price or address edit (via any endpoint) or a title-type change withdraws approval. Any change that breaks a gate on a live listing (consent withdrawn, mandate cancelled or expired, title changed) **unpublishes it immediately** and notifies the negotiator and the PREA.
+  - Unpublished org listings return 404 to the public and to non-members.
+- **Fixed in passing:** `POST /properties/{id}/photos` had no ownership check, so any signed-in user could add photos to any listing. It now requires the listing owner/agent, an org member with LISTING_EDIT, or an admin.
+- `trust/`: append-only `TrustLedgerEntry` (cents, USD/ZWG, per-property buckets, client name, links to escrow/payment/commission, `clientId` idempotency). Outgoing entries can't overdraw their bucket; writes are serialised per org with a row lock. `TRANSFER_TO_OPERATING` must cite the fee it pays. There's no update or delete API.
+- `commission/`: `Commission` EXPECTED → **EARNED only via `POST .../conveyancer-confirmation`** (conveyancer, Deeds reference, registration date not in the future; `COMMISSION_CONFIRM`) → RECEIVED; EXPECTED → CANCELLED. The amount can be computed from the sale price × mandate bps.
+- New org permission `TITLE_VERIFY` (ORG_ADMIN, PREA). New `NotificationType.LISTING_COMPLIANCE` plus a public `NotificationService.notify`.
+- Flyway **V2** (vendor-specific): drops the `notifications_type_check` constraint on Postgres and turns the MariaDB `ENUM` into `VARCHAR(40)`, so the new notification type can be inserted on existing databases.
+- Every action is audited: LISTING_CREATED / TITLE_CHANGED / TITLE_VERIFICATION / OWNER_CONSENT / PREA_APPROVED / PUBLISHED / UNPUBLISHED (with reason and whether it was automatic) / APPROVAL_WITHDRAWN; MANDATE_CREATED / OWNER_SIGNED / SIGNED_OFF / SUPERSEDED / CANCELLED / EXPIRED; TRUST_*; COMMISSION_*.
+
+**Built: frontend**
+- Workspace "Listings" tab: list with live/draft status, outstanding-check count and Cession badge; a new-listing form (draft); and the listing page with the publication checklist, PREA approve, publish/unpublish, title type/reference and verification, mandate create / attach signed copy (camera on mobile) / PREA sign-off / cancel / view document, and owner consent.
+- `CessionBadge` on public property cards and the property page, which also shows a plain-language risk explanation.
+- `lib/money.ts` (cents ↔ text, exact parsing) and `lib/dates.ts` (Harare calendar day), both with Vitest tests.
+
+**Verification**
+- Backend **34/34** (+17 since 1a). `PublicationGuardTest` breaks each gate in isolation. `ListingComplianceTests` covers: an unverified, unmandated or unapproved listing can't be published; each gate in order; PREA-only approve/sign-off (ORG_ADMIN and platform admin get 403); drafts hidden from the public; the status bypass blocked; price, address and title-type changes unpublish; a non-material edit doesn't; mandate expiry the morning after its last day unpublishes and notifies; consent withdrawal and mandate cancellation unpublish; independent listings unchanged; the photo-upload authorization; trust overdraw/fee-reference/idempotency; commission EARNED only via conveyancer confirmation. The CHECK-constraint guard now covers all 7 new tables.
+- Frontend: tsc clean, Vitest 18/18, `next build` OK, lint 62 (= baseline, 0 in new files).
+- Manual smoke (isolated H2 + headless Chrome, 375 px light/dark and 1280 px): the PREA clicked *Approve as PREA* and the negotiator clicked *Publish* in the UI. Both were audited, the listing went live, the draft stayed out of search, and the Cession badge appeared on the public card. Two display issues found and fixed: a raw enum in the checklist and the `en-ZW` date format ("17 Nov,2026").
+
+**Decisions made during the build**
+1. Compliance state lives in `listing_compliance`, not on `properties`; the legacy table only gains two nullable columns.
+2. Agency title verification also sets the platform `verificationStatus` (VERIFIED/REJECTED/PENDING). For org listings, "Verified" means the agency checked title documents.
+3. Org listings aren't charged the platform per-listing fee (`PropertyBillingService`). How agencies are billed is a commercial question still to decide.
+4. Until the Contacts work in Phase 2, the creating negotiator is stored as the property's `landlord` (the legacy field can't be null) and the real owner's details live on the mandate.
+5. Trust ledger and commission are **API-only** this phase. Their screens come with Deals (Phase 2) and the Management ledger (Phase 3).
+
+**Found, not caused by this work**
+- `GlobalExceptionHandler` returns **500** for an unknown URL (`NoResourceFoundException`) instead of 404.
+
+**Open questions for Phase 1c (offline)**
+- Which screens must work fully offline first? I'd suggest listing intake (create, title, consent, mandate photo) and enquiry capture. Approvals and publishing are deliberately online-only server commands.
+
 ---
 
 ## Changelog
 - 2026-11-17: Initial draft (exploration only, no code).
 - 2026-11-17: Decisions D1–D8 recorded; Phase 1a built and verified.
+- 2026-11-17: D9 recorded; Phase 1b built and verified.
