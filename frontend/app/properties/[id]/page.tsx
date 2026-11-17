@@ -42,9 +42,9 @@ import { logEvent } from "@/lib/api";
 import { isSaved, toggleSaved } from "@/lib/savedListings";
 import { settingsRoleUrl } from "@/lib/roleGate";
 
-const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
+const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
   ssr: false,
-  loading: () => <div className="w-full h-64 bg-gray-100 rounded-xl animate-pulse" />,
+  loading: () => <div className="w-full h-80 bg-gray-100 rounded-xl animate-pulse" />,
 });
 
 function formatPrice(price: number, currency: string, listingType: string) {
@@ -872,23 +872,22 @@ export default function PropertyDetailPage() {
             )}
 
             {tab === "map" && (
-              <div className="h-56 rounded-xl overflow-hidden border border-gray-200">
-                {property.latitude && property.longitude ? (
-                  <PropertyMap
-                    properties={[property]}
-                    center={[property.latitude, property.longitude]}
-                    zoom={15}
-                  />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-400">
-                    <div className="text-center">
-                      <MapPin className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">Location coordinates not available</p>
-                      <p className="text-xs mt-1">{property.suburb}, {property.city}</p>
-                    </div>
+              property.latitude != null && property.longitude != null ? (
+                <PropertyLocationMap
+                  latitude={property.latitude}
+                  longitude={property.longitude}
+                  title={property.title}
+                  addressLine={[property.address, property.suburb, property.city].filter(Boolean).join(", ")}
+                />
+              ) : (
+                <div className="h-56 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <MapPin className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">The owner hasn&apos;t pinned this property on the map yet</p>
+                    <p className="text-xs mt-1">{property.suburb}, {property.city}</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )
             )}
 
             {tab === "tour" && property.virtualTourUrl && (

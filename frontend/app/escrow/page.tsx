@@ -17,13 +17,11 @@ import {
   RotateCcw,
   ArrowRight,
   Landmark,
-  Smartphone,
-  Globe2,
-  CreditCard,
   X,
 } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import PageLoader from "@/components/PageLoader";
+import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 
 const ZIMBABWE_BANKS = [
   "CBZ Bank",
@@ -39,47 +37,11 @@ const ZIMBABWE_BANKS = [
   "Nedbank Zimbabwe",
 ];
 
-type ChannelOption = { value: FundingMethod; label: string; needsPhone?: boolean };
-type ChannelGroup = { group: string; icon: typeof Landmark; options: ChannelOption[] };
-
-const PAYMENT_CHANNELS: ChannelGroup[] = [
-  {
-    group: "Bank transfer",
-    icon: Landmark,
-    options: [{ value: "BANK_TRANSFER", label: "Bank transfer" }],
-  },
-  {
-    group: "Mobile money · Zimbabwe",
-    icon: Smartphone,
-    options: [
-      { value: "ECOCASH", label: "EcoCash", needsPhone: true },
-      { value: "ONEMONEY", label: "OneMoney", needsPhone: true },
-      { value: "INNBUCKS", label: "Innbucks", needsPhone: true },
-    ],
-  },
-  {
-    group: "Payment gateway",
-    icon: CreditCard,
-    options: [
-      { value: "PAYNOW", label: "Paynow" },
-      { value: "CARD", label: "Debit / credit card" },
-    ],
-  },
-  {
-    group: "SADC mobile money",
-    icon: Globe2,
-    options: [
-      { value: "MPESA", label: "M-Pesa", needsPhone: true },
-      { value: "MTN_MOMO", label: "MTN Mobile Money", needsPhone: true },
-      { value: "AIRTEL_MONEY", label: "Airtel Money", needsPhone: true },
-    ],
-  },
-  {
-    group: "SADC gateway",
-    icon: Globe2,
-    options: [{ value: "PAYFAST", label: "PayFast (South Africa)" }],
-  },
-];
+/** Only bank transfer stays a self-reported, admin-verified path (matches how large deposits
+ * are actually confirmed today - a wire that no gateway can watch for us). EcoCash, OneMoney,
+ * and card all go through a real Paynow/Stripe checkout instead, since Paynow's own hosted page
+ * already lets the payer pick between them - the app doesn't need to ask first. */
+type FundingChannel = "bank" | "paynow" | "stripe";
 
 const STATUS_META: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   CREATED: { label: "Awaiting funding", color: "bg-amber-100 text-amber-700", icon: Clock },
@@ -126,21 +88,13 @@ function EscrowContent() {
   const [allProperties, setAllProperties] = useState<Property[]>([]);
   const [pickerLoading, setPickerLoading] = useState(true);
 
-  type FundStep = "channel" | "details" | "otp" | "processing";
+  type FundStep = "channel" | "bank-details" | "redirecting";
   const [fundingFor, setFundingFor] = useState<number | null>(null);
   const [fundStep, setFundStep] = useState<FundStep>("channel");
-  const [fundingMethod, setFundingMethod] = useState<FundingMethod | "">("");
+  const [fundingChannel, setFundingChannel] = useState<FundingChannel | "">("");
   const [fundingBank, setFundingBank] = useState("");
-  const [fundingAccount, setFundingAccount] = useState("");
   const [fundingBankAccount, setFundingBankAccount] = useState("");
   const [fundingBankAccountName, setFundingBankAccountName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [otpInput, setOtpInput] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [processingLabel, setProcessingLabel] = useState("");
   const [funding, setFunding] = useState(false);
 
   useEffect(() => {
@@ -211,109 +165,49 @@ function EscrowContent() {
   const startFunding = (id: number) => {
     setFundingFor(id);
     setFundStep("channel");
-    setFundingMethod("");
+    setFundingChannel("");
     setFundingBank("");
-    setFundingAccount("");
     setFundingBankAccount("");
     setFundingBankAccountName("");
-    setCardNumber("");
-    setCardExpiry("");
-    setCardCvv("");
-    setOtpCode("");
-    setOtpInput("");
-    setOtpError("");
     setError("");
   };
 
   const cancelFunding = () => setFundingFor(null);
 
-  const selectedChannel = PAYMENT_CHANNELS.flatMap((g) => g.options).find((o) => o.value === fundingMethod);
-
-  const buildProviderLabel = (): string => {
-    if (fundingMethod === "BANK_TRANSFER") {
-      return `${fundingBank} •••${fundingBankAccount.slice(-4)}`;
-    }
-    if (selectedChannel?.needsPhone) {
-      const digits = fundingAccount.replace(/\D/g, "");
-      return `${selectedChannel.label} •••${digits.slice(-4)}`;
-    }
-    if (fundingMethod === "CARD") {
-      const digits = cardNumber.replace(/\D/g, "");
-      return `Card •••${digits.slice(-4)}`;
-    }
-    return selectedChannel?.label ?? "";
-  };
-
-  const handleFund = async (id: number) => {
-    if (!token || !user || !fundingMethod) return;
+  const handleBankFund = async (id: number) => {
+    if (!token || !user) return;
+    if (!fundingBank) { setError("Select a bank to continue."); return; }
+    if (fundingBankAccount.trim().length < 6) { setError("Enter a valid account number."); return; }
+    if (!fundingBankAccountName.trim()) { setError("Enter the account holder name."); return; }
     setError(""); setSuccess("");
     setFunding(true);
     try {
-      const provider = buildProviderLabel();
-      await escrowApi.fund(id, { method: fundingMethod, provider }, token);
+      const provider = `${fundingBank} •••${fundingBankAccount.slice(-4)}`;
+      await escrowApi.fund(id, { method: "BANK_TRANSFER", provider }, token);
       setSuccess("Escrow funded successfully — funds are now held securely.");
       setFundingFor(null);
       const updated = await escrowApi.list(user.id, token);
       setEscrows(updated);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to fund escrow.");
-      setFundStep("details");
     } finally {
       setFunding(false);
     }
   };
 
-  const proceedToProcessing = async (id: number, label: string, delayMs = 1400) => {
-    setFundStep("processing");
-    setProcessingLabel(label);
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-    await handleFund(id);
-  };
-
-  const handleContinueFromDetails = (id: number) => {
-    setOtpError("");
-    if (fundingMethod === "BANK_TRANSFER") {
-      if (!fundingBank) { setError("Select a bank to continue."); return; }
-      if (fundingBankAccount.trim().length < 6) { setError("Enter a valid account number."); return; }
-      if (!fundingBankAccountName.trim()) { setError("Enter the account holder name."); return; }
-      setError("");
-      proceedToProcessing(id, `Verifying with ${fundingBank}…`);
-      return;
-    }
-    if (selectedChannel?.needsPhone) {
-      const digits = fundingAccount.replace(/\D/g, "");
-      if (digits.length < 9) { setError("Enter a valid phone number."); return; }
-      setError("");
-      setOtpCode(String(Math.floor(100000 + Math.random() * 900000)));
-      setOtpInput("");
-      setFundStep("otp");
-      return;
-    }
-    if (fundingMethod === "CARD") {
-      const digits = cardNumber.replace(/\D/g, "");
-      if (digits.length < 12) { setError("Enter a valid card number."); return; }
-      if (!cardExpiry.trim() || !cardCvv.trim()) { setError("Enter card expiry and CVV."); return; }
-      setError("");
-      proceedToProcessing(id, "Authorizing card payment…");
-      return;
-    }
+  const handleGatewayCheckout = async (id: number, provider: "paynow" | "stripe") => {
+    if (!token) return;
     setError("");
-    proceedToProcessing(id, `Redirecting to ${selectedChannel?.label}…`);
-  };
-
-  const handleVerifyOtp = (id: number) => {
-    if (otpInput.trim() !== otpCode) {
-      setOtpError("Incorrect code. Try again.");
-      return;
+    setFundStep("redirecting");
+    setFunding(true);
+    try {
+      const checkout = await escrowApi.checkout(id, provider, token);
+      window.location.href = checkout.redirectUrl;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : `Failed to start ${provider} checkout.`);
+      setFundStep("channel");
+      setFunding(false);
     }
-    setOtpError("");
-    proceedToProcessing(id, `Confirming with ${selectedChannel?.label}…`);
-  };
-
-  const resendOtp = () => {
-    setOtpCode(String(Math.floor(100000 + Math.random() * 900000)));
-    setOtpInput("");
-    setOtpError("");
   };
 
   const propertyById = useMemo(
@@ -398,11 +292,10 @@ function EscrowContent() {
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-gray-900">
                 {fundStep === "channel" && "Choose how to fund this escrow"}
-                {fundStep === "details" && `Enter your ${selectedChannel?.label ?? "payment"} details`}
-                {fundStep === "otp" && "Verify it's you"}
-                {fundStep === "processing" && "Processing payment"}
+                {fundStep === "bank-details" && "Enter your bank transfer details"}
+                {fundStep === "redirecting" && "Redirecting to complete payment"}
               </p>
-              {fundStep !== "processing" && (
+              {fundStep !== "redirecting" && (
                 <button onClick={cancelFunding} className="text-gray-400 hover:text-gray-600">
                   <X className="w-4 h-4" />
                 </button>
@@ -410,133 +303,61 @@ function EscrowContent() {
             </div>
 
             {fundStep === "channel" && (
-              <>
-                <div className="space-y-3 mb-4">
-                  {PAYMENT_CHANNELS.map((group) => (
-                    <div key={group.group}>
-                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                        <group.icon className="w-3 h-3" /> {group.group}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {group.options.map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => setFundingMethod(opt.value)}
-                            className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                              fundingMethod === opt.value
-                                ? "bg-forest-600 border-forest-600 text-white"
-                                : "bg-white border-gray-200 text-gray-600 hover:border-forest-300"
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-3">
+                <PaymentProviderPicker
+                  loadingProvider={funding ? fundingChannel || null : null}
+                  onChoose={(provider) => {
+                    setFundingChannel(provider);
+                    handleGatewayCheckout(e.id, provider);
+                  }}
+                />
                 <button
-                  onClick={() => fundingMethod && setFundStep("details")}
-                  disabled={!fundingMethod}
-                  className="bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
+                  type="button"
+                  onClick={() => { setFundingChannel("bank"); setFundStep("bank-details"); }}
+                  className="w-full flex items-center gap-3 border border-gray-200 hover:border-forest-400 rounded-xl px-4 py-3 text-left transition-colors"
                 >
-                  Continue <ArrowRight className="w-4 h-4" />
+                  <Landmark className="w-5 h-5 text-forest-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">Bank transfer</p>
+                    <p className="text-xs text-gray-500">Wire the funds yourself - an admin verifies and marks it funded</p>
+                  </div>
                 </button>
-              </>
+              </div>
             )}
 
-            {fundStep === "details" && (
+            {fundStep === "bank-details" && (
               <div className="space-y-4">
-                {fundingMethod === "BANK_TRANSFER" && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Select your bank</label>
-                      <select
-                        value={fundingBank}
-                        onChange={(ev) => setFundingBank(ev.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
-                      >
-                        <option value="">Choose a bank…</option>
-                        {ZIMBABWE_BANKS.map((bank) => (
-                          <option key={bank} value={bank}>{bank}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Account number</label>
-                      <input
-                        value={fundingBankAccount}
-                        onChange={(ev) => setFundingBankAccount(ev.target.value.replace(/\D/g, ""))}
-                        placeholder="e.g. 0123456789"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Account holder name</label>
-                      <input
-                        value={fundingBankAccountName}
-                        onChange={(ev) => setFundingBankAccountName(ev.target.value)}
-                        placeholder="As it appears on your bank account"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
-                      />
-                    </div>
-                  </>
-                )}
-
-                {selectedChannel?.needsPhone && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
-                      {selectedChannel.label} number
-                    </label>
-                    <input
-                      type="tel"
-                      value={fundingAccount}
-                      onChange={(ev) => setFundingAccount(ev.target.value)}
-                      placeholder="e.g. 0771 234 567"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
-                    />
-                  </div>
-                )}
-
-                {fundingMethod === "CARD" && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Card number</label>
-                      <input
-                        value={cardNumber}
-                        onChange={(ev) => setCardNumber(ev.target.value.replace(/[^\d\s]/g, "").slice(0, 19))}
-                        placeholder="4242 4242 4242 4242"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Expiry</label>
-                        <input
-                          value={cardExpiry}
-                          onChange={(ev) => setCardExpiry(ev.target.value.slice(0, 5))}
-                          placeholder="MM/YY"
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
-                        />
-                      </div>
-                      <div className="w-24">
-                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">CVV</label>
-                        <input
-                          value={cardCvv}
-                          onChange={(ev) => setCardCvv(ev.target.value.replace(/\D/g, "").slice(0, 4))}
-                          placeholder="123"
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {(fundingMethod === "PAYNOW" || fundingMethod === "PAYFAST") && (
-                  <p className="text-sm text-gray-500 bg-white border border-gray-200 rounded-xl p-3">
-                    You&apos;ll be redirected to {selectedChannel?.label} to complete this payment securely.
-                  </p>
-                )}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Select your bank</label>
+                  <select
+                    value={fundingBank}
+                    onChange={(ev) => setFundingBank(ev.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
+                  >
+                    <option value="">Choose a bank…</option>
+                    {ZIMBABWE_BANKS.map((bank) => (
+                      <option key={bank} value={bank}>{bank}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Account number</label>
+                  <input
+                    value={fundingBankAccount}
+                    onChange={(ev) => setFundingBankAccount(ev.target.value.replace(/\D/g, ""))}
+                    placeholder="e.g. 0123456789"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Account holder name</label>
+                  <input
+                    value={fundingBankAccountName}
+                    onChange={(ev) => setFundingBankAccountName(ev.target.value)}
+                    placeholder="As it appears on your bank account"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
+                  />
+                </div>
 
                 <div className="flex items-center gap-2">
                   <button
@@ -546,52 +367,20 @@ function EscrowContent() {
                     Back
                   </button>
                   <button
-                    onClick={() => handleContinueFromDetails(e.id)}
-                    className="bg-forest-600 hover:bg-forest-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
+                    onClick={() => handleBankFund(e.id)}
+                    disabled={funding}
+                    className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
                   >
-                    Continue <ArrowRight className="w-4 h-4" />
+                    {funding ? "Submitting…" : "Confirm transfer"} {!funding && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
             )}
 
-            {fundStep === "otp" && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  Enter the verification code sent to <strong>{fundingAccount}</strong>.
-                </p>
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-3 py-2">
-                  Demo mode — no real SMS is sent. Your code is <span className="font-mono font-semibold">{otpCode}</span>.
-                </div>
-                <input
-                  value={otpInput}
-                  onChange={(ev) => setOtpInput(ev.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="6-digit code"
-                  className="w-40 text-center tracking-widest font-mono text-lg border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-forest-500 bg-white"
-                />
-                {otpError && <p className="text-xs text-red-600">{otpError}</p>}
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => handleVerifyOtp(e.id)}
-                    disabled={otpInput.length < 6}
-                    className="bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
-                  >
-                    Verify & continue
-                  </button>
-                  <button onClick={resendOtp} className="text-xs text-forest-600 hover:text-forest-700 font-medium">
-                    Resend code
-                  </button>
-                  <button onClick={() => setFundStep("details")} className="text-sm text-gray-500 hover:text-gray-700">
-                    Back
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {fundStep === "processing" && (
+            {fundStep === "redirecting" && (
               <div className="flex flex-col items-center py-6 gap-3">
                 <div className="w-8 h-8 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-gray-600">{processingLabel}</p>
+                <p className="text-sm text-gray-600">Taking you to {fundingChannel === "paynow" ? "Paynow" : "Stripe"}…</p>
                 <p className="text-xs text-gray-400">Funding {formatMoney(e.amount, e.currency)}</p>
               </div>
             )}

@@ -11,6 +11,7 @@ import HorizontalBarChart from "@/components/HorizontalBarChart";
 import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
 import AlertBanner from "@/components/AlertBanner";
+import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import {
   TrendingUp,
@@ -206,7 +207,8 @@ export default function InvestmentsPage() {
   const [reitsLoading, setReitsLoading] = useState(true);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
   const [error, setError] = useState("");
-  const [investing, setInvesting] = useState<number | null>(null);
+  const [checkoutReitId, setCheckoutReitId] = useState<number | null>(null);
+  const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [units, setUnits] = useState<Record<number, string>>({});
   const [selling, setSelling] = useState<number | null>(null);
   const [sellUnits, setSellUnits] = useState<Record<number, string>>({});
@@ -242,7 +244,7 @@ export default function InvestmentsPage() {
     [reits, countryFilter]
   );
 
-  const handleInvest = async (reit: Reit) => {
+  const startInvestCheckout = (reit: Reit) => {
     if (!user || !token) { router.push("/login?redirect=/investments"); return; }
     if (!user.roles?.includes("INVESTOR") && !user.roles?.includes("DIASPORA")) {
       router.push(settingsRoleUrl(["INVESTOR", "DIASPORA"], "investing in a REIT needs the Investor role"));
@@ -255,17 +257,21 @@ export default function InvestmentsPage() {
       setError(`Only ${reit.availableUnits} units remain available.`);
       return;
     }
-    setInvesting(reit.id);
     setError("");
-    setSuccess("");
+    setCheckoutReitId(reit.id);
+  };
+
+  const handleInvestCheckout = async (reit: Reit, provider: "paynow" | "stripe") => {
+    if (!token) return;
+    const n = Number(units[reit.id] || 1);
+    setError(""); setSuccess("");
+    setCheckoutProvider(provider);
     try {
-      await investmentsApi.invest({ reitId: reit.id, units: n, currency: "USD" }, token);
-      setSuccess(`Invested ${n} unit${n > 1 ? "s" : ""} in ${reit.name}!`);
-      const updated = await investmentsApi.listByInvestor(user.id, token);
-      setMyInvestments(updated);
+      const checkout = await investmentsApi.checkout({ reitId: reit.id, units: n, currency: "USD", provider }, token);
+      window.location.href = checkout.redirectUrl;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Investment failed.");
-    } finally {setInvesting(null);
+      setError(err instanceof Error ? err.message : "Could not start checkout.");
+      setCheckoutProvider(null);
     }
   };
 
@@ -631,30 +637,47 @@ export default function InvestmentsPage() {
 
                   <div className="mt-auto space-y-3">
                     <div>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          value={units[reit.id] ?? "1"}
-                          onChange={(e) => setUnits((u) => ({ ...u, [reit.id]: e.target.value }))}
-                          className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
-                          placeholder="Units"
-                        />
-                        <button
-                          onClick={() => handleInvest(reit)}
-                          disabled={investing === reit.id || !reit.active || reit.availableUnits === 0}
-                          title={`Buy units of ${reit.name}`}
-                          className="flex-1 bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
-                        >
-                          <DollarSign className="w-4 h-4 shrink-0" />
-                          <span className="truncate">
-                            {investing === reit.id ? "Processing..." : `Buy ${reit.name} Units`}
-                          </span>
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-2">
-                        Total: ${(Number(units[reit.id] || 1) * reit.unitPrice).toFixed(2)} USD
-                      </p>
+                      {checkoutReitId === reit.id ? (
+                        <div>
+                          <PaymentProviderPicker
+                            loadingProvider={checkoutProvider}
+                            onChoose={(provider) => handleInvestCheckout(reit, provider)}
+                          />
+                          {!checkoutProvider && (
+                            <button
+                              onClick={() => setCheckoutReitId(null)}
+                              className="mt-1.5 text-xs text-gray-400 hover:text-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              min={1}
+                              value={units[reit.id] ?? "1"}
+                              onChange={(e) => setUnits((u) => ({ ...u, [reit.id]: e.target.value }))}
+                              className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-forest-500"
+                              placeholder="Units"
+                            />
+                            <button
+                              onClick={() => startInvestCheckout(reit)}
+                              disabled={!reit.active || reit.availableUnits === 0}
+                              title={`Buy units of ${reit.name}`}
+                              className="flex-1 bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                            >
+                              <DollarSign className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{`Buy ${reit.name} Units`}</span>
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-2">
+                            Total: ${(Number(units[reit.id] || 1) * reit.unitPrice).toFixed(2)} USD
+                          </p>
+                        </>
+                      )}
                     </div>
 
                     <div>

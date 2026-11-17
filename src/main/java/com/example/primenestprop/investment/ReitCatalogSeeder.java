@@ -93,6 +93,31 @@ class ReitCatalogSeeder implements CommandLineRunner {
                 ));
 
         seedReit(issuer,
+                "Eagle REIT", "Zimbabwe", "MIXED_USE",
+                "Zimbabwe's first USD-denominated REIT, listed 16 May 2025 on the Victoria Falls Stock Exchange "
+                        + "(VFEX, ticker EAGLE.VX) - a development REIT targeting tourism, hospitality, health, "
+                        + "retail, and residential projects in Victoria Falls and Mazowe. Unlike the ZSE-linked "
+                        + "funds above, VFEX publishes no public price feed, so this PrimeNest product is not "
+                        + "tracking a live quote. The price and yield below are indicative placeholders only - "
+                        + "update them with real figures before relying on this for an investment decision.",
+                new BigDecimal("10.00"), new BigDecimal("9.00"), "MEDIUM", new BigDecimal("40000"),
+                "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=80", "EAGLE.VX",
+                () -> List.of());
+
+        seedReit(issuer,
+                "Pfuma Fund REIT", "Zimbabwe", "COMMERCIAL",
+                "Zimbabwe's second VFEX-listed REIT, listed 6 February 2026 (ticker PFUM.VX), seeded with a "
+                        + "retail property portfolio including Hogerty Hill Centre, Chegutu Retail Centre, and "
+                        + "Cork Corner; publicly guided toward a 7-8% gross rental yield on NAV from year two. "
+                        + "Unlike the ZSE-linked funds above, VFEX publishes no public price feed, so this "
+                        + "PrimeNest product is not tracking a live quote. The price and yield below are "
+                        + "indicative placeholders only - update them with real figures before relying on this "
+                        + "for an investment decision.",
+                new BigDecimal("10.00"), new BigDecimal("9.00"), "MEDIUM", new BigDecimal("40000"),
+                "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80", "PFUM.VX",
+                () -> List.of());
+
+        seedReit(issuer,
                 "Bulawayo Industrial & Logistics Trust", "Zimbabwe", "INDUSTRIAL",
                 "Warehousing and light-industrial parks serving Zimbabwe's second city.",
                 new BigDecimal("25.00"), new BigDecimal("11.00"), "MEDIUM", new BigDecimal("20000"),

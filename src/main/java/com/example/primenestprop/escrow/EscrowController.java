@@ -2,6 +2,7 @@ package com.example.primenestprop.escrow;
 
 import static com.example.primenestprop.escrow.EscrowDtos.EscrowResponse;
 
+import com.example.primenestprop.payment.PaymentDtos;
 import com.example.primenestprop.user.AppUser;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -49,6 +50,15 @@ public class EscrowController {
             @AuthenticationPrincipal AppUser currentUser
     ) {
         return EscrowResponse.from(service.fund(id, request, currentUser));
+    }
+
+    @PostMapping("/{id}/checkout")
+    PaymentDtos.CheckoutResponse checkout(
+            @PathVariable Long id,
+            @Valid @RequestBody PaymentDtos.CheckoutRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return service.initiateFundingCheckout(id, request.provider(), currentUser);
     }
 
     @PatchMapping("/{id}/release")

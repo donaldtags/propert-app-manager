@@ -1,9 +1,15 @@
 package com.example.primenestprop.escrow;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.common.PlatformAccountService;
 import com.example.primenestprop.lease.Lease;
 import com.example.primenestprop.lease.LeaseService;
 import com.example.primenestprop.lease.LeaseStatus;
+import com.example.primenestprop.payment.Payment;
+import com.example.primenestprop.payment.PaymentDtos;
+import com.example.primenestprop.payment.PaymentPurpose;
+import com.example.primenestprop.payment.PaymentService;
+import com.example.primenestprop.payment.PaymentSucceededEvent;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.subscription.SubscriptionFeature;
@@ -13,6 +19,7 @@ import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +34,8 @@ public class EscrowService {
     private final UserService users;
     private final EscrowReleaseApprovalRepository releaseApprovals;
     private final SubscriptionService subscriptions;
+    private final PaymentService payments;
+    private final PlatformAccountService platformAccountService;
 
     public EscrowService(
             EscrowRepository escrows,
@@ -34,7 +43,9 @@ public class EscrowService {
             LeaseService leases,
             UserService users,
             EscrowReleaseApprovalRepository releaseApprovals,
-            SubscriptionService subscriptions
+            SubscriptionService subscriptions,
+            PaymentService payments,
+            PlatformAccountService platformAccountService
     ) {
         this.escrows = escrows;
         this.properties = properties;
@@ -42,6 +53,8 @@ public class EscrowService {
         this.users = users;
         this.releaseApprovals = releaseApprovals;
         this.subscriptions = subscriptions;
+        this.payments = payments;
+        this.platformAccountService = platformAccountService;
     }
 
     @Transactional
@@ -93,16 +106,65 @@ public class EscrowService {
         if (escrow.getStatus() != EscrowStatus.CREATED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only created escrow transactions can be funded");
         }
-        if (request.method() == FundingMethod.BANK_TRANSFER && (request.provider() == null || request.provider().isBlank())) {
+        if (request.method() != FundingMethod.BANK_TRANSFER) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Use POST /escrows/{id}/checkout for " + request.method().displayName()
+                            + " - Paynow/Stripe collect the payment for real instead of self-reporting it");
+        }
+        if (request.provider() == null || request.provider().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Select a bank to continue");
         }
         escrow.setStatus(EscrowStatus.FUNDED);
         escrow.setFundedAt(Instant.now());
         escrow.setFundingMethod(request.method());
-        escrow.setFundingProvider(request.provider() == null || request.provider().isBlank()
-                ? request.method().displayName()
-                : request.provider());
+        escrow.setFundingProvider(request.provider());
         return escrow;
+    }
+
+    /** Starts a real Paynow/Stripe checkout for the escrow amount. Money lands with the
+     * platform's own account (same holding pattern as subscriptions/featured listings) until
+     * an admin approves release - see {@link #release}. */
+    @Transactional
+    public PaymentDtos.CheckoutResponse initiateFundingCheckout(Long id, String provider, AppUser currentUser) {
+        EscrowTransaction escrow = require(id);
+        requirePartyOrAdmin(escrow, currentUser, escrow.getPayer());
+        if (escrow.getStatus() != EscrowStatus.CREATED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only created escrow transactions can be funded");
+        }
+        AppUser platformAccount = platformAccountService.billingAccount();
+        Payment payment = payments.create(
+                new PaymentDtos.CreatePaymentRequest(
+                        platformAccount.getId(),
+                        escrow.getProperty().getId(),
+                        escrow.getLease() == null ? null : escrow.getLease().getId(),
+                        escrow.getAmount(),
+                        escrow.getCurrency(),
+                        provider,
+                        "Escrow deposit: " + escrow.getProperty().getTitle()
+                ),
+                currentUser,
+                PaymentPurpose.ESCROW_FUND,
+                null,
+                escrow.getId()
+        );
+        return payments.initiateCheckout(payment.getId(), provider, currentUser);
+    }
+
+    @EventListener
+    @Transactional
+    public void onPaymentSucceeded(PaymentSucceededEvent event) {
+        Payment payment = event.payment();
+        if (payment.getPurposeType() != PaymentPurpose.ESCROW_FUND || payment.getEscrowTransactionId() == null) {
+            return;
+        }
+        EscrowTransaction escrow = require(payment.getEscrowTransactionId());
+        if (escrow.getStatus() != EscrowStatus.CREATED) {
+            return;
+        }
+        escrow.setStatus(EscrowStatus.FUNDED);
+        escrow.setFundedAt(Instant.now());
+        escrow.setFundingMethod(payment.getProvider().equals("paynow") ? FundingMethod.PAYNOW : FundingMethod.CARD);
+        escrow.setFundingProvider(payment.getProvider());
     }
 
     /**

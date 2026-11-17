@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import com.example.primenestprop.investment.InvestmentService;
 import com.example.primenestprop.user.UserDtos;
 import com.example.primenestprop.user.UserRole;
 import com.example.primenestprop.user.UserService;
@@ -43,6 +44,9 @@ class ApiIntegrationTests {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private InvestmentService investmentService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -89,12 +93,13 @@ class ApiIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "method": "ECOCASH"
+                                  "method": "BANK_TRANSFER",
+                                  "provider": "CBZ Bank"
                                 }
                                 """))
                 .andExpect(status().isOk());
         long reitId = createReit(admin.token());
-        createInvestment(reitId, investor.token());
+        createInvestment(reitId, investor.id(), investor.token());
         createPayment(landlord.id(), propertyId, leaseId, tenant.token());
         createMaintenance(propertyId, tenant.token());
 
@@ -225,7 +230,8 @@ class ApiIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "method": "ECOCASH"
+                                  "method": "BANK_TRANSFER",
+                                  "provider": "CBZ Bank"
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -673,22 +679,27 @@ class ApiIntegrationTests {
         return extractLong(response, "id");
     }
 
-    private long createInvestment(long reitId, String investorToken) throws Exception {
-        String response = mvc.perform(post("/api/v1/investments")
+    /** Investing now requires a real Paynow/Stripe checkout, which needs live provider
+     * credentials this test environment doesn't have - so this confirms the checkout endpoint
+     * correctly refuses with a friendly "not configured yet" error, then seeds a completed
+     * investment directly through the service (the same path a successful gateway confirmation
+     * would take) so downstream list assertions have data to find. */
+    private long createInvestment(long reitId, long investorId, String investorToken) throws Exception {
+        mvc.perform(post("/api/v1/investments/checkout")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + investorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "reitId": %s,
                                   "units": 25,
-                                  "currency": "USD"
+                                  "currency": "USD",
+                                  "provider": "stripe"
                                 }
                                 """.formatted(reitId)))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-        return extractLong(response, "id");
+                .andExpect(status().isServiceUnavailable());
+        return investmentService.seedActiveInvestment(
+                reitId, new java.math.BigDecimal("25.00"), "USD", userService.require(investorId)
+        ).getId();
     }
 
     private String loginToken(String email) throws Exception {

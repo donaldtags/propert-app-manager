@@ -31,6 +31,15 @@ export type KycStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type KycDocumentType = "ID_FRONT" | "ID_BACK" | "PASSPORT" | "SELFIE" | "SELFIE_WITH_ID";
 export type IdDocumentType = "NATIONAL_ID" | "PASSPORT" | "DRIVERS_LICENSE";
 
+/** precision is ArcGIS Addr_type: PointAddress (exact house), StreetAddress, StreetName, Locality, POI… */
+export interface GeocodeResult {
+  latitude: number;
+  longitude: number;
+  matchedAddress: string;
+  precision: string;
+  score: number;
+}
+
 export interface Property {
   id: number;
   title: string;
@@ -126,13 +135,9 @@ export interface PropertyBilling {
   currency: string;
 }
 
-export interface FeatureListingResult {
-  propertyId: number;
-  featured: boolean;
-  featuredUntil: string;
+export interface CheckoutResponse {
   paymentId: number;
-  amountCharged: number;
-  currency: string;
+  redirectUrl: string;
 }
 
 export interface User {

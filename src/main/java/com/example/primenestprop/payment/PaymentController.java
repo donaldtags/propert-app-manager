@@ -46,6 +46,20 @@ public class PaymentController {
         return PaymentResponse.from(service.markSuccessful(id, currentUser));
     }
 
+    @PostMapping("/{id}/checkout")
+    PaymentDtos.CheckoutResponse checkout(
+            @PathVariable Long id,
+            @Valid @RequestBody PaymentDtos.CheckoutRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return service.initiateCheckout(id, request.provider(), currentUser);
+    }
+
+    @GetMapping("/{id}/confirm-checkout")
+    PaymentResponse confirmCheckout(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
+        return service.confirmCheckout(id, currentUser);
+    }
+
     @GetMapping("/{id}/receipt")
     ResponseEntity<String> receipt(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
         String html = documentService.receiptHtml(id, currentUser);

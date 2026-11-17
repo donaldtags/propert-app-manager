@@ -1,4 +1,5 @@
-# PrimeNest
+#
+PrimeNest
 
 A real estate platform for Zimbabwe (expanding to other African markets), built around one
 idea most local property sites don't offer: **trust**. Verified people, verified listings,

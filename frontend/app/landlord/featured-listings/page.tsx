@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { dashboards, properties as propertiesApi, featuredListings } from "@/lib/api";
 import type { LandlordDashboard, FeaturedListingSettings } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
+import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 import {
   Star,
   AlertCircle,
@@ -29,7 +30,8 @@ export default function FeaturedListingsPage() {
   const [dashboard, setDashboard] = useState<LandlordDashboard | null>(null);
   const [dashLoading, setDashLoading] = useState(true);
   const [settings, setSettings] = useState<FeaturedListingSettings | null>(null);
-  const [featuringId, setFeaturingId] = useState<number | null>(null);
+  const [checkoutForId, setCheckoutForId] = useState<number | null>(null);
+  const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -64,30 +66,16 @@ export default function FeaturedListingsPage() {
 
   const ownProperties = dashboard?.properties ?? [];
 
-  const handleFeature = async (propertyId: number, title: string) => {
+  const handleFeatureCheckout = async (propertyId: number, provider: "paynow" | "stripe") => {
     if (!token) return;
-    setFeaturingId(propertyId);
-    setError("");
-    setSuccess("");
+    setError(""); setSuccess("");
+    setCheckoutProvider(provider);
     try {
-      const result = await propertiesApi.feature(propertyId, token);
-      setSuccess(
-        `${title} is now featured until ${formatDate(result.featuredUntil)} — charged $${result.amountCharged.toFixed(2)} ${result.currency}.`
-      );
-      setDashboard((prev) =>
-        prev
-          ? {
-              ...prev,
-              properties: prev.properties.map((p) =>
-                p.id === propertyId ? { ...p, featured: true, featuredUntil: result.featuredUntil } : p
-              ),
-            }
-          : prev
-      );
+      const checkout = await propertiesApi.featureCheckout(propertyId, provider, token);
+      window.location.href = checkout.redirectUrl;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not feature this listing.");
-    } finally {
-      setFeaturingId(null);
+      setError(err instanceof Error ? err.message : "Could not start checkout.");
+      setCheckoutProvider(null);
     }
   };
 
@@ -122,8 +110,8 @@ export default function FeaturedListingsPage() {
               Featuring a listing costs ${settings.price.toFixed(2)} {settings.currency} for {settings.durationDays} days
             </p>
             <p className="text-xs text-amber-700 mt-1">
-              This price is set by PrimeNest admin and can change. Charging happens instantly when you feature a
-              listing, and the charge appears in your <Link href="/payments" className="underline">billing history</Link>.
+              This price is set by PrimeNest admin and can change. You&apos;ll pay through Paynow or Stripe, and the
+              charge appears in your <Link href="/payments" className="underline">billing history</Link> once confirmed.
             </p>
           </div>
         </div>
@@ -163,20 +151,35 @@ export default function FeaturedListingsPage() {
                     <p className="text-xs font-medium text-amber-700 mt-1">★ Featured until {formatDate(prop.featuredUntil)}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => handleFeature(prop.id, prop.title)}
-                  disabled={featuringId === prop.id || !!isFeaturedActive}
-                  className="shrink-0 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-xl text-sm transition-colors flex items-center gap-2"
-                >
-                  <Star className="w-4 h-4" />
-                  {featuringId === prop.id
-                    ? "Processing..."
-                    : isFeaturedActive
+                {checkoutForId === prop.id ? (
+                  <div className="w-64 shrink-0">
+                    <PaymentProviderPicker
+                      loadingProvider={checkoutProvider}
+                      onChoose={(provider) => handleFeatureCheckout(prop.id, provider)}
+                    />
+                    {!checkoutProvider && (
+                      <button
+                        onClick={() => setCheckoutForId(null)}
+                        className="mt-1.5 text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setCheckoutForId(prop.id)}
+                    disabled={!!isFeaturedActive}
+                    className="shrink-0 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-xl text-sm transition-colors flex items-center gap-2"
+                  >
+                    <Star className="w-4 h-4" />
+                    {isFeaturedActive
                       ? "Featured"
                       : settings
                         ? `Feature for $${settings.price.toFixed(2)}`
                         : "Feature this listing"}
-                </button>
+                  </button>
+                )}
               </div>
             );
           })}

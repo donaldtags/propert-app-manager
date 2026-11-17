@@ -79,3 +79,33 @@ body {
   border: 3px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
+
+/* "This exact house" pin used on the property page and the listing location picker */
+.house-pin {
+  width: 32px;
+  height: 32px;
+  background: #1f5d42;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.house-pin span {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+}
+
+.you-are-here {
+  width: 16px;
+  height: 16px;
+  background: #2563eb;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25);
+}

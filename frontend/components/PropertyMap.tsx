@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Property } from "@/lib/types";
+import { addEsriBasemaps, DEFAULT_CENTER, ensureStylesheets, LEAFLET_STYLESHEETS } from "@/lib/maps";
 
 interface Props {
   properties: Property[];
@@ -17,25 +18,13 @@ function formatPrice(price: number, currency: string) {
   return `$${price}`;
 }
 
-// Default center: Harare, Zimbabwe
-const DEFAULT_CENTER: [number, number] = [-17.8252, 31.0335];
 const DEFAULT_ZOOM = 12;
 
 const STYLESHEETS = [
-  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
+  ...LEAFLET_STYLESHEETS,
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css",
 ];
-
-function ensureStylesheets() {
-  STYLESHEETS.forEach((href) => {
-    if (document.querySelector(`link[href="${href}"]`)) return;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = href;
-    document.head.appendChild(link);
-  });
-}
 
 export default function PropertyMap({
   properties,
@@ -79,7 +68,7 @@ export default function PropertyMap({
         shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
       });
 
-      ensureStylesheets();
+      ensureStylesheets(STYLESHEETS);
 
       const mapCenter = center ?? DEFAULT_CENTER;
       const mapZoom = zoom ?? DEFAULT_ZOOM;
@@ -91,13 +80,13 @@ export default function PropertyMap({
           zoomControl: true,
         });
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap contributors",
-          maxZoom: 19,
-        }).addTo(map);
+        addEsriBasemaps(L, map);
 
         const clusterGroup = markerClusterGroup({
-          maxClusterRadius: 60,
+          // Small radius so listings in different suburbs or cities stay separate pins; only
+          // genuinely overlapping ones merge into a numbered bubble.
+          maxClusterRadius: 35,
+          disableClusteringAtZoom: 17,
           spiderfyOnMaxZoom: true,
           showCoverageOnHover: false,
           zoomToBoundsOnClick: true,
@@ -201,7 +190,18 @@ export default function PropertyMap({
     };
   }, []);
 
+  const mapped = properties.filter((p) => p.latitude != null && p.longitude != null).length;
+
   return (
-    <div ref={mapRef} className="w-full h-full" />
+    <div className="relative w-full h-full">
+      <div ref={mapRef} className="w-full h-full" />
+      {properties.length > 0 && (
+        <div className="absolute bottom-6 left-3 z-[400] bg-white/95 text-xs font-semibold text-gray-700 px-3 py-1.5 rounded-full shadow">
+          {mapped === properties.length
+            ? `${mapped} ${mapped === 1 ? "property" : "properties"} on map · tap a number to zoom in`
+            : `${mapped} of ${properties.length} on map · ${properties.length - mapped} not pinned yet`}
+        </div>
+      )}
+    </div>
   );
 }

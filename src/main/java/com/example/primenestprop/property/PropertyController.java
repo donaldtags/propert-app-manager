@@ -44,6 +44,17 @@ public class PropertyController {
         this.subscriptions = subscriptions;
     }
 
+    /** Address lookup for the listing form's map picker. Returns best matches first. */
+    @GetMapping("/geocode")
+    List<GeocodingService.GeocodeResult> geocode(
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) String suburb,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String country
+    ) {
+        return service.geocode(address, suburb, city, country);
+    }
+
     @PostMapping
     PropertyResponse create(@Valid @RequestBody PropertyDtos.CreatePropertyRequest request, @AuthenticationPrincipal AppUser currentUser) {
         if (!request.landlordId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {

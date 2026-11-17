@@ -48,11 +48,12 @@ import type {
   LeaseActionType,
   LeaseActionStatus,
   FeaturedListingSettings,
-  FeatureListingResult,
+  CheckoutResponse,
   PlanSettings,
   SubscriptionInfo,
   SubscriptionPlan,
   PropertyBilling,
+  GeocodeResult,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -174,6 +175,12 @@ export const properties = {
 
   get: (id: number) => request<Property>(`/properties/${id}`),
 
+  geocode: (params: { address?: string; suburb?: string; city?: string; country?: string }, token: string) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v && q.set(k, v));
+    return request<GeocodeResult[]>(`/properties/geocode?${q}`, {}, token);
+  },
+
   getPassport: (id: number) => request<PropertyPassport>(`/properties/${id}/passport`),
 
   create: (
@@ -250,8 +257,8 @@ export const properties = {
   billing: (id: number, token: string) =>
     request<PropertyBilling>(`/properties/${id}/billing`, {}, token),
 
-  feature: (id: number, token: string) =>
-    request<FeatureListingResult>(`/properties/${id}/feature`, { method: "POST" }, token),
+  featureCheckout: (id: number, provider: string, token: string) =>
+    request<CheckoutResponse>(`/properties/${id}/feature/checkout`, { method: "POST", body: JSON.stringify({ provider }) }, token),
 
   submitInquiry: (id: number, data: { name: string; email: string; phone?: string; message: string }) =>
     request<void>(`/properties/${id}/inquiries`, { method: "POST", body: JSON.stringify(data) }),
@@ -507,6 +514,9 @@ export const escrow = {
   fund: (id: number, data: { method: string; provider?: string }, token: string) =>
     request<Escrow>(`/escrows/${id}/fund`, { method: "PATCH", body: JSON.stringify(data) }, token),
 
+  checkout: (id: number, provider: string, token: string) =>
+    request<CheckoutResponse>(`/escrows/${id}/checkout`, { method: "POST", body: JSON.stringify({ provider }) }, token),
+
   release: (id: number, token: string) =>
     request<Escrow>(`/escrows/${id}/release`, { method: "PATCH" }, token),
 
@@ -534,6 +544,12 @@ export const payments = {
 
   markSuccess: (id: number, token: string) =>
     request<Payment>(`/payments/${id}/success`, { method: "PATCH" }, token),
+
+  checkout: (id: number, provider: string, token: string) =>
+    request<CheckoutResponse>(`/payments/${id}/checkout`, { method: "POST", body: JSON.stringify({ provider }) }, token),
+
+  confirmCheckout: (id: number, token: string) =>
+    request<Payment>(`/payments/${id}/confirm-checkout`, {}, token),
 
   receipt: async (id: number, token: string) => {
     const res = await fetch(`${BASE}/payments/${id}/receipt`, {
@@ -668,14 +684,15 @@ export const investments = {
     token: string
   ) => request<Reit>("/investments/reits", { method: "POST", body: JSON.stringify(data) }, token),
 
-  invest: (
+  checkout: (
     data: {
       reitId: number;
       units: number;
       currency?: string;
+      provider: string;
     },
     token: string
-  ) => request<Investment>("/investments", { method: "POST", body: JSON.stringify(data) }, token),
+  ) => request<CheckoutResponse>("/investments/checkout", { method: "POST", body: JSON.stringify(data) }, token),
 
   sell: (data: { reitId: number; units: number }, token: string) =>
     request<Investment[]>("/investments/sell", { method: "PATCH", body: JSON.stringify(data) }, token),
@@ -736,6 +753,9 @@ export const subscriptions = {
 
   subscribe: (plan: SubscriptionPlan, token: string) =>
     request<SubscriptionInfo>("/subscriptions/subscribe", { method: "POST", body: JSON.stringify({ plan }) }, token),
+
+  checkout: (plan: SubscriptionPlan, provider: string, token: string) =>
+    request<CheckoutResponse>("/subscriptions/checkout", { method: "POST", body: JSON.stringify({ plan, provider }) }, token),
 };
 
 // Featured listings: billing for landlords/agents to boost a listing, price set by admin

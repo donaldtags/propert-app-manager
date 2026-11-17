@@ -10,6 +10,7 @@ import { settingsRoleUrl } from "@/lib/roleGate";
 import type { UserRole } from "@/lib/types";
 import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
 import PageLoader from "@/components/PageLoader";
+import LocationPicker from "@/components/LocationPicker";
 
 const LISTING_TYPES = [
   { value: "RENT", label: "For Rent", desc: "Monthly rental property" },
@@ -459,33 +460,20 @@ export default function NewPropertyPage() {
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Latitude (optional)</label>
-              <input
-                type="number"
-                step="any"
-                value={form.latitude}
-                onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))}
-                placeholder="e.g. -17.7834"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Longitude (optional)</label>
-              <input
-                type="number"
-                step="any"
-                value={form.longitude}
-                onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))}
-                placeholder="e.g. 31.0672"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pin the exact house</label>
+            <LocationPicker
+              value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude) } : null}
+              onChange={(loc) =>
+                setForm((f) => ({ ...f, latitude: loc ? String(loc.latitude) : "", longitude: loc ? String(loc.longitude) : "" }))
+              }
+              address={form.address}
+              suburb={form.suburb}
+              city={form.city}
+              country={form.country}
+              token={token}
+            />
           </div>
-          <p className="text-xs text-gray-400">
-            If you leave coordinates blank, the backend auto-fills common Zimbabwe suburb coordinates.
-          </p>
         </div>
 
         {/* Photos */}

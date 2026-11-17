@@ -16,6 +16,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +40,7 @@ public class PropertyService {
     private final UserService users;
     private final ObjectStorageService objectStorage;
     private final PropertyBillingService billing;
+    private final GeocodingService geocoding;
     private final Path photoStorageRoot;
     private final String publicBaseUrl;
 
@@ -49,6 +51,7 @@ public class PropertyService {
             UserService users,
             ObjectStorageService objectStorage,
             PropertyBillingService billing,
+            GeocodingService geocoding,
             @Value("${app.storage.property-photos:storage/property-photos}") String photoStorageRoot,
             @Value("${app.public-base-url:http://localhost:8081}") String publicBaseUrl
     ) {
@@ -58,6 +61,7 @@ public class PropertyService {
         this.users = users;
         this.objectStorage = objectStorage;
         this.billing = billing;
+        this.geocoding = geocoding;
         this.photoStorageRoot = Path.of(photoStorageRoot);
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }
@@ -82,7 +86,8 @@ public class PropertyService {
         property.setBathrooms(request.bathrooms());
         property.setPrice(request.price());
         property.setCurrency(request.currency() == null || request.currency().isBlank() ? "USD" : request.currency());
-        Coordinates coordinates = coordinatesFor(request.city(), request.suburb(), request.latitude(), request.longitude());
+        Coordinates coordinates = coordinatesFor(request.address(), request.suburb(), request.city(), property.getCountry(),
+                request.latitude(), request.longitude());
         property.setLatitude(coordinates.latitude());
         property.setLongitude(coordinates.longitude());
         property.setDiasporaFriendly(request.diasporaFriendly());
@@ -117,6 +122,9 @@ public class PropertyService {
         if (request.title() != null) property.setTitle(request.title());
         if (request.description() != null) property.setDescription(request.description());
         if (request.listingType() != null) property.setListingType(request.listingType());
+        boolean locationTextChanged = changed(request.address(), property.getAddress())
+                || changed(request.suburb(), property.getSuburb())
+                || changed(request.city(), property.getCity());
         if (request.city() != null) property.setCity(request.city());
         if (request.suburb() != null) property.setSuburb(request.suburb());
         if (request.address() != null) property.setAddress(request.address());
@@ -125,8 +133,16 @@ public class PropertyService {
         if (request.bathrooms() != null) property.setBathrooms(request.bathrooms());
         if (request.price() != null) property.setPrice(request.price());
         if (request.currency() != null) property.setCurrency(request.currency());
-        if (request.latitude() != null) property.setLatitude(request.latitude());
-        if (request.longitude() != null) property.setLongitude(request.longitude());
+        if (request.latitude() != null && request.longitude() != null) {
+            property.setLatitude(request.latitude());
+            property.setLongitude(request.longitude());
+        } else if (locationTextChanged) {
+            // The address moved but no pin came with it: re-locate from the new address.
+            Coordinates coordinates = coordinatesFor(property.getAddress(), property.getSuburb(), property.getCity(),
+                    property.getCountry(), null, null);
+            property.setLatitude(coordinates.latitude());
+            property.setLongitude(coordinates.longitude());
+        }
         if (request.diasporaFriendly() != null) property.setDiasporaFriendly(request.diasporaFriendly());
         if (request.escrowRequired() != null) property.setEscrowRequired(request.escrowRequired());
         if (request.solarInstalled() != null) property.setSolarInstalled(request.solarInstalled());
@@ -420,9 +436,23 @@ public class PropertyService {
         }
     }
 
-    Coordinates coordinatesFor(String city, String suburb, BigDecimal latitude, BigDecimal longitude) {
+    public List<GeocodingService.GeocodeResult> geocode(String address, String suburb, String city, String country) {
+        return geocoding.candidates(address, suburb, city, country, 5);
+    }
+
+    private static boolean changed(String requested, String current) {
+        return requested != null && !requested.trim().equalsIgnoreCase(current == null ? "" : current.trim());
+    }
+
+    /** Owner-supplied pin first, then the ArcGIS geocoder, then a rough suburb centroid. */
+    Coordinates coordinatesFor(String address, String suburb, String city, String country,
+                               BigDecimal latitude, BigDecimal longitude) {
         if (latitude != null && longitude != null) {
             return new Coordinates(latitude, longitude);
+        }
+        Optional<GeocodingService.GeocodeResult> geocoded = geocoding.geocode(address, suburb, city, country);
+        if (geocoded.isPresent()) {
+            return new Coordinates(geocoded.get().latitude(), geocoded.get().longitude());
         }
         String key = (suburb == null ? "" : suburb.trim().toLowerCase()) + ","
                 + (city == null ? "" : city.trim().toLowerCase());

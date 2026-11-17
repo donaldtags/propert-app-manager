@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { subscriptions as subscriptionsApi } from "@/lib/api";
 import type { PlanSettings, SubscriptionInfo, SubscriptionFeature, SubscriptionPlan } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
+import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 import {
   CreditCard,
   AlertCircle,
@@ -56,6 +57,8 @@ export default function SubscriptionPage() {
   const [mine, setMine] = useState<SubscriptionInfo | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [switchingTo, setSwitchingTo] = useState<SubscriptionPlan | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null);
+  const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -92,6 +95,8 @@ export default function SubscriptionPage() {
     [plans]
   );
 
+  /** Only ever called for the free Starter tier - a paid upgrade goes through
+   * handleUpgradeCheckout instead, since it needs a real Paynow/Stripe checkout. */
   const handleSwitch = async (plan: SubscriptionPlan) => {
     if (!token) return;
     setSwitchingTo(plan);
@@ -100,15 +105,24 @@ export default function SubscriptionPage() {
     try {
       const updated = await subscriptionsApi.subscribe(plan, token);
       setMine(updated);
-      setSuccess(
-        plan === "STARTER"
-          ? "Switched to the Starter plan."
-          : `Upgraded to ${plan} — charged ${updated.currentPeriodEnd ? "" : ""}renews on ${updated.currentPeriodEnd ? formatDate(updated.currentPeriodEnd) : "next cycle"}.`
-      );
+      setSuccess("Switched to the Starter plan.");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not change plan.");
     } finally {
       setSwitchingTo(null);
+    }
+  };
+
+  const handleUpgradeCheckout = async (plan: SubscriptionPlan, provider: "paynow" | "stripe") => {
+    if (!token) return;
+    setError(""); setSuccess("");
+    setCheckoutProvider(provider);
+    try {
+      const checkout = await subscriptionsApi.checkout(plan, provider, token);
+      window.location.href = checkout.redirectUrl;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not start checkout.");
+      setCheckoutProvider(null);
     }
   };
 
@@ -201,17 +215,34 @@ export default function SubscriptionPage() {
                 ))}
               </ul>
 
-              <button
-                onClick={() => handleSwitch(plan.plan)}
-                disabled={isCurrent || switchingTo === plan.plan}
-                className={`mt-5 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                  isCurrent
-                    ? "bg-gray-100 text-gray-400 cursor-default"
-                    : "bg-forest-600 hover:bg-forest-700 text-white disabled:opacity-60"
-                }`}
-              >
-                {isCurrent ? "Current plan" : switchingTo === plan.plan ? "Processing..." : plan.monthlyPrice > 0 ? "Upgrade" : "Switch to Starter"}
-              </button>
+              {!isCurrent && plan.monthlyPrice > 0 && checkoutPlan === plan.plan ? (
+                <div className="mt-5">
+                  <PaymentProviderPicker
+                    loadingProvider={checkoutProvider}
+                    onChoose={(provider) => handleUpgradeCheckout(plan.plan, provider)}
+                  />
+                  {!checkoutProvider && (
+                    <button
+                      onClick={() => setCheckoutPlan(null)}
+                      className="mt-2 text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => (plan.monthlyPrice > 0 ? setCheckoutPlan(plan.plan) : handleSwitch(plan.plan))}
+                  disabled={isCurrent || switchingTo === plan.plan}
+                  className={`mt-5 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    isCurrent
+                      ? "bg-gray-100 text-gray-400 cursor-default"
+                      : "bg-forest-600 hover:bg-forest-700 text-white disabled:opacity-60"
+                  }`}
+                >
+                  {isCurrent ? "Current plan" : switchingTo === plan.plan ? "Processing..." : plan.monthlyPrice > 0 ? "Upgrade" : "Switch to Starter"}
+                </button>
+              )}
             </div>
           );
         })}

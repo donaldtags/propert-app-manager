@@ -8,6 +8,7 @@ import { properties as propertiesApi } from "@/lib/api";
 import { Home, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X } from "lucide-react";
 import type { Property, PropertyBilling } from "@/lib/types";
 import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
+import LocationPicker from "@/components/LocationPicker";
 
 export default function EditPropertyPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,8 @@ export default function EditPropertyPage() {
     city: "",
     suburb: "",
     address: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
     bedrooms: 0,
     bathrooms: 0,
     price: "",
@@ -70,6 +73,8 @@ export default function EditPropertyPage() {
           city: prop.city,
           suburb: prop.suburb,
           address: prop.address ?? "",
+          latitude: prop.latitude ?? null,
+          longitude: prop.longitude ?? null,
           bedrooms: prop.bedrooms,
           bathrooms: prop.bathrooms,
           price: String(prop.price),
@@ -144,6 +149,8 @@ export default function EditPropertyPage() {
           city: form.city,
           suburb: form.suburb,
           address: form.address || undefined,
+          latitude: form.latitude ?? undefined,
+          longitude: form.longitude ?? undefined,
           bedrooms: form.bedrooms,
           bathrooms: form.bathrooms,
           price: Number(form.price),
@@ -342,7 +349,20 @@ export default function EditPropertyPage() {
               type="text"
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              placeholder="e.g. 15 Borrowdale Road"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pin the exact house</label>
+            <LocationPicker
+              value={form.latitude != null && form.longitude != null ? { latitude: form.latitude, longitude: form.longitude } : null}
+              onChange={(loc) => setForm((f) => ({ ...f, latitude: loc?.latitude ?? null, longitude: loc?.longitude ?? null }))}
+              address={form.address}
+              suburb={form.suburb}
+              city={form.city}
+              country={property.country}
+              token={token}
             />
           </div>
         </div>

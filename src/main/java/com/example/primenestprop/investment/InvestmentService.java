@@ -1,14 +1,22 @@
 package com.example.primenestprop.investment;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.common.PlatformAccountService;
 import com.example.primenestprop.market.ZimbabweReitMarketService;
+import com.example.primenestprop.payment.Payment;
+import com.example.primenestprop.payment.PaymentDtos;
+import com.example.primenestprop.payment.PaymentPurpose;
+import com.example.primenestprop.payment.PaymentService;
+import com.example.primenestprop.payment.PaymentSucceededEvent;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyRepository;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.Permission;
 import com.example.primenestprop.user.UserService;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +29,8 @@ public class InvestmentService {
     private final PropertyRepository properties;
     private final InvestmentScoreService scoreService;
     private final ZimbabweReitMarketService marketService;
+    private final PaymentService payments;
+    private final PlatformAccountService platformAccountService;
 
     public InvestmentService(
             ReitRepository reits,
@@ -28,7 +38,9 @@ public class InvestmentService {
             UserService users,
             PropertyRepository properties,
             InvestmentScoreService scoreService,
-            ZimbabweReitMarketService marketService
+            ZimbabweReitMarketService marketService,
+            PaymentService payments,
+            PlatformAccountService platformAccountService
     ) {
         this.reits = reits;
         this.investments = investments;
@@ -36,6 +48,8 @@ public class InvestmentService {
         this.properties = properties;
         this.scoreService = scoreService;
         this.marketService = marketService;
+        this.payments = payments;
+        this.platformAccountService = platformAccountService;
     }
 
     private InvestmentDtos.ReitResponse toResponse(Reit reit) {
@@ -83,8 +97,35 @@ public class InvestmentService {
         return reits.findByActiveTrue().stream().map(this::toResponse).toList();
     }
 
+    /** Demo-seed only: creates an already-ACTIVE investment with no payment behind it, bypassing
+     * checkout entirely - there's no real payer in seed data to run through a gateway. */
     @Transactional
-    public Investment invest(InvestmentDtos.CreateInvestmentRequest request, AppUser investor) {
+    public Investment seedActiveInvestment(Long reitId, java.math.BigDecimal units, String currency, AppUser investor) {
+        Reit reit = reits.findByIdForUpdate(reitId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "REIT not found"));
+        if (reit.getTotalUnits() != null) {
+            reit.setUnitsSold(reit.getUnitsSold().add(units));
+        }
+        Investment investment = new Investment();
+        investment.setInvestor(investor);
+        investment.setReit(reit);
+        investment.setUnits(units);
+        investment.setAmount(reit.getUnitPrice().multiply(units));
+        investment.setCurrency(currency == null || currency.isBlank() ? "USD" : currency);
+        investment.setStatus(InvestmentStatus.ACTIVE);
+        return investments.save(investment);
+    }
+
+    /** Starts a real Paynow/Stripe checkout for the contribution; the {@link Investment} row
+     * itself is only created by {@link #onPaymentSucceeded} once the gateway confirms payment -
+     * so a REIT is never marked as holding money nobody actually paid. Availability is checked
+     * here for fast feedback, but unit reservation happens at confirmation time; two concurrent
+     * checkouts for the last units can both pass this check (known race, acceptable for now -
+     * a hard reservation would need to hold units for the lifetime of an abandoned checkout too). */
+    @Transactional
+    public PaymentDtos.CheckoutResponse initiateInvestmentCheckout(
+            InvestmentDtos.CreateInvestmentRequest request, AppUser investor, String provider
+    ) {
         if (!investor.hasPermission(Permission.INVESTMENT_CREATE)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only investor or diaspora accounts can invest in a REIT");
         }
@@ -93,21 +134,73 @@ public class InvestmentService {
         if (!reit.isActive()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "This REIT is not currently open for investment");
         }
+        if (reit.getTotalUnits() != null && request.units().compareTo(reit.getAvailableUnits()) > 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only " + reit.getAvailableUnits() + " units remain available in this REIT");
+        }
+        String currency = request.currency() == null || request.currency().isBlank() ? "USD" : request.currency();
+        java.math.BigDecimal amount = reit.getUnitPrice().multiply(request.units());
+        AppUser platformAccount = platformAccountService.billingAccount();
+        Payment payment = payments.create(
+                new PaymentDtos.CreatePaymentRequest(
+                        platformAccount.getId(),
+                        null,
+                        null,
+                        amount,
+                        currency,
+                        provider,
+                        "Investment: " + request.units() + " units in " + reit.getName()
+                ),
+                investor,
+                PaymentPurpose.INVESTMENT,
+                "reitId=" + reit.getId() + ",units=" + request.units() + ",currency=" + currency,
+                null
+        );
+        return payments.initiateCheckout(payment.getId(), provider, investor);
+    }
+
+    @EventListener
+    @Transactional
+    public void onPaymentSucceeded(PaymentSucceededEvent event) {
+        Payment payment = event.payment();
+        if (payment.getPurposeType() != PaymentPurpose.INVESTMENT) {
+            return;
+        }
+        Map<String, String> meta = parseMetadata(payment.getMetadata());
+        String reitIdRaw = meta.get("reitId");
+        String unitsRaw = meta.get("units");
+        if (reitIdRaw == null || unitsRaw == null) {
+            return;
+        }
+        Reit reit = reits.findByIdForUpdate(Long.valueOf(reitIdRaw)).orElse(null);
+        if (reit == null) {
+            return;
+        }
+        java.math.BigDecimal units = new java.math.BigDecimal(unitsRaw);
         if (reit.getTotalUnits() != null) {
-            java.math.BigDecimal remaining = reit.getAvailableUnits();
-            if (request.units().compareTo(remaining) > 0) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Only " + remaining + " units remain available in this REIT");
-            }
-            reit.setUnitsSold(reit.getUnitsSold().add(request.units()));
+            reit.setUnitsSold(reit.getUnitsSold().add(units));
         }
         Investment investment = new Investment();
-        investment.setInvestor(investor);
+        investment.setInvestor(payment.getPayer());
         investment.setReit(reit);
-        investment.setUnits(request.units());
-        investment.setAmount(reit.getUnitPrice().multiply(request.units()));
-        investment.setCurrency(request.currency() == null || request.currency().isBlank() ? "USD" : request.currency());
+        investment.setUnits(units);
+        investment.setAmount(reit.getUnitPrice().multiply(units));
+        investment.setCurrency(meta.getOrDefault("currency", "USD"));
         investment.setStatus(InvestmentStatus.ACTIVE);
-        return investments.save(investment);
+        investments.save(investment);
+    }
+
+    private Map<String, String> parseMetadata(String metadata) {
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        if (metadata == null || metadata.isBlank()) {
+            return result;
+        }
+        for (String part : metadata.split(",")) {
+            String[] kv = part.split("=", 2);
+            if (kv.length == 2) {
+                result.put(kv[0], kv[1]);
+            }
+        }
+        return result;
     }
 
     @Transactional

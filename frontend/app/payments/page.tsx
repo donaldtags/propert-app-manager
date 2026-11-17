@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { payments as paymentsApi, properties as propertiesApi, leases as leasesApi } from "@/lib/api";
 import type { Payment, Property, Lease } from "@/lib/types";
-import { DollarSign, AlertCircle, CheckCircle, Plus, Download, Landmark, Smartphone, CreditCard } from "lucide-react";
+import { DollarSign, AlertCircle, CheckCircle, Plus, Download, Landmark, CreditCard } from "lucide-react";
 import EntityPicker from "@/components/EntityPicker";
 import PageLoader from "@/components/PageLoader";
 
 const PAYMENT_PROVIDERS = [
-  { value: "bank_transfer", label: "Bank Transfer", icon: Landmark },
-  { value: "ecocash", label: "Mobile Money (EcoCash)", icon: Smartphone },
-  { value: "card", label: "Card", icon: CreditCard },
-  { value: "manual", label: "Other / Manual", icon: DollarSign },
+  { value: "paynow", label: "Paynow (EcoCash, OneMoney, bank & card)", icon: Landmark },
+  { value: "stripe", label: "Card (Stripe)", icon: CreditCard },
+  { value: "manual", label: "Other / Manual - I'll arrange payment myself", icon: DollarSign },
 ] as const;
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -54,7 +53,7 @@ export default function PaymentsPage() {
     propertyId: null as number | null,
     leaseId: null as number | null,
     amount: "",
-    provider: "bank_transfer",
+    provider: "paynow",
     description: "Rent payment",
   });
   const [downloadingId, setDownloadingId] = useState<number | "statement" | null>(null);
@@ -99,7 +98,7 @@ export default function PaymentsPage() {
     }
     setError(""); setSuccess(""); setCreating(true);
     try {
-      await paymentsApi.create({
+      const payment = await paymentsApi.create({
         payeeId: selectedProperty.landlordId,
         propertyId: form.propertyId,
         leaseId: form.leaseId ?? undefined,
@@ -108,10 +107,15 @@ export default function PaymentsPage() {
         provider: form.provider,
         purpose: form.description,
       }, token);
-      setSuccess("Payment submitted! It will show as successful once the recipient confirms receipt.");
-      setForm((f) => ({ ...f, propertyId: null, leaseId: null, amount: "" }));
-      const updated = await paymentsApi.list(user.id, token);
-      setPaymentList(updated);
+      if (form.provider === "manual") {
+        setSuccess("Payment submitted! It will show as successful once the recipient confirms receipt.");
+        setForm((f) => ({ ...f, propertyId: null, leaseId: null, amount: "" }));
+        const updated = await paymentsApi.list(user.id, token);
+        setPaymentList(updated);
+      } else {
+        const checkout = await paymentsApi.checkout(payment.id, form.provider, token);
+        window.location.href = checkout.redirectUrl;
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Payment failed.");
     } finally {
@@ -317,7 +321,7 @@ export default function PaymentsPage() {
                     <Download className="w-3.5 h-3.5" /> Receipt
                   </button>
                 )}
-                {p.status === "INITIATED" && p.payeeId === user?.id && (
+                {p.status === "INITIATED" && p.payeeId === user?.id && p.provider === "manual" && (
                   <button
                     onClick={() => handleConfirmReceived(p.id)}
                     className="text-xs bg-forest-50 hover:bg-forest-100 text-forest-700 px-3 py-1.5 rounded-xl font-medium transition-colors"

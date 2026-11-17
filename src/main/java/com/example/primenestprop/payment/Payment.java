@@ -50,4 +50,19 @@ public class Payment {
     private String purpose;
     private Instant createdAt = Instant.now();
     private Instant paidAt;
+
+    @Enumerated(EnumType.STRING)
+    private PaymentPurpose purposeType = PaymentPurpose.OTHER;
+
+    /** Small "key=value,key=value" blob carrying whatever the initiating service needs to
+     * finish its job once {@link PaymentSucceededEvent} fires (e.g. "plan=GROWTH", "reitId=3,units=10"). */
+    private String metadata;
+
+    /** Set only for {@link PaymentPurpose#ESCROW_FUND} payments; not a JPA relation to keep
+     * payment and escrow from depending on each other's entities. */
+    private Long escrowTransactionId;
+
+    private String providerReference;
+    private String checkoutUrl;
+    private String pollUrl;
 }

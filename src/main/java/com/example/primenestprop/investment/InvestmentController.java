@@ -3,6 +3,7 @@ package com.example.primenestprop.investment;
 import static com.example.primenestprop.investment.InvestmentDtos.InvestmentResponse;
 import static com.example.primenestprop.investment.InvestmentDtos.ReitResponse;
 
+import com.example.primenestprop.payment.PaymentDtos;
 import com.example.primenestprop.user.AppUser;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -44,9 +45,9 @@ public class InvestmentController {
         return service.updateReitProperties(id, request, currentUser);
     }
 
-    @PostMapping
-    InvestmentResponse invest(@Valid @RequestBody InvestmentDtos.CreateInvestmentRequest request, @AuthenticationPrincipal AppUser currentUser) {
-        return InvestmentResponse.from(service.invest(request, currentUser));
+    @PostMapping("/checkout")
+    PaymentDtos.CheckoutResponse checkout(@Valid @RequestBody InvestmentDtos.CreateInvestmentRequest request, @AuthenticationPrincipal AppUser currentUser) {
+        return service.initiateInvestmentCheckout(request, currentUser, request.provider());
     }
 
     @PatchMapping("/sell")

@@ -52,6 +52,9 @@ public final class SubscriptionDtos {
     public record SubscribeRequest(@NotNull SubscriptionPlan plan) {
     }
 
+    public record UpgradeCheckoutRequest(@NotNull SubscriptionPlan plan, @NotBlank String provider) {
+    }
+
     public record SubscriptionResponse(
             SubscriptionPlan plan,
             SubscriptionStatus status,

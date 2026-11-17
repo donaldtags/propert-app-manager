@@ -1,5 +1,6 @@
 package com.example.primenestprop.featured;
 
+import com.example.primenestprop.payment.PaymentDtos;
 import com.example.primenestprop.user.AppUser;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,8 +34,12 @@ public class FeaturedListingController {
         return FeaturedListingDtos.SettingsResponse.from(service.updateSettings(request, currentUser));
     }
 
-    @PostMapping("/properties/{id}/feature")
-    FeaturedListingDtos.FeatureListingResponse feature(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
-        return service.feature(id, currentUser);
+    @PostMapping("/properties/{id}/feature/checkout")
+    PaymentDtos.CheckoutResponse featureCheckout(
+            @PathVariable Long id,
+            @Valid @RequestBody PaymentDtos.CheckoutRequest request,
+            @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return service.initiateFeatureCheckout(id, request.provider(), currentUser);
     }
 }

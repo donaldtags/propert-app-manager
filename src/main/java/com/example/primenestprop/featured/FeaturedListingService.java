@@ -4,13 +4,16 @@ import com.example.primenestprop.common.ApiException;
 import com.example.primenestprop.common.PlatformAccountService;
 import com.example.primenestprop.payment.Payment;
 import com.example.primenestprop.payment.PaymentDtos;
+import com.example.primenestprop.payment.PaymentPurpose;
 import com.example.primenestprop.payment.PaymentService;
+import com.example.primenestprop.payment.PaymentSucceededEvent;
 import com.example.primenestprop.property.Property;
 import com.example.primenestprop.property.PropertyService;
 import com.example.primenestprop.user.AppUser;
 import com.example.primenestprop.user.Permission;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,8 +61,10 @@ public class FeaturedListingService {
         return settingsRepository.save(settings);
     }
 
+    /** Starts a real Paynow/Stripe checkout for the featured-listing fee; the listing itself is
+     * featured by {@link #onPaymentSucceeded} once the gateway confirms payment. */
     @Transactional
-    public FeaturedListingDtos.FeatureListingResponse feature(Long propertyId, AppUser currentUser) {
+    public PaymentDtos.CheckoutResponse initiateFeatureCheckout(Long propertyId, String provider, AppUser currentUser) {
         Property property = properties.require(propertyId);
         boolean owns = property.getLandlord().getId().equals(currentUser.getId())
                 || (property.getAgent() != null && property.getAgent().getId().equals(currentUser.getId()));
@@ -70,22 +75,34 @@ public class FeaturedListingService {
         FeaturedListingSettings settings = settings();
         AppUser platformAccount = platformAccountService.billingAccount();
 
-        Payment payment = payments.create(new PaymentDtos.CreatePaymentRequest(
-                platformAccount.getId(),
-                property.getId(),
+        Payment payment = payments.create(
+                new PaymentDtos.CreatePaymentRequest(
+                        platformAccount.getId(),
+                        property.getId(),
+                        null,
+                        settings.getPrice(),
+                        settings.getCurrency(),
+                        provider,
+                        "Featured listing: " + property.getTitle()
+                ),
+                currentUser,
+                PaymentPurpose.FEATURED_LISTING,
                 null,
-                settings.getPrice(),
-                settings.getCurrency(),
-                "platform",
-                "Featured listing: " + property.getTitle()
-        ), currentUser);
-        payments.markSuccessful(payment.getId(), platformAccount);
+                null
+        );
+        return payments.initiateCheckout(payment.getId(), provider, currentUser);
+    }
 
-        Instant featuredUntil = Instant.now().plus(settings.getDurationDays(), ChronoUnit.DAYS);
+    @EventListener
+    @Transactional
+    public void onPaymentSucceeded(PaymentSucceededEvent event) {
+        Payment payment = event.payment();
+        if (payment.getPurposeType() != PaymentPurpose.FEATURED_LISTING || payment.getProperty() == null) {
+            return;
+        }
+        Property property = payment.getProperty();
+        FeaturedListingSettings settings = settings();
         property.setFeatured(true);
-        property.setFeaturedUntil(featuredUntil);
-
-        return new FeaturedListingDtos.FeatureListingResponse(
-                property.getId(), true, featuredUntil, payment.getId(), settings.getPrice(), settings.getCurrency());
+        property.setFeaturedUntil(Instant.now().plus(settings.getDurationDays(), ChronoUnit.DAYS));
     }
 }

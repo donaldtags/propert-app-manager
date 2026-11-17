@@ -21,6 +21,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @EntityGraph(attributePaths = {"payer", "payee", "property", "lease"})
     List<Payment> findByPayee(AppUser payee);
 
+    Optional<Payment> findByProviderReference(String providerReference);
+
     @Query("""
             select coalesce(sum(p.amount), 0) from Payment p
             where p.status = com.example.primenestprop.payment.PaymentStatus.SUCCESSFUL
