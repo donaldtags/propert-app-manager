@@ -21,10 +21,18 @@ export interface OutboxApi {
   createMandate(slug: string, listingId: number, payload: OutboxEntryPayload<"createMandate">, clientId: string): Promise<Mandate>;
   attachMandateDocument(slug: string, mandateId: number, file: Blob, fileName: string, ownerSignedOn: string): Promise<unknown>;
   captureEnquiry(slug: string, payload: OutboxEntryPayload<"captureEnquiry">, clientId: string): Promise<unknown>;
+  createContact(slug: string, payload: OutboxEntryPayload<"createContact">, clientId: string): Promise<{ id: number }>;
+  createPipelineCard(slug: string, ownerContactId: number, payload: OpOf<"createPipelineCard">["payload"], clientId: string): Promise<{ id: number }>;
+  movePipelineStage(slug: string, cardId: number, stage: OpOf<"movePipelineStage">["stage"], lostReason?: string): Promise<unknown>;
+  scheduleViewing(slug: string, propertyId: number, contactId: number, scheduledAt: string, durationMinutes: number | undefined, clientId: string): Promise<{ id: number }>;
+  viewingOutcome(slug: string, viewingId: number, op: OpOf<"viewingOutcome">): Promise<unknown>;
+  setCampaignTask(slug: string, taskId: number, done: boolean): Promise<unknown>;
+  saveInspection(slug: string, listingId: number, op: OpOf<"saveInspection">): Promise<unknown>;
+  uploadInspectionPhoto(slug: string, listingId: number, op: OpOf<"uploadInspectionPhoto">): Promise<unknown>;
 }
 
 type OpOf<K extends OutboxEntry["op"]["kind"]> = Extract<OutboxEntry["op"], { kind: K }>;
-type OutboxEntryPayload<K extends "createListing" | "createMandate" | "captureEnquiry"> = OpOf<K>["payload"];
+type OutboxEntryPayload<K extends "createListing" | "createMandate" | "captureEnquiry" | "createContact"> = OpOf<K>["payload"];
 
 export type ProcessOutcome = "done" | "offline" | "auth" | "backoff";
 
@@ -100,6 +108,38 @@ export async function processOutbox(userId: number, store: OutboxStore, api: Out
         }
         case "captureEnquiry":
           await api.captureEnquiry(slug, op.payload, op.clientId);
+          break;
+        case "createContact": {
+          const created = await api.createContact(slug, op.payload, op.clientId);
+          await store.mapId(op.clientId, created.id);
+          break;
+        }
+        case "createPipelineCard": {
+          const ownerId = await resolve(op.owner);
+          const created = await api.createPipelineCard(slug, ownerId, op.payload, op.clientId);
+          await store.mapId(op.clientId, created.id);
+          break;
+        }
+        case "movePipelineStage":
+          await api.movePipelineStage(slug, await resolve(op.card), op.stage, op.lostReason);
+          break;
+        case "scheduleViewing": {
+          const contactId = await resolve(op.contact);
+          const created = await api.scheduleViewing(slug, op.propertyId, contactId, op.scheduledAt, op.durationMinutes, op.clientId);
+          await store.mapId(op.clientId, created.id);
+          break;
+        }
+        case "viewingOutcome":
+          await api.viewingOutcome(slug, await resolve(op.viewing), op);
+          break;
+        case "setCampaignTask":
+          await api.setCampaignTask(slug, op.taskId, op.done);
+          break;
+        case "saveInspection":
+          await api.saveInspection(slug, await resolve(op.listing), op);
+          break;
+        case "uploadInspectionPhoto":
+          await api.uploadInspectionPhoto(slug, await resolve(op.listing), op);
           break;
       }
       await store.remove(entry.seq!);

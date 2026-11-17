@@ -61,7 +61,10 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
       return;
     }
     startSync(user.id, token);
-    registerServiceWorker([`/orgs/${slug}`, `/orgs/${slug}/listings`, `/orgs/${slug}/listings/new`, `/orgs/${slug}/enquiries`, `/orgs/${slug}/sync`]);
+    registerServiceWorker([
+      `/orgs/${slug}`, `/orgs/${slug}/listings`, `/orgs/${slug}/listings/new`, `/orgs/${slug}/enquiries`,
+      `/orgs/${slug}/sync`, `/orgs/${slug}/contacts`, `/orgs/${slug}/pipeline`, `/orgs/${slug}/viewings`,
+    ]);
     void fetchContext();
   }, [loading, user, token, fetchContext, router, pathname, slug]);
 
@@ -70,8 +73,11 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
   const can = (p: OrgPermission) => !!context?.permissions.includes(p);
   const tabs = [
     { href: base, label: "Home", show: true },
+    { href: `${base}/pipeline`, label: "Pipeline", show: can("LISTING_EDIT") },
     { href: `${base}/listings`, label: "Listings", show: can("LISTING_CREATE") || can("LISTING_EDIT") || can("ORG_SETTINGS_EDIT") },
+    { href: `${base}/contacts`, label: "Contacts", show: can("CONTACTS_MANAGE") },
     { href: `${base}/enquiries`, label: "Enquiries", show: can("ENQUIRY_CAPTURE") },
+    { href: `${base}/viewings`, label: "Viewings", show: can("CONTACTS_MANAGE") },
     { href: `${base}/sync`, label: "Sync", show: sync.pending > 0 || sync.conflicts > 0 || pathname.startsWith(`${base}/sync`) },
     { href: `${base}/settings`, label: "Settings", show: can("MEMBERS_VIEW") || can("ORG_SETTINGS_EDIT") },
     { href: `${base}/audit`, label: "Audit log", show: can("AUDIT_VIEW") },

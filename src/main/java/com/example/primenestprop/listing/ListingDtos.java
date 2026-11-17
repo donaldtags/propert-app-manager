@@ -62,10 +62,17 @@ public final class ListingDtos {
             Long negotiatorUserId,
             String negotiatorName,
             List<CheckResponse> checks,
+            List<ChecklistItemResponse> verificationChecklist,
             boolean publishable,
             boolean readyForApproval,
             Long version
     ) {
+    }
+
+    public record ChecklistItemResponse(String key, String label, boolean checked) {
+    }
+
+    public record ChecklistRequest(@NotNull java.util.Set<String> checked) {
     }
 
     public record ListingSummary(

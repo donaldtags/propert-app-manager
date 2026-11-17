@@ -9,4 +9,8 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
     Optional<Enquiry> findByClientId(String clientId);
 
     List<Enquiry> findByOrganisationIdOrderByCapturedAtDescIdDesc(Long organisationId, Pageable pageable);
+
+    List<Enquiry> findByOrganisationIdAndContactIdOrderByCapturedAtDesc(Long organisationId, Long contactId);
+
+    List<Enquiry> findByOrganisationIdAndPropertyIdOrderByCapturedAtDesc(Long organisationId, Long propertyId);
 }

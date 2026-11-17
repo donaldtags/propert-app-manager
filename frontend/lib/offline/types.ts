@@ -1,4 +1,15 @@
-import type { CreateMandateRequest, CreateOrgListingRequest, TitleType } from "@/lib/types";
+import type {
+  BuyerInterest,
+  CreateContactRequest,
+  CreateMandateRequest,
+  CreateOrgListingRequest,
+  CreatePipelineCardRequest,
+  InspectionItem,
+  PipelineStage,
+  PriceOpinion,
+  ShowingStatus,
+  TitleType,
+} from "@/lib/types";
 
 /** A reference to a server record that may not exist on the server yet. */
 export type Ref = { id: number } | { clientId: string };
@@ -25,7 +36,16 @@ export type OutboxOp =
   | { kind: "setConsent"; listing: Ref; base: ConsentFields; mine: ConsentFields; label: string }
   | { kind: "createMandate"; clientId: string; listing: Ref; payload: CreateMandateRequest; label: string }
   | { kind: "attachMandateDocument"; mandate: Ref; file: Blob; fileName: string; ownerSignedOn: string; label: string }
-  | { kind: "captureEnquiry"; clientId: string; payload: EnquiryPayload; label: string };
+  | { kind: "captureEnquiry"; clientId: string; payload: EnquiryPayload; label: string }
+  | { kind: "createContact"; clientId: string; payload: CreateContactRequest; label: string }
+  | { kind: "createPipelineCard"; clientId: string; owner: Ref; payload: Omit<CreatePipelineCardRequest, "ownerContactId">; label: string }
+  /** A command: the server re-checks the evidence; if it's refused it goes to the tray, never forced. */
+  | { kind: "movePipelineStage"; card: Ref; stage: PipelineStage; lostReason?: string; label: string }
+  | { kind: "scheduleViewing"; clientId: string; propertyId: number; contact: Ref; scheduledAt: string; durationMinutes?: number; label: string }
+  | { kind: "viewingOutcome"; viewing: Ref; status: ShowingStatus; interest?: BuyerInterest; priceOpinion?: PriceOpinion; feedback?: string; label: string }
+  | { kind: "setCampaignTask"; taskId: number; done: boolean; label: string }
+  | { kind: "saveInspection"; listing: Ref; baseVersion?: number; items: InspectionItem[]; standSizeM2?: number; floorAreaM2?: number; notes?: string; label: string }
+  | { kind: "uploadInspectionPhoto"; clientId: string; listing: Ref; file: Blob; fileName: string; itemKey?: string; caption?: string; label: string };
 
 export interface OutboxEntry {
   seq?: number;

@@ -889,6 +889,7 @@ export type OrgPermission =
   | "LISTING_EDIT"
   | "TITLE_VERIFY"
   | "ENQUIRY_CAPTURE"
+  | "CONTACTS_MANAGE"
   | "LISTING_APPROVE_PUBLISH"
   | "MANDATE_SIGN_OFF"
   | "TRUST_LEDGER_VIEW"
@@ -1066,6 +1067,7 @@ export interface ListingCompliance {
   negotiatorUserId?: number;
   negotiatorName?: string;
   checks: ComplianceCheck[];
+  verificationChecklist: { key: string; label: string; checked: boolean }[];
   publishable: boolean;
   readyForApproval: boolean;
   version: number;
@@ -1170,6 +1172,7 @@ export interface Enquiry {
   message?: string;
   propertyId?: number;
   propertyTitle?: string;
+  contactId?: number;
   budgetCents?: number;
   currency?: string;
   capturedByUserId?: number;
@@ -1188,4 +1191,246 @@ export interface CaptureEnquiryRequest {
   propertyId?: number;
   budgetCents?: number;
   capturedAt?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: contacts, pipeline, viewings, offers, campaign, intake, reports
+// ---------------------------------------------------------------------------
+
+export type ContactType = "OWNER" | "BUYER" | "TENANT" | "LANDOWNER" | "INVESTOR" | "REFERRAL_PARTNER";
+export type ContactSource =
+  | "NETWORK" | "WALK_IN" | "PORTAL" | "INSTAGRAM" | "FACEBOOK" | "WHATSAPP" | "REFERRAL" | "WEBSITE" | "SIGNBOARD" | "OTHER";
+export type BuyingTimeline = "IMMEDIATELY" | "WITHIN_3_MONTHS" | "WITHIN_6_MONTHS" | "LATER" | "JUST_LOOKING";
+export type Financing = "CASH" | "MORTGAGE_APPROVED" | "MORTGAGE_APPLYING" | "DIASPORA_TRANSFER" | "PAYMENT_PLAN" | "UNKNOWN";
+
+export interface Contact {
+  id: number;
+  clientId?: string;
+  fullName: string;
+  phone?: string;
+  phoneNormalised?: string;
+  whatsapp?: string;
+  email?: string;
+  types: ContactType[];
+  source?: ContactSource;
+  tags: string[];
+  notes?: string;
+  budgetCents?: number;
+  budgetCurrency?: string;
+  timeline?: BuyingTimeline;
+  financing?: Financing;
+  preferredAreas?: string;
+  minBedrooms?: number;
+  decisionMaker?: boolean;
+  decisionMakerNote?: string;
+  qualified: boolean;
+  qualifiedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+  version: number;
+}
+
+export interface ContactActivity {
+  kind: "ENQUIRY" | "VIEWING" | "OFFER" | "DEAL";
+  id: number;
+  at?: string;
+  summary: string;
+  propertyId?: number;
+  propertyTitle?: string;
+}
+
+export interface ContactDetail {
+  contact: Contact;
+  activity: ContactActivity[];
+}
+
+export interface CreateContactRequest {
+  clientId?: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  types?: ContactType[];
+  source?: ContactSource;
+  tags?: string[];
+  notes?: string;
+}
+
+export type PipelineStage =
+  | "PROSPECT" | "MEETING" | "INSPECTION" | "MANDATE_SIGNED" | "MARKETING" | "VIEWINGS" | "OFFER" | "CONVEYANCING" | "COMPLETED" | "LOST";
+
+export interface PipelineCard {
+  id: number;
+  clientId?: string;
+  title: string;
+  stage: PipelineStage;
+  ownerContactId: number;
+  ownerName?: string;
+  propertyId?: number;
+  propertyTitle?: string;
+  negotiatorUserId?: number;
+  negotiatorName?: string;
+  estimatedValueCents?: number;
+  currency: string;
+  lostReason?: string;
+  nextActionOn?: string;
+  nextAction?: string;
+  notes?: string;
+  stageChangedAt: string;
+  daysInStage: number;
+  createdAt: string;
+  version: number;
+}
+
+export interface CreatePipelineCardRequest {
+  clientId?: string;
+  title: string;
+  ownerContactId: number;
+  propertyId?: number;
+  estimatedValueCents?: number;
+  nextActionOn?: string;
+  nextAction?: string;
+  notes?: string;
+}
+
+export type ShowingStatus = "SCHEDULED" | "COMPLETED" | "NO_SHOW" | "CANCELLED";
+export type BuyerInterest = "HOT" | "WARM" | "COLD";
+export type PriceOpinion = "TOO_HIGH" | "FAIR" | "GOOD_VALUE";
+
+export interface Showing {
+  id: number;
+  clientId?: string;
+  propertyId: number;
+  propertyTitle?: string;
+  propertySuburb?: string;
+  contactId: number;
+  contactName?: string;
+  contactPhone?: string;
+  negotiatorUserId?: number;
+  scheduledAt: string;
+  durationMinutes: number;
+  status: ShowingStatus;
+  interest?: BuyerInterest;
+  priceOpinion?: PriceOpinion;
+  feedback?: string;
+  completedAt?: string;
+  version: number;
+}
+
+export type OfferStatus = "RECEIVED" | "PRESENTED" | "COUNTERED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
+
+export interface Offer {
+  id: number;
+  propertyId: number;
+  propertyTitle?: string;
+  mandateId: number;
+  buyerContactId: number;
+  buyerName?: string;
+  amountCents: number;
+  currency: string;
+  depositCents?: number;
+  counterAmountCents?: number;
+  financing?: Financing;
+  conditions?: string;
+  expiresOn?: string;
+  status: OfferStatus;
+  presentedVia?: string;
+  presentedAt?: string;
+  decidedAt?: string;
+  ownerInstructionReference?: string;
+  withinAuthority: boolean;
+  mandateMinimumCents?: number;
+  ownerName?: string;
+  ownerWhatsapp?: string;
+  createdAt: string;
+  events: { type: string; amountCents?: number; note?: string; actorUserId?: number; at: string }[];
+  version: number;
+}
+
+export interface CampaignTask {
+  id: number;
+  day: number;
+  dueOn: string;
+  channel: string;
+  title: string;
+  done: boolean;
+  doneAt?: string;
+  overdue: boolean;
+  note?: string;
+}
+
+export interface Campaign {
+  id: number;
+  propertyId: number;
+  startDate: string;
+  endDate: string;
+  today: number;
+  stopped: boolean;
+  tasksDone: number;
+  tasksTotal: number;
+  tasks: CampaignTask[];
+  enquiriesByChannel: Record<string, number>;
+  enquiriesTotal: number;
+  viewingsTotal: number;
+}
+
+export type InspectionCondition = "GOOD" | "FAIR" | "POOR" | "NOT_APPLICABLE";
+
+export interface InspectionItem {
+  key: string;
+  label?: string;
+  condition?: InspectionCondition | null;
+  note?: string;
+}
+
+export interface Inspection {
+  items: InspectionItem[];
+  standSizeM2?: number;
+  floorAreaM2?: number;
+  notes?: string;
+  inspectedOn?: string;
+  inspectedByUserId?: number;
+  version?: number;
+  photos: { id: number; clientId?: string; caption?: string; itemKey?: string; contentType?: string; createdAt: string }[];
+  ratedItems: number;
+  poorItems: number;
+}
+
+export interface PricingComparable {
+  propertyId: number;
+  title: string;
+  suburb: string;
+  city: string;
+  bedrooms: number;
+  bathrooms: number;
+  priceCents: number;
+  currency: string;
+  status: string;
+  titleType?: string;
+  sameSuburb: boolean;
+  source: string;
+}
+
+export interface PricingSuggestion {
+  propertyId: number;
+  askingCents: number;
+  currency: string;
+  comparableCount: number;
+  lowCents?: number;
+  medianCents?: number;
+  highCents?: number;
+  suggestedCents?: number;
+  enoughData: boolean;
+  basis: string;
+  comparables: PricingComparable[];
+  latest?: { id: number; recommendedCents: number; rationale?: string; createdAt: string; comparableCount: number };
+}
+
+export interface SellerReportSummary {
+  id: number;
+  weekEnding: string;
+  shareToken: string;
+  adviceKind: "REVIEW_DOWN" | "REFRESH" | "ABOVE_MARKET" | "HOLD";
+  adviceText: string;
+  generatedAt: string;
+  expiresAt?: string;
 }

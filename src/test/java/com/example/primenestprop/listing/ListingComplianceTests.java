@@ -96,6 +96,11 @@ class ListingComplianceTests {
                 """).andExpect(status().isOk());
         call(post(base + "/listings/" + id + "/title-verification"), negotiator, "{\"status\": \"VERIFIED\"}")
                 .andExpect(status().isForbidden());
+        // Can't verify until the checklist for this title type is complete.
+        call(post(base + "/listings/" + id + "/title-verification"), orgAdmin, "{\"status\": \"VERIFIED\"}")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message", containsString("Cession agreement sighted")));
+        checklist(id, CESSION_ITEMS);
         call(post(base + "/listings/" + id + "/title-verification"), orgAdmin, "{\"status\": \"VERIFIED\"}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.property.verificationStatus").value("VERIFIED"));
@@ -360,6 +365,7 @@ class ListingComplianceTests {
         call(put(base + "/listings/" + id + "/title"), negotiator, """
                 {"titleType": "TITLE_DEED", "titleReference": "DT 99/2001"}
                 """).andExpect(status().isOk());
+        checklist(id, TITLE_DEED_ITEMS);
         call(post(base + "/listings/" + id + "/title-verification"), prea, "{\"status\": \"VERIFIED\"}").andExpect(status().isOk());
         long mandateId = createMandate(id, time.today(), expiry);
         attachSignedDocument(mandateId);
@@ -368,6 +374,14 @@ class ListingComplianceTests {
         call(post(base + "/listings/" + id + "/approve"), prea, null).andExpect(status().isOk());
         publish(id, negotiator).andExpect(status().isOk());
         return id;
+    }
+
+    static final String TITLE_DEED_ITEMS = "\"TITLE_DEED_SIGHTED\", \"DEEDS_SEARCH\", \"OWNER_ID_MATCHES\", \"RATES_CLEARANCE\", \"NO_ENCUMBRANCES\"";
+    static final String CESSION_ITEMS = "\"CESSION_AGREEMENT_SIGHTED\", \"DEVELOPER_CONFIRMATION\", \"CESSION_CHAIN\", \"OWNER_ID_MATCHES\", \"RATES_CLEARANCE\", \"NO_ENCUMBRANCES\"";
+
+    private void checklist(long id, String items) throws Exception {
+        call(put(base + "/listings/" + id + "/verification-checklist"), negotiator, "{\"checked\": [" + items + "]}")
+                .andExpect(status().isOk());
     }
 
     private ResultActions publish(long id, Account who) throws Exception {

@@ -252,6 +252,34 @@ public class PropertyService {
         return properties.save(property);
     }
 
+    /**
+     * Bytes of a photo this platform stored itself (local disk inside the photo root, or our S3
+     * bucket). Photos that are only external URLs are never fetched server-side (no SSRF).
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<byte[]> readStoredPhoto(Long propertyId) {
+        Property property = require(propertyId);
+        for (PropertyPhoto photo : property.getPhotos()) {
+            String key = photo.getStorageKey();
+            if (key == null || key.startsWith("http://") || key.startsWith("https://")) {
+                continue;
+            }
+            try {
+                if (objectStorage.isConfigured()) {
+                    return java.util.Optional.of(objectStorage.getBytes(key));
+                }
+                Path root = photoStorageRoot.toAbsolutePath().normalize();
+                Path file = Path.of(key).toAbsolutePath().normalize();
+                if (file.startsWith(root) && Files.isRegularFile(file)) {
+                    return java.util.Optional.of(Files.readAllBytes(file));
+                }
+            } catch (Exception e) {
+                log.debug("Could not read stored photo {} for property {}: {}", photo.getId(), propertyId, e.getMessage());
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
     /** Used by the agency title-verification flow, which is what "verified listing" means for org listings. */
     @Transactional
     public void setVerification(Property property, VerificationStatus status) {

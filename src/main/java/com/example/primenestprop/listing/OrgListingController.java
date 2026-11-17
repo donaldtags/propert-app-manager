@@ -64,6 +64,12 @@ public class OrgListingController {
         return listings.setTitle(slug, propertyId, request, user);
     }
 
+    @PutMapping("/listings/{propertyId}/verification-checklist")
+    ListingDetail checklist(@PathVariable String slug, @PathVariable Long propertyId,
+                            @Valid @RequestBody ListingDtos.ChecklistRequest request, @AuthenticationPrincipal AppUser user) {
+        return listings.setChecklist(slug, propertyId, request.checked(), user);
+    }
+
     @PostMapping("/listings/{propertyId}/title-verification")
     ListingDetail verifyTitle(@PathVariable String slug, @PathVariable Long propertyId,
                               @Valid @RequestBody ListingDtos.TitleVerificationRequest request,

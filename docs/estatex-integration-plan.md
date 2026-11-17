@@ -1,6 +1,6 @@
 # ESTATEX Integration Plan
 
-Status: **APPROVED 2026-11-17.** Phase 1 (1a, 1b, 1c) done (branch `feature/estatex`), awaiting review before Phase 2.
+Status: **APPROVED 2026-11-17.** Phases 1 and 2 done (branch `feature/estatex`), awaiting review before Phase 3.
 
 ### Decisions (answers to §9)
 - **D1 (Q1).** The target is the Next.js web app, made into an installable, offline-capable PWA. There is no Flutter app.
@@ -12,6 +12,7 @@ Status: **APPROVED 2026-11-17.** Phase 1 (1a, 1b, 1c) done (branch `feature/esta
 - **D7 (Q10).** Sale commission defaults to **5%**. Other fees use common Zimbabwe agency practice as editable org settings: letting fee = 1 month's rent, management fee = 10% of rent collected. The ESTATEX PREA should confirm them.
 - **D9 (Phase 1b questions).** Expired mandates are **auto-unpublished** just after midnight Harare. **Price, address and title type** are the material fields whose change withdraws PREA approval.
 - **D10 (Phase 1c).** The offline-first scope is **listing intake and enquiry capture**. Approvals, title verification, mandate sign-off/cancel and publishing stay online-only.
+- **D11 (Phase 2).** Captured enquiries create or update a **Contact**, matched on the normalised phone number (then email).
 - **D8 (Q8, Q11, defaults applied).** The yield calculator is staff-only for now. Logos live in `frontend/public/orgs/estatex/`.
 
 ### Baseline before any EstateX code (commit `e803b01`)
@@ -451,6 +452,71 @@ Every province, city and town listed below gets suburbs/townships in the seed JS
 **Open questions for Phase 2**
 - Should captured enquiries create or merge into **Contacts** automatically, matched on phone number? I'd suggest yes, matching on the normalised +263 number.
 
+### Phase 2: ESTATEX Properties, sales and rentals CRM (DONE 2026-11-17)
+
+**Built: backend** (new packages `contact`, `pipeline`, `offer`, `showing`, `campaign`, `intake`, `report`)
+- **Contacts**:
+  - Types (owner, buyer, tenant, landowner, investor, referral partner), source, tags, notes, referred-by.
+  - Matched on the **E.164-normalised phone** (`PhoneNumbers`: "0772 123 456", "+263 77…" and "263772…" are one person), unique per organisation.
+  - Buyer/tenant qualification: budget, timeline, financing, areas, minimum bedrooms, decision maker. "Qualified" means all five answered.
+  - **Enquiries find-or-create their contact** and add the implied type. Website enquiries on agency listings do too.
+  - Contact history is aggregated from enquiries, viewings, offers and deals via `ContactActivitySource` (lazy, no bean cycle).
+- **Pipeline**: Prospect → Meeting → Inspection → Mandate signed → Marketing → Viewings → Offer → With conveyancer → Completed / Lost. Moves are **server-checked commands**:
+  - Mandate signed and later: a linked listing with a signed-off mandate in force.
+  - Marketing, Viewings and Offer: the listing is live.
+  - With conveyancer: an accepted offer.
+  - Completed: commission EARNED, i.e. conveyancer confirmation.
+  - Lost: needs a reason. Completed is terminal. Every move is audited.
+- **Intake**:
+  - **Title-verification checklist per title type**. A cession needs the cession agreement, developer confirmation and the full cession chain; a sectional title needs the levy clearance. A title **can't be marked VERIFIED until it's complete**. Unticking an item on a verified title drops it to in-progress and unpublishes a live listing.
+  - Inspection: 14-item condition checklist plus sizes and notes, with an optimistic `baseVersion`, so a stale offline save is refused and the server wins.
+  - Internal inspection photos: idempotent `clientId`, staff-only download.
+  - Pricing: comparable **asking** prices (same city, type and currency, bedrooms ±1, same suburb when there are 3+), p25/median/p75, rounded suggestion, saved recommendation snapshots. Labelled "asking, not achieved"; Phase 4 adds achieved data.
+- **21-day campaign**: starts only on a live listing (today = day 1). 25 template tasks across portals, WhatsApp, Instagram, Facebook, email, calls, signboard, open houses and the weekly owner report. Tasks are set rather than toggled, so offline replays are harmless. **Enquiries per channel** are counted from enquiries tagged to the listing.
+- **Viewings** (`agency_viewings`): new entity, because the platform's `ViewingRequest` requires the viewer to have an account. Scheduling needs a mandate in force on the viewing day. Outcomes record interest (hot/warm/cold), price opinion (too high/fair/good value) and feedback. Idempotent.
+- **Offers, worked within the mandate's authority**:
+  - Recording needs a mandate in force, and each offer records whether it's within authority.
+  - **Accepting or countering below the owner's minimum is refused unless the owner's written instruction is recorded**, and it's audited.
+  - Only one accepted offer per listing. Acceptance **reserves** the listing; if the accepted offer falls through, the listing is relisted if every gate still passes, otherwise it returns to draft.
+  - Offer events are append-only.
+- **Weekly seller report**: branded A4 PDF (OpenHTMLtoPDF) in the organisation's colours. It covers enquiries by channel, viewings and feedback, offers, campaign progress, days on market, CESSION badge, contact details and PREA/EAC footer, plus explainable **price advice** (`PriceAdvice`: review down / refresh / above market / hold). It's shared through an **unguessable 256-bit token link, expiring after 30 days, that needs no login** (`/api/v1/shared/seller-reports/{token}`).
+- **Instagram square** (`share-image.png`): 1080×1080 PNG rendered server-side with photo, price, beds/baths, suburb, organisation name and WhatsApp number. **The listing photo is used only with the owner's photo consent.** It never fetches external photo URLs server-side (no SSRF).
+- `DocumentStore` (S3 or local, path-guarded) for agency documents. New org permission `CONTACTS_MANAGE` (all staff).
+
+**Built: frontend**
+- Workspace tabs: Pipeline, Contacts and Viewings.
+- **Pipeline**: Kanban board (horizontal columns, stage menu per card, value per column) and a list view. The new-deal form picks or creates the owner inline.
+- **Contacts**: list with search by name, phone, email or tag, and type filters. The contact page has call/WhatsApp/email, qualification and history.
+- **Listing sub-tabs**:
+  - *Compliance* (with the verification checklist).
+  - *Intake*: inspection, camera photos, pricing and comparables.
+  - *Marketing*: WhatsApp buyer share, "WhatsApp us" link, Instagram image download, the 21-day tracker with channel counts, and seller reports with **WhatsApp owner / Email owner** buttons.
+  - *Viewings & offers*: book a viewing, outcome form, record an offer, "Send to owner" over WhatsApp, owner accept/counter/decline asking for the written instruction below the minimum, buyer withdrew / deal fell through.
+- **Viewings** page: next 14 days, grouped by day.
+- **Offline** (new outbox ops): create contact, create deal (including a brand-new owner), move stage (as a command: refused moves go to Sync with the server's reason), book a viewing (including a new contact), viewing outcome, campaign task, inspection save, inspection photo. **Online only, by design**: offers (mandate authority is checked live), pricing, seller reports, share image, qualification, checklist, approvals and publishing.
+
+**Verification**
+- Backend **59/59** (+17): `PhaseTwoTests` (7 end-to-end scenarios), `PhoneNumbersTest`, `PriceAdviceTest`, `PricingMathTest`; Phase 1b tests updated for the checklist gate. The CHECK-constraint guard covers all 22 new tables.
+- Frontend: tsc clean; Vitest **33/33** (+3 outbox: offline field-visit chain, refused stage move to the tray, stale inspection to the tray); `next build` OK; lint 62 (= baseline, 0 in new files).
+- **End-to-end in Chrome on a production build at 375 px**:
+  - Started a campaign and ticked a task.
+  - Generated a 1080×1080 Instagram image and a seller report PDF, which opens with no login.
+  - Recorded an offer below the minimum. The UI demanded the owner's written instruction before accepting, and the listing went to RESERVED.
+  - **Offline**: a deal with a brand-new owner, a viewing with a brand-new contact, an inspection marking the roof POOR with a camera photo, and a contact with a UK number. Reconnecting synced all of it. A stage move without evidence was refused into Sync ("Link the listing to this deal first") and the deal stayed in Prospect.
+  - Dark-mode contact page checked. No horizontal overflow on any new screen, and no console errors.
+
+**Decisions / deviations**
+1. Agency viewings are a new entity rather than an extension of `ViewingRequest` (that one requires an account and has a non-null requester).
+2. The Instagram image is rendered server-side rather than on a client canvas: listing photos are cross-origin, so a canvas would be tainted and unexportable.
+3. Offers are online-only (see above). Owner decisions are recorded by staff with the owner's instruction reference. An owner-portal "accept" button comes with the Phase 3 owner portal.
+4. `CampaignTask.day` is stored as `day_number`, because `day` is a reserved word in H2 and risky elsewhere.
+5. Fixed a latent bug: audit `toState` is 64 characters, so long values go in metadata. Discovered through the generic 409 "conflicts with existing data" message, which hides the real cause.
+
+**Notes for later phases**
+- `GlobalExceptionHandler` maps every `DataIntegrityViolationException` to a generic 409. It should log the constraint name, because it hid a real bug for a while here.
+- Offer expiry dates are informational; an expiry job could close stale offers.
+- The campaign list is long on a phone. Collapsing past days is a candidate polish item.
+
 ---
 
 ## Changelog
@@ -458,3 +524,4 @@ Every province, city and town listed below gets suburbs/townships in the seed JS
 - 2026-11-17: Decisions D1–D8 recorded; Phase 1a built and verified.
 - 2026-11-17: D9 recorded; Phase 1b built and verified.
 - 2026-11-17: D10 recorded; Phase 1c built and verified; V3/V4 incident resolved.
+- 2026-11-17: D11 recorded; Phase 2 built and verified.

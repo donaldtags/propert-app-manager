@@ -166,6 +166,13 @@ public class OrgListingService {
         }
         p.setTitleType(r.titleType());
         c.setTitleReference(reference);
+        if (typeChanged) {
+            Set<String> applicable = new LinkedHashSet<>();
+            VerificationChecklist.itemsFor(r.titleType()).forEach(i -> applicable.add(i.key()));
+            Set<String> kept = new LinkedHashSet<>(c.getCheckedItemSet());
+            kept.retainAll(applicable);
+            c.setCheckedItemSet(kept);
+        }
         if (c.getTitleVerificationStatus() != TitleVerificationStatus.NOT_STARTED) {
             // Whatever was verified was a different title; it has to be checked again.
             c.setTitleVerificationStatus(TitleVerificationStatus.NOT_STARTED);
@@ -183,6 +190,39 @@ public class OrgListingService {
         return detail(slug, propertyId, user);
     }
 
+    /** Sets which checklist items are ticked. Unticking one on a VERIFIED title moves it back to IN_PROGRESS. */
+    @Transactional
+    public ListingDtos.ListingDetail setChecklist(String slug, Long propertyId, Set<String> checked, AppUser user) {
+        Listing l = load(slug, propertyId, user, OrgPermission.LISTING_EDIT);
+        Property p = l.property();
+        ListingCompliance c = l.compliance();
+        if (p.getTitleType() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Record the title type first; the checklist depends on it.");
+        }
+        Set<String> valid = new LinkedHashSet<>();
+        VerificationChecklist.itemsFor(p.getTitleType()).forEach(i -> valid.add(i.key()));
+        for (String key : checked) {
+            if (!valid.contains(key)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, key + " doesn't apply to a " + p.getTitleType() + " title.");
+            }
+        }
+        Set<String> ordered = new LinkedHashSet<>();
+        valid.stream().filter(checked::contains).forEach(ordered::add);
+        int before = c.getCheckedItemSet().size();
+        c.setCheckedItemSet(ordered);
+        if (c.getTitleVerificationStatus() == TitleVerificationStatus.VERIFIED && ordered.size() < valid.size()) {
+            c.setTitleVerificationStatus(TitleVerificationStatus.IN_PROGRESS);
+            c.setTitleVerifiedAt(null);
+            c.setTitleVerifiedByUserId(null);
+        }
+        audit.record(user, entry("LISTING_VERIFICATION_CHECKLIST", "Property", propertyId)
+                .organisation(c.getOrganisationId())
+                .transition(before + "/" + valid.size(), ordered.size() + "/" + valid.size())
+                .metadata(Map.of("checked", List.copyOf(ordered))));
+        enforceStillPublishable(p, c, user, "Title verification is no longer complete");
+        return detail(slug, propertyId, user);
+    }
+
     @Transactional
     public ListingDtos.ListingDetail verifyTitle(String slug, Long propertyId, ListingDtos.TitleVerificationRequest r, AppUser user) {
         Listing l = load(slug, propertyId, user, OrgPermission.TITLE_VERIFY);
@@ -190,6 +230,14 @@ public class OrgListingService {
         ListingCompliance c = l.compliance();
         if (r.status() == TitleVerificationStatus.VERIFIED && (p.getTitleType() == null || c.getTitleReference() == null)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Record the title type and title reference number before verifying.");
+        }
+        if (r.status() == TitleVerificationStatus.VERIFIED) {
+            List<String> missing = VerificationChecklist.itemsFor(p.getTitleType()).stream()
+                    .filter(i -> !c.getCheckedItemSet().contains(i.key()))
+                    .map(VerificationChecklist.Item::label).toList();
+            if (!missing.isEmpty()) {
+                throw new ApiException(HttpStatus.CONFLICT, "Finish the verification checklist first: " + String.join("; ", missing) + ".");
+            }
         }
         TitleVerificationStatus before = c.getTitleVerificationStatus();
         c.setTitleVerificationStatus(r.status());
@@ -274,6 +322,22 @@ public class OrgListingService {
         return detail(slug, propertyId, user);
     }
 
+    /**
+     * A reserved listing whose accepted offer fell through goes back on the market if every gate
+     * is still met (mandate in force etc.), otherwise back to draft.
+     */
+    @Transactional
+    public void relistAfterFallThrough(Property p, AppUser actor) {
+        ListingCompliance c = compliances.findByPropertyId(p.getId()).orElse(null);
+        boolean publishable = c != null && report(p, c).publishable();
+        PropertyStatus next = publishable ? PropertyStatus.AVAILABLE : PropertyStatus.DRAFT;
+        p.setStatus(next);
+        audit.record(actor, entry(publishable ? "LISTING_RELISTED" : "LISTING_UNPUBLISHED", "Property", p.getId())
+                .organisation(p.getOrganisationId())
+                .transition(PropertyStatus.RESERVED, next)
+                .metadata(Map.of("reason", "Accepted offer withdrawn")));
+    }
+
     /** Price or address edited through the general property endpoint: approval no longer stands. */
     @EventListener
     public void onMaterialChange(PropertyMaterialChangeEvent event) {
@@ -355,6 +419,9 @@ public class OrgListingService {
                 names.get(c.getPreaApprovedByUserId()), c.getMaterialChangedAt(), c.getActiveMandateId(),
                 c.getPublishedAt(), c.getDivision(), c.getNegotiatorUserId(), names.get(c.getNegotiatorUserId()),
                 report.checks().stream().map(ListingDtos.CheckResponse::from).toList(),
+                VerificationChecklist.itemsFor(p.getTitleType()).stream()
+                        .map(i -> new ListingDtos.ChecklistItemResponse(i.key(), i.label(), c.getCheckedItemSet().contains(i.key())))
+                        .toList(),
                 report.publishable(), report.readyForApproval(), c.getVersion());
     }
 

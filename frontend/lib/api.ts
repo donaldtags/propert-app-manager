@@ -73,6 +73,25 @@ import type {
   Enquiry,
   EnquiryStatus,
   CaptureEnquiryRequest,
+  Contact,
+  ContactDetail,
+  ContactType,
+  CreateContactRequest,
+  PipelineCard,
+  PipelineStage,
+  CreatePipelineCardRequest,
+  Showing,
+  ShowingStatus,
+  BuyerInterest,
+  PriceOpinion,
+  Offer,
+  Financing,
+  Campaign,
+  Inspection,
+  InspectionItem,
+  PricingSuggestion,
+  SellerReportSummary,
+  BuyingTimeline,
 } from "./types";
 
 export const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -1208,6 +1227,155 @@ export const enquiries = {
 
   setStatus: (slug: string, id: number, status: EnquiryStatus, token: string) =>
     request<Enquiry>(`${orgPath(slug)}/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }, token),
+};
+
+/** Fetches an authenticated binary (PDF/PNG/photo) and returns an object URL for it. */
+async function authedBlobUrl(path: string, token: string): Promise<string> {
+  const res = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  return URL.createObjectURL(await res.blob());
+}
+
+export const contacts = {
+  search: (slug: string, token: string, q?: string, type?: ContactType) => {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (type) p.set("type", type);
+    return request<Contact[]>(`${orgPath(slug)}/contacts?${p}`, {}, token);
+  },
+  get: (slug: string, id: number, token: string) => request<ContactDetail>(`${orgPath(slug)}/contacts/${id}`, {}, token),
+  create: (slug: string, data: CreateContactRequest, token: string) =>
+    request<Contact>(`${orgPath(slug)}/contacts`, { method: "POST", body: JSON.stringify(data) }, token),
+  update: (slug: string, id: number, data: Partial<CreateContactRequest> & { version?: number }, token: string) =>
+    request<Contact>(`${orgPath(slug)}/contacts/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+  qualify: (
+    slug: string,
+    id: number,
+    data: {
+      budgetCents?: number;
+      timeline?: BuyingTimeline;
+      financing?: Financing;
+      preferredAreas?: string;
+      minBedrooms?: number;
+      decisionMaker?: boolean;
+      decisionMakerNote?: string;
+    },
+    token: string
+  ) => request<Contact>(`${orgPath(slug)}/contacts/${id}/qualification`, { method: "PUT", body: JSON.stringify(data) }, token),
+};
+
+export const pipeline = {
+  board: (slug: string, token: string) => request<PipelineCard[]>(`${orgPath(slug)}/pipeline`, {}, token),
+  create: (slug: string, data: CreatePipelineCardRequest, token: string) =>
+    request<PipelineCard>(`${orgPath(slug)}/pipeline`, { method: "POST", body: JSON.stringify(data) }, token),
+  update: (slug: string, id: number, data: Partial<CreatePipelineCardRequest>, token: string) =>
+    request<PipelineCard>(`${orgPath(slug)}/pipeline/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+  move: (slug: string, id: number, stage: PipelineStage, lostReason: string | undefined, token: string) =>
+    request<PipelineCard>(`${orgPath(slug)}/pipeline/${id}/move`, { method: "POST", body: JSON.stringify({ stage, lostReason }) }, token),
+};
+
+export const showings = {
+  upcoming: (slug: string, token: string, days = 14) => request<Showing[]>(`${orgPath(slug)}/viewings?days=${days}`, {}, token),
+  forListing: (slug: string, propertyId: number, token: string) =>
+    request<Showing[]>(`${orgPath(slug)}/listings/${propertyId}/viewings`, {}, token),
+  schedule: (
+    slug: string,
+    propertyId: number,
+    data: { clientId?: string; contactId: number; scheduledAt: string; durationMinutes?: number },
+    token: string
+  ) => request<Showing>(`${orgPath(slug)}/listings/${propertyId}/viewings`, { method: "POST", body: JSON.stringify(data) }, token),
+  outcome: (
+    slug: string,
+    id: number,
+    data: { status: ShowingStatus; interest?: BuyerInterest; priceOpinion?: PriceOpinion; feedback?: string },
+    token: string
+  ) => request<Showing>(`${orgPath(slug)}/viewings/${id}/outcome`, { method: "PUT", body: JSON.stringify(data) }, token),
+};
+
+export const offers = {
+  forListing: (slug: string, propertyId: number, token: string) =>
+    request<Offer[]>(`${orgPath(slug)}/listings/${propertyId}/offers`, {}, token),
+  record: (
+    slug: string,
+    propertyId: number,
+    data: { clientId?: string; buyerContactId: number; amountCents: number; depositCents?: number; financing?: Financing; conditions?: string; expiresOn?: string },
+    token: string
+  ) => request<Offer>(`${orgPath(slug)}/listings/${propertyId}/offers`, { method: "POST", body: JSON.stringify(data) }, token),
+  present: (slug: string, id: number, via: "WHATSAPP" | "EMAIL" | "IN_PERSON" | "PHONE", token: string) =>
+    request<Offer>(`${orgPath(slug)}/offers/${id}/present`, { method: "POST", body: JSON.stringify({ via }) }, token),
+  respond: (
+    slug: string,
+    id: number,
+    data: { decision: "ACCEPT" | "REJECT" | "COUNTER"; counterAmountCents?: number; ownerInstructionReference?: string; note?: string },
+    token: string
+  ) => request<Offer>(`${orgPath(slug)}/offers/${id}/owner-response`, { method: "POST", body: JSON.stringify(data) }, token),
+  withdraw: (slug: string, id: number, note: string | undefined, token: string) =>
+    request<Offer>(`${orgPath(slug)}/offers/${id}/withdraw`, { method: "POST", body: JSON.stringify({ note }) }, token),
+};
+
+export const campaigns = {
+  current: (slug: string, propertyId: number, token: string) =>
+    request<Campaign | undefined>(`${orgPath(slug)}/listings/${propertyId}/campaign`, {}, token),
+  start: (slug: string, propertyId: number, token: string) =>
+    request<Campaign>(`${orgPath(slug)}/listings/${propertyId}/campaign`, { method: "POST" }, token),
+  setTask: (slug: string, taskId: number, done: boolean, token: string) =>
+    request<Campaign>(`${orgPath(slug)}/campaign-tasks/${taskId}`, { method: "PUT", body: JSON.stringify({ done }) }, token),
+};
+
+export const intake = {
+  inspection: (slug: string, propertyId: number, token: string) =>
+    request<Inspection>(`${orgPath(slug)}/listings/${propertyId}/inspection`, {}, token),
+  saveInspection: (
+    slug: string,
+    propertyId: number,
+    data: { items: InspectionItem[]; standSizeM2?: number; floorAreaM2?: number; notes?: string; inspectedOn?: string; baseVersion?: number },
+    token: string
+  ) => request<Inspection>(`${orgPath(slug)}/listings/${propertyId}/inspection`, { method: "PUT", body: JSON.stringify(data) }, token),
+  uploadPhoto: async (slug: string, propertyId: number, file: Blob, fileName: string, meta: { clientId?: string; itemKey?: string; caption?: string }, token: string) => {
+    const form = new FormData();
+    form.append("file", new File([file], fileName, { type: file.type || "image/jpeg" }));
+    const q = new URLSearchParams();
+    if (meta.clientId) q.set("clientId", meta.clientId);
+    if (meta.itemKey) q.set("itemKey", meta.itemKey);
+    if (meta.caption) q.set("caption", meta.caption);
+    const res = await fetch(`${BASE}${orgPath(slug)}/listings/${propertyId}/inspection/photos?${q}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) {
+      let message = res.statusText;
+      try {
+        message = (await res.json()).message ?? message;
+      } catch {}
+      throw new ApiError(res.status, message);
+    }
+    return res.json();
+  },
+  photoUrl: (slug: string, photoId: number, token: string) => authedBlobUrl(`${orgPath(slug)}/inspection-photos/${photoId}`, token),
+  pricing: (slug: string, propertyId: number, token: string) =>
+    request<PricingSuggestion>(`${orgPath(slug)}/listings/${propertyId}/pricing`, {}, token),
+  saveRecommendation: (slug: string, propertyId: number, recommendedCents: number, rationale: string | undefined, token: string) =>
+    request<PricingSuggestion["latest"]>(`${orgPath(slug)}/listings/${propertyId}/pricing`, {
+      method: "POST",
+      body: JSON.stringify({ recommendedCents, rationale }),
+    }, token),
+  setChecklist: (slug: string, propertyId: number, checked: string[], token: string) =>
+    request<OrgListingDetail>(`${orgPath(slug)}/listings/${propertyId}/verification-checklist`, {
+      method: "PUT",
+      body: JSON.stringify({ checked }),
+    }, token),
+};
+
+export const sellerReports = {
+  list: (slug: string, propertyId: number, token: string) =>
+    request<SellerReportSummary[]>(`${orgPath(slug)}/listings/${propertyId}/seller-reports`, {}, token),
+  generate: (slug: string, propertyId: number, token: string) =>
+    request<SellerReportSummary>(`${orgPath(slug)}/listings/${propertyId}/seller-reports`, { method: "POST" }, token),
+  /** Public link the owner opens (no login). */
+  shareUrl: (shareToken: string) => `${BASE}/shared/seller-reports/${shareToken}`,
+  shareImageUrl: (slug: string, propertyId: number, token: string) =>
+    authedBlobUrl(`${orgPath(slug)}/listings/${propertyId}/share-image.png`, token),
 };
 
 // Location reference data (provinces, cities/towns, suburbs)

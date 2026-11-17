@@ -70,6 +70,10 @@ public class ListingCompliance {
     private Long titleVerifiedByUserId;
     private Instant titleVerifiedAt;
 
+    /** Comma-separated VerificationChecklist keys that have been ticked. */
+    @Column(length = 1000)
+    private String checkedItems;
+
     // Owner consent to marketing
     private boolean ownerConsentPhotos;
     private boolean ownerConsentAddress;
@@ -104,6 +108,20 @@ public class ListingCompliance {
 
     public void setTitleVerificationStatus(TitleVerificationStatus status) {
         this.titleVerificationCode = status.name();
+    }
+
+    public java.util.Set<String> getCheckedItemSet() {
+        java.util.Set<String> set = new java.util.LinkedHashSet<>();
+        if (checkedItems != null && !checkedItems.isBlank()) {
+            for (String k : checkedItems.split(",")) {
+                if (!k.isBlank()) set.add(k.trim());
+            }
+        }
+        return set;
+    }
+
+    public void setCheckedItemSet(java.util.Collection<String> keys) {
+        this.checkedItems = keys == null || keys.isEmpty() ? null : String.join(",", keys);
     }
 
     public void clearPreaApproval() {

@@ -23,6 +23,7 @@ import lombok.Setter;
 @Table(name = "enquiries", indexes = {
         @Index(name = "idx_enquiries_org_time", columnList = "organisationId,capturedAt"),
         @Index(name = "idx_enquiries_property", columnList = "propertyId"),
+        @Index(name = "idx_enquiries_contact", columnList = "contactId"),
         @Index(name = "uq_enquiries_client_id", columnList = "clientId", unique = true)
 })
 @Getter
@@ -43,6 +44,9 @@ public class Enquiry {
     private Long organisationId;
 
     private Long propertyId;
+
+    /** The contact this enquiry was matched to (by phone, then email) or created as. */
+    private Long contactId;
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)

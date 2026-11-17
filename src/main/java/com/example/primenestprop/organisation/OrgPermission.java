@@ -19,6 +19,8 @@ public enum OrgPermission {
 
     /** Capture and work enquiries from any channel. All staff. */
     ENQUIRY_CAPTURE,
+    /** Contacts, buyer qualification, viewings. All staff. */
+    CONTACTS_MANAGE,
 
     TRUST_LEDGER_VIEW,
     TRUST_LEDGER_WRITE,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { enquiries, isNetworkError, orgListings } from "@/lib/api";
+import { campaigns, contacts, enquiries, intake, isNetworkError, orgListings, pipeline, showings } from "@/lib/api";
 import { addToOutbox, cacheGet, cacheSet, conflictsFor, idbOutboxStore } from "./db";
 import { processOutbox, type OutboxApi, type ProcessOutcome } from "./processor";
 import type { OutboxEntry, OutboxOp } from "./types";
@@ -53,6 +53,25 @@ function api(token: string): OutboxApi {
     attachMandateDocument: (slug, mandateId, file, fileName, ownerSignedOn) =>
       orgListings.attachSignedMandate(slug, mandateId, new File([file], fileName, { type: file.type }), ownerSignedOn, token),
     captureEnquiry: (slug, payload, clientId) => enquiries.capture(slug, { ...payload, clientId }, token),
+    createContact: (slug, payload, clientId) => contacts.create(slug, { ...payload, clientId }, token),
+    createPipelineCard: (slug, ownerContactId, payload, clientId) =>
+      pipeline.create(slug, { ...payload, ownerContactId, clientId }, token),
+    movePipelineStage: (slug, cardId, stage, lostReason) => pipeline.move(slug, cardId, stage, lostReason, token),
+    scheduleViewing: (slug, propertyId, contactId, scheduledAt, durationMinutes, clientId) =>
+      showings.schedule(slug, propertyId, { clientId, contactId, scheduledAt, durationMinutes }, token),
+    viewingOutcome: (slug, viewingId, op) =>
+      showings.outcome(slug, viewingId, { status: op.status, interest: op.interest, priceOpinion: op.priceOpinion, feedback: op.feedback }, token),
+    setCampaignTask: (slug, taskId, done) => campaigns.setTask(slug, taskId, done, token),
+    saveInspection: (slug, listingId, op) =>
+      intake.saveInspection(slug, listingId, {
+        items: op.items,
+        standSizeM2: op.standSizeM2,
+        floorAreaM2: op.floorAreaM2,
+        notes: op.notes,
+        baseVersion: op.baseVersion,
+      }, token),
+    uploadInspectionPhoto: (slug, listingId, op) =>
+      intake.uploadPhoto(slug, listingId, op.file, op.fileName, { clientId: op.clientId, itemKey: op.itemKey, caption: op.caption }, token),
   };
 }
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, CheckCircle2, CircleDashed, ExternalLink, FileText, ShieldCheck, Upload } from "lucide-react";
-import { orgListings } from "@/lib/api";
+import { intake, orgListings } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { addDays, formatDate, harareToday } from "@/lib/dates";
 import { formatCents, parseToCents } from "@/lib/money";
@@ -257,6 +257,14 @@ function TitleSection({ detail, run, queue, busy, offline }: { detail: OrgListin
         <p className="mt-2 text-xs text-warning">Cession listings show a risk badge to buyers on every page.</p>
       )}
 
+      {c.verificationChecklist.length > 0 && (
+        <VerificationChecklistEditor
+          items={c.verificationChecklist}
+          disabled={!editable || busy || offline}
+          onSave={(checked) => run("checklist", () => intake.setChecklist(slug, p.id, checked, token!))}
+        />
+      )}
+
       <div className="mt-4 border-t border-line pt-4">
         <p className="text-sm">
           Verification: <strong>{TITLE_VERIFICATION_LABEL[c.titleVerificationStatus]}</strong>
@@ -284,6 +292,9 @@ function TitleSection({ detail, run, queue, busy, offline }: { detail: OrgListin
             </div>
             {(!p.titleType || !c.titleReference) && (
               <p className="text-xs text-muted">Save the title type and reference number before verifying.</p>
+            )}
+            {c.verificationChecklist.some((i) => !i.checked) && (
+              <p className="text-xs text-muted">Tick every checklist item above before marking it verified.</p>
             )}
           </div>
         )}
@@ -627,5 +638,44 @@ function ConsentSection({ detail, queue, busy }: { detail: OrgListingDetail; que
         </button>
       )}
     </section>
+  );
+}
+
+function VerificationChecklistEditor({
+  items,
+  disabled,
+  onSave,
+}: {
+  items: { key: string; label: string; checked: boolean }[];
+  disabled: boolean;
+  onSave: (checked: string[]) => void;
+}) {
+  const [checked, setChecked] = useState<string[]>(items.filter((i) => i.checked).map((i) => i.key));
+  const changed = checked.slice().sort().join() !== items.filter((i) => i.checked).map((i) => i.key).sort().join();
+  return (
+    <div className="mt-4 border-t border-line pt-4">
+      <p className="text-sm font-medium">Verification checklist ({checked.length}/{items.length})</p>
+      <ul className="mt-2 space-y-1">
+        {items.map((i) => (
+          <li key={i.key}>
+            <label className="flex items-start gap-3 min-h-11 text-sm py-1">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--ex-primary)]"
+                checked={checked.includes(i.key)}
+                disabled={disabled}
+                onChange={(e) => setChecked((s) => (e.target.checked ? [...s, i.key] : s.filter((k) => k !== i.key)))}
+              />
+              {i.label}
+            </label>
+          </li>
+        ))}
+      </ul>
+      {!disabled && (
+        <button className={`${ws.buttonGhost} mt-2`} disabled={!changed} onClick={() => onSave(checked)}>
+          Save checklist
+        </button>
+      )}
+    </div>
   );
 }

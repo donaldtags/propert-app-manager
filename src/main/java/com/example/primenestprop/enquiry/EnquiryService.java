@@ -1,6 +1,11 @@
 package com.example.primenestprop.enquiry;
 
 import com.example.primenestprop.common.ApiException;
+import com.example.primenestprop.contact.ContactActivitySource;
+import com.example.primenestprop.contact.ContactDtos;
+import com.example.primenestprop.contact.ContactService;
+import com.example.primenestprop.contact.ContactSource;
+import com.example.primenestprop.contact.ContactType;
 import com.example.primenestprop.organisation.OrgAccessService;
 import com.example.primenestprop.organisation.OrgAccessService.OrgContext;
 import com.example.primenestprop.organisation.OrgPermission;
@@ -21,18 +26,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class EnquiryService {
+public class EnquiryService implements ContactActivitySource {
     /** Device clocks drift; anything further ahead than this is treated as a bad clock, not trusted. */
     private static final Duration CLOCK_SKEW = Duration.ofMinutes(10);
 
     private final OrgAccessService access;
     private final EnquiryRepository enquiries;
     private final PropertyRepository properties;
+    private final ContactService contacts;
 
-    public EnquiryService(OrgAccessService access, EnquiryRepository enquiries, PropertyRepository properties) {
+    public EnquiryService(OrgAccessService access, EnquiryRepository enquiries, PropertyRepository properties,
+                          ContactService contacts) {
         this.access = access;
         this.enquiries = enquiries;
         this.properties = properties;
+        this.contacts = contacts;
     }
 
     /** Append-only capture, idempotent on clientId so an offline replay never duplicates. */
@@ -73,6 +81,8 @@ public class EnquiryService {
         e.setCurrency(r.budgetCents() == null ? null : r.currency() == null ? ctx.organisation().getDefaultCurrency() : r.currency());
         e.setCapturedByUserId(user.getId());
         e.setCapturedAt(captured);
+        e.setContactId(contacts.findOrCreate(org, e.getName(), e.getPhone(), e.getEmail(), sourceFor(r.channel()),
+                typeFor(r.intent()), user.getId()).getId());
         return enquiries.save(e);
     }
 
@@ -117,7 +127,49 @@ public class EnquiryService {
         e.setPhone(event.phone());
         e.setMessage(event.message());
         e.setCapturedAt(Instant.now());
+        e.setContactId(contacts.findOrCreate(event.organisationId(), e.getName(), e.getPhone(), e.getEmail(),
+                ContactSource.WEBSITE, typeFor(e.getIntent()), null).getId());
         enquiries.save(e);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContactDtos.ActivityItem> activityFor(Long organisationId, Long contactId) {
+        List<Enquiry> rows = enquiries.findByOrganisationIdAndContactIdOrderByCapturedAtDesc(organisationId, contactId);
+        Map<Long, String> titles = new HashMap<>();
+        properties.findAllById(rows.stream().map(Enquiry::getPropertyId).filter(Objects::nonNull).distinct().toList())
+                .forEach(p -> titles.put(p.getId(), p.getTitle()));
+        return rows.stream().map(e -> new ContactDtos.ActivityItem("ENQUIRY", e.getId(), e.getCapturedAt(),
+                "Enquiry via " + e.getChannel().name().toLowerCase().replace('_', '-')
+                        + (e.getMessage() == null ? "" : ": " + e.getMessage()),
+                e.getPropertyId(), titles.get(e.getPropertyId()))).toList();
+    }
+
+    static ContactSource sourceFor(EnquiryChannel channel) {
+        return switch (channel) {
+            case WHATSAPP -> ContactSource.WHATSAPP;
+            case WALK_IN -> ContactSource.WALK_IN;
+            case INSTAGRAM -> ContactSource.INSTAGRAM;
+            case FACEBOOK -> ContactSource.FACEBOOK;
+            case PORTAL -> ContactSource.PORTAL;
+            case WEBSITE -> ContactSource.WEBSITE;
+            case REFERRAL -> ContactSource.REFERRAL;
+            case SIGNBOARD -> ContactSource.SIGNBOARD;
+            case PHONE, EMAIL, OTHER -> ContactSource.OTHER;
+        };
+    }
+
+    static ContactType typeFor(EnquiryIntent intent) {
+        if (intent == null) {
+            return null;
+        }
+        return switch (intent) {
+            case BUY -> ContactType.BUYER;
+            case RENT -> ContactType.TENANT;
+            case SELL, LET -> ContactType.OWNER;
+            case INVEST -> ContactType.INVESTOR;
+            case OTHER -> null;
+        };
     }
 
     private static String blankToNull(String s) {

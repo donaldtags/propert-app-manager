@@ -44,6 +44,14 @@ function fakeApi(overrides: Partial<OutboxApi> = {}): OutboxApi {
     createMandate: vi.fn(async () => ({ id: 77 }) as never),
     attachMandateDocument: vi.fn(async () => ({})),
     captureEnquiry: vi.fn(async () => ({})),
+    createContact: vi.fn(async () => ({ id: 301 })),
+    createPipelineCard: vi.fn(async () => ({ id: 401 })),
+    movePipelineStage: vi.fn(async () => ({})),
+    scheduleViewing: vi.fn(async () => ({ id: 501 })),
+    viewingOutcome: vi.fn(async () => ({})),
+    setCampaignTask: vi.fn(async () => ({})),
+    saveInspection: vi.fn(async () => ({})),
+    uploadInspectionPhoto: vi.fn(async () => ({})),
     ...overrides,
   };
 }
@@ -133,5 +141,32 @@ describe("processOutbox", () => {
     expect(await processOutbox(1, m.store, api)).toBe("done");
     expect(api.captureEnquiry).not.toHaveBeenCalled();
     expect(m.entries).toHaveLength(1);
+  });
+
+  it("replays an offline field visit: new contact, a deal for them, a viewing and its outcome", async () => {
+    m.add({ kind: "createContact", clientId: "C1", payload: { fullName: "New Owner" }, label: "contact" });
+    m.add({ kind: "createPipelineCard", clientId: "D1", owner: { clientId: "C1" }, payload: { title: "Deal" }, label: "deal" });
+    m.add({ kind: "scheduleViewing", clientId: "V1", propertyId: 9, contact: { clientId: "C1" }, scheduledAt: "2026-11-18T08:00:00Z", label: "viewing" });
+    m.add({ kind: "viewingOutcome", viewing: { clientId: "V1" }, status: "COMPLETED", interest: "HOT", label: "outcome" });
+    const api = fakeApi();
+    expect(await processOutbox(1, m.store, api)).toBe("done");
+    expect(api.createPipelineCard).toHaveBeenCalledWith("estatex", 301, { title: "Deal" }, "D1");
+    expect(api.scheduleViewing).toHaveBeenCalledWith("estatex", 9, 301, "2026-11-18T08:00:00Z", undefined, "V1");
+    expect(api.viewingOutcome).toHaveBeenCalledWith("estatex", 501, expect.objectContaining({ interest: "HOT" }));
+  });
+
+  it("a stage move the server refuses (no evidence) goes to the tray, not forced through", async () => {
+    m.add({ kind: "movePipelineStage", card: { id: 401 }, stage: "MANDATE_SIGNED", label: "move to mandate signed" });
+    const api = fakeApi({ movePipelineStage: vi.fn(async () => { throw new HttpError(409, "The listing has no signed-off mandate in force."); }) });
+    expect(await processOutbox(1, m.store, api)).toBe("done");
+    expect(m.conflicts[0]).toMatchObject({ kind: "rejected", message: "The listing has no signed-off mandate in force." });
+    expect(m.entries).toEqual([]);
+  });
+
+  it("a stale inspection save is refused and kept for review (server wins)", async () => {
+    m.add({ kind: "saveInspection", listing: { id: 50 }, baseVersion: 2, items: [], label: "inspection" });
+    const api = fakeApi({ saveInspection: vi.fn(async () => { throw new HttpError(409, "Someone else saved this inspection"); }) });
+    expect(await processOutbox(1, m.store, api)).toBe("done");
+    expect(m.conflicts[0].label).toBe("inspection");
   });
 });
