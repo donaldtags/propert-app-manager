@@ -75,7 +75,7 @@ export default function PropertyLocationMap({ latitude, longitude, title, addres
       const layer = routeLayerRef.current!;
       layer.clearLayers();
       L.polyline(result.path, { color: "#ffffff", weight: 9, opacity: 0.9 }).addTo(layer);
-      const line = L.polyline(result.path, { color: "#1f5d42", weight: 5 }).addTo(layer);
+      const line = L.polyline(result.path, { color: "#0b1d32", weight: 5 }).addTo(layer);
       L.marker(origin, {
         icon: L.divIcon({ className: "", html: '<div class="you-are-here"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
       })
@@ -109,7 +109,7 @@ export default function PropertyLocationMap({ latitude, longitude, title, addres
             type="button"
             onClick={showDirections}
             disabled={loadingRoute}
-            className="flex items-center gap-1.5 bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2.5 rounded-xl"
+            className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2.5 rounded-xl"
           >
             {loadingRoute ? <Loader2 className="w-4 h-4 animate-spin" /> : <RouteIcon className="w-4 h-4" />}
             Show route from my location
@@ -127,7 +127,7 @@ export default function PropertyLocationMap({ latitude, longitude, title, addres
           href={externalDirectionsUrl(latitude, longitude)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 border border-gray-200 hover:border-forest-500 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white"
+          className="flex items-center gap-1.5 border border-gray-200 hover:border-brand-500 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white"
         >
           <Navigation className="w-4 h-4" /> Navigate <ExternalLink className="w-3 h-3 opacity-60" />
         </a>
@@ -146,7 +146,7 @@ export default function PropertyLocationMap({ latitude, longitude, title, addres
               <button
                 type="button"
                 onClick={() => setShowSteps((s) => !s)}
-                className="ml-auto text-xs font-semibold text-forest-700 hover:underline"
+                className="ml-auto text-xs font-semibold text-brand-700 hover:underline"
               >
                 {showSteps ? "Hide steps" : `Show ${route.steps.length} steps`}
               </button>

@@ -31,7 +31,7 @@ export default function HeroSearch() {
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-3.5 text-sm font-semibold transition-colors ${
                 activeTab === tab
-                  ? "text-forest-600 border-b-2 border-forest-600"
+                  ? "text-brand-600 border-b-2 border-brand-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -52,7 +52,7 @@ export default function HeroSearch() {
           />
           <button
             type="submit"
-            className="bg-forest-600 hover:bg-forest-700 text-white font-semibold px-4 sm:px-6 py-2.5 rounded-xl transition-colors shrink-0"
+            className="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-4 sm:px-6 py-2.5 rounded-xl transition-colors shrink-0"
           >
             Search
           </button>

@@ -135,7 +135,7 @@ export default function ProviderPage() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Building2 className="w-7 h-7 text-forest-600" /> Service Provider
+          <Building2 className="w-7 h-7 text-brand-600" /> Service Provider
         </h1>
         <p className="text-gray-500 mt-1">
           Register your business and get verified to be listed in the Home Services Marketplace.
@@ -148,7 +148,7 @@ export default function ProviderPage() {
         </div>
       )}
       {success && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 text-brand-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -160,7 +160,7 @@ export default function ProviderPage() {
           </p>
           <Link
             href="/settings/security?needRole=SERVICE_PROVIDER&reason=you%20want%20to%20list%20your%20business"
-            className="inline-flex items-center gap-2 bg-forest-600 hover:bg-forest-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
           >
             Add Service Provider role <ArrowRight className="w-4 h-4" />
           </Link>
@@ -173,7 +173,7 @@ export default function ProviderPage() {
               <p className="text-sm text-gray-500">{CATEGORY_OPTIONS.find((c) => c.value === vendor.category)?.label}</p>
             </div>
             {vendor.verified ? (
-              <span className="flex items-center gap-1 bg-forest-50 text-forest-700 text-xs font-bold px-2.5 py-1 rounded-full">
+              <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-2.5 py-1 rounded-full">
                 <CheckCircle className="w-3.5 h-3.5" /> Verified
               </span>
             ) : (
@@ -195,7 +195,7 @@ export default function ProviderPage() {
           </div>
           <button
             onClick={() => setEditing(true)}
-            className="text-sm font-medium text-forest-600 hover:underline"
+            className="text-sm font-medium text-brand-600 hover:underline"
           >
             Edit details
           </button>
@@ -208,7 +208,7 @@ export default function ProviderPage() {
               type="text"
               value={form.businessName}
               onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               placeholder="e.g. Moyo Plumbing Services"
             />
           </div>
@@ -217,7 +217,7 @@ export default function ProviderPage() {
             <select
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as VendorCategory }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 bg-white"
             >
               {CATEGORY_OPTIONS.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -230,7 +230,7 @@ export default function ProviderPage() {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 resize-none"
               placeholder="What services do you offer?"
             />
           </div>
@@ -241,7 +241,7 @@ export default function ProviderPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
                 placeholder="+263771000001"
               />
             </div>
@@ -251,7 +251,7 @@ export default function ProviderPage() {
                 type="text"
                 value={form.city}
                 onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
                 placeholder="Harare"
               />
             </div>
@@ -260,7 +260,7 @@ export default function ProviderPage() {
             <button
               onClick={vendor ? handleUpdate : handleRegister}
               disabled={saving}
-              className="flex items-center gap-2 bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
             >
               <Save className="w-4 h-4" /> {saving ? "Saving..." : vendor ? "Save changes" : "Submit for verification"}
             </button>

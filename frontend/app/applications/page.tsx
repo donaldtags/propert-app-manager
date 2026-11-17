@@ -13,10 +13,10 @@ const BUSINESS_ROLES = ["LANDLORD", "AGENT", "DEVELOPER", "PRIVATE"] as const;
 
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
   DRAFT: "bg-gray-100 text-gray-700",
-  SUBMITTED: "bg-forest-100 text-forest-700",
+  SUBMITTED: "bg-brand-100 text-brand-700",
   VERIFICATION_REQUIRED: "bg-amber-100 text-amber-700",
   UNDER_REVIEW: "bg-indigo-100 text-indigo-700",
-  APPROVED: "bg-forest-100 text-forest-700",
+  APPROVED: "bg-brand-100 text-brand-700",
   REJECTED: "bg-red-100 text-red-700",
   LEASE_PREPARATION: "bg-purple-100 text-purple-700",
 };
@@ -103,7 +103,7 @@ export default function ApplicationsPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <ClipboardList className="w-7 h-7 text-forest-600" /> Applications
+          <ClipboardList className="w-7 h-7 text-brand-600" /> Applications
         </h1>
         <p className="text-gray-500 mt-1">Track and manage rental applications</p>
       </div>
@@ -114,7 +114,7 @@ export default function ApplicationsPage() {
         </div>
       )}
       {success && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 text-brand-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -134,7 +134,7 @@ export default function ApplicationsPage() {
                 <div className="text-center py-12 text-gray-500 bg-white border border-gray-200 rounded-2xl">
                   <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">No applications yet.</p>
-                  <Link href="/properties" className="text-sm text-forest-600 hover:underline mt-1 inline-block">
+                  <Link href="/properties" className="text-sm text-brand-600 hover:underline mt-1 inline-block">
                     Browse properties
                   </Link>
                 </div>
@@ -145,7 +145,7 @@ export default function ApplicationsPage() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <Link href={`/properties/${app.propertyId}`} className="font-semibold text-gray-900 hover:text-forest-600">
+                            <Link href={`/properties/${app.propertyId}`} className="font-semibold text-gray-900 hover:text-brand-600">
                               {app.propertyTitle}
                             </Link>
                             <StatusBadge status={app.status} />
@@ -197,12 +197,12 @@ export default function ApplicationsPage() {
                             <p className="font-semibold text-gray-900">{app.applicantName}</p>
                             <StatusBadge status={app.status} />
                             {app.identityVerified && (
-                              <span className="flex items-center gap-1 text-xs text-forest-700">
+                              <span className="flex items-center gap-1 text-xs text-brand-700">
                                 <BadgeCheck className="w-3.5 h-3.5" /> Verified
                               </span>
                             )}
                           </div>
-                          <Link href={`/properties/${app.propertyId}`} className="text-sm text-forest-600 hover:underline">
+                          <Link href={`/properties/${app.propertyId}`} className="text-sm text-brand-600 hover:underline">
                             {app.propertyTitle}
                           </Link>
                           {app.desiredMoveInDate && (
@@ -219,7 +219,7 @@ export default function ApplicationsPage() {
                           <button
                             onClick={() => handleReview(app.id, "APPROVED")}
                             disabled={actioningId === app.id}
-                            className="text-xs font-semibold bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg transition-colors"
+                            className="text-xs font-semibold bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg transition-colors"
                           >
                             Approve
                           </button>

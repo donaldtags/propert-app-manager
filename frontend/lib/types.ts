@@ -853,3 +853,172 @@ export interface LandlordPassport {
   averageRating?: number;
   ratingCount: number;
 }
+
+// ---------------------------------------------------------------------------
+// Organisation workspaces (EstateX Phase 1a)
+// ---------------------------------------------------------------------------
+
+export type Division = "PROPERTIES" | "MANAGEMENT" | "INTELLIGENCE" | "DEVELOPMENTS" | "INVESTMENTS";
+
+export type OrgRole =
+  | "ORG_ADMIN"
+  | "PREA"
+  | "NEGOTIATOR"
+  | "PROPERTY_MANAGER"
+  | "ANALYST"
+  | "OWNER"
+  | "TENANT"
+  | "BUYER"
+  | "INVESTOR"
+  | "LANDOWNER";
+
+export type OrgPermission =
+  | "ORG_VIEW"
+  | "ORG_SETTINGS_EDIT"
+  | "MEMBERS_VIEW"
+  | "MEMBERS_MANAGE"
+  | "AUDIT_VIEW"
+  | "LISTING_CREATE"
+  | "LISTING_EDIT"
+  | "LISTING_APPROVE_PUBLISH"
+  | "MANDATE_SIGN_OFF"
+  | "TRUST_LEDGER_VIEW"
+  | "TRUST_LEDGER_WRITE"
+  | "COMMISSION_CONFIRM"
+  | "MAINTENANCE_MANAGE"
+  | "MARKET_DATA_WRITE"
+  | "MARKET_DATA_ACHIEVED_VIEW"
+  | "TARGETS_EDIT"
+  | "OWNER_PORTAL_VIEW"
+  | "TENANT_PORTAL_VIEW"
+  | "BUYER_PORTAL_VIEW"
+  | "INVESTOR_PORTAL_VIEW"
+  | "LANDOWNER_PORTAL_VIEW";
+
+export interface OrgThemeTokens {
+  lightPrimary?: string;
+  lightSurface?: string;
+  lightText?: string;
+  lightMuted?: string;
+  lightAccent?: string;
+  darkPrimary?: string;
+  darkSurface?: string;
+  darkText?: string;
+  darkMuted?: string;
+  darkAccent?: string;
+  headingFont?: string;
+  bodyFont?: string;
+}
+
+export interface Organisation {
+  id: number;
+  slug: string;
+  name: string;
+  slogan?: string;
+  divisions: Division[];
+  logoOnLightUrl?: string;
+  logoOnDarkUrl?: string;
+  theme?: OrgThemeTokens;
+  phone?: string;
+  whatsappNumber?: string;
+  instagramHandle?: string;
+  email?: string;
+  address?: string;
+  website?: string;
+  preaName?: string;
+  eacRegistrationNumber?: string;
+  defaultCurrency: "USD" | "ZWG";
+  timezone: string;
+  // Staff-only fields (absent for everyone else)
+  preaUserId?: number;
+  trustAccountReference?: string;
+  trustAccountBank?: string;
+  saleCommissionBps?: number;
+  managementFeeBps?: number;
+  lettingFeeMonthsX100?: number;
+  version?: number;
+}
+
+export interface OrgContext {
+  organisation: Organisation;
+  membershipId?: number;
+  roles: OrgRole[];
+  divisions: Division[];
+  permissions: OrgPermission[];
+  platformOverride: boolean;
+}
+
+export interface OrgMember {
+  id: number;
+  userId: number;
+  fullName: string;
+  email: string;
+  phone?: string;
+  roles: OrgRole[];
+  divisions: Division[];
+  active: boolean;
+  createdAt: string;
+  version: number;
+}
+
+export interface OrgAuditEntry {
+  id: number;
+  actorUserId?: number;
+  actorName?: string;
+  action: string;
+  entityType: string;
+  entityId?: number;
+  fromState?: string;
+  toState?: string;
+  amountCents?: number;
+  currency?: string;
+  metadataJson?: string;
+  createdAt: string;
+}
+
+export type UpdateOrganisationRequest = Partial<
+  Pick<
+    Organisation,
+    | "name"
+    | "slogan"
+    | "divisions"
+    | "logoOnLightUrl"
+    | "logoOnDarkUrl"
+    | "theme"
+    | "phone"
+    | "whatsappNumber"
+    | "instagramHandle"
+    | "email"
+    | "address"
+    | "website"
+    | "eacRegistrationNumber"
+    | "trustAccountReference"
+    | "trustAccountBank"
+    | "defaultCurrency"
+    | "saleCommissionBps"
+    | "managementFeeBps"
+    | "lettingFeeMonthsX100"
+    | "version"
+  >
+>;
+
+// ---------------------------------------------------------------------------
+// Location reference data
+// ---------------------------------------------------------------------------
+
+export type LocationType = "PROVINCE" | "CITY" | "TOWN" | "GROWTH_POINT" | "SUBURB";
+export type DensityTier = "HIGH_DENSITY" | "MEDIUM_DENSITY" | "LOW_DENSITY" | "PERI_URBAN" | "INDUSTRIAL" | "CBD";
+
+export interface LocationNode {
+  id: number;
+  type: LocationType;
+  name: string;
+  parentId?: number;
+  province?: string;
+  city?: string;
+  densityTier?: DensityTier;
+  aliases?: string[];
+  latitude?: number;
+  longitude?: number;
+  verified: boolean;
+}

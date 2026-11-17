@@ -29,7 +29,7 @@ function downloadBlob(blob: Blob, filename: string) {
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     INITIATED: "bg-amber-100 text-amber-700",
-    SUCCESSFUL: "bg-forest-100 text-forest-700",
+    SUCCESSFUL: "bg-brand-100 text-brand-700",
     FAILED: "bg-red-100 text-red-700",
     REFUNDED: "bg-gray-100 text-gray-700",
   };
@@ -171,13 +171,13 @@ export default function PaymentsPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <DollarSign className="w-7 h-7 text-forest-600" /> Payments
+          <DollarSign className="w-7 h-7 text-brand-600" /> Payments
         </h1>
         {paymentList.length > 0 && (
           <button
             onClick={handleDownloadStatement}
             disabled={downloadingId === "statement"}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-forest-600 border border-gray-200 hover:border-forest-300 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-brand-600 border border-gray-200 hover:border-brand-300 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" /> {downloadingId === "statement" ? "Preparing…" : "Download Statement (CSV)"}
           </button>
@@ -192,7 +192,7 @@ export default function PaymentsPage() {
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Received</p>
-          <p className="text-2xl font-bold text-forest-600">${totalReceived.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-brand-600">${totalReceived.toLocaleString()}</p>
         </div>
       </div>
 
@@ -202,7 +202,7 @@ export default function PaymentsPage() {
         </div>
       )}
       {success && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 text-brand-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -210,7 +210,7 @@ export default function PaymentsPage() {
       {/* Create payment */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
         <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-forest-600" /> Make a Payment
+          <Plus className="w-5 h-5 text-brand-600" /> Make a Payment
         </h2>
         <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <EntityPicker
@@ -251,7 +251,7 @@ export default function PaymentsPage() {
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               required
               placeholder="e.g. 550"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
           <div>
@@ -259,7 +259,7 @@ export default function PaymentsPage() {
             <select
               value={form.provider}
               onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-white"
             >
               {PAYMENT_PROVIDERS.map((p) => (
                 <option key={p.value} value={p.value}>{p.label}</option>
@@ -273,14 +273,14 @@ export default function PaymentsPage() {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               placeholder="Rent payment"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
           <div className="sm:col-span-3">
             <button
               type="submit"
               disabled={creating}
-              className="bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
             >
               {creating ? "Processing..." : "Submit Payment"}
             </button>
@@ -316,7 +316,7 @@ export default function PaymentsPage() {
                   <button
                     onClick={() => handleDownloadReceipt(p)}
                     disabled={downloadingId === p.id}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-forest-600 disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-brand-600 disabled:opacity-50"
                   >
                     <Download className="w-3.5 h-3.5" /> Receipt
                   </button>
@@ -324,13 +324,13 @@ export default function PaymentsPage() {
                 {p.status === "INITIATED" && p.payeeId === user?.id && p.provider === "manual" && (
                   <button
                     onClick={() => handleConfirmReceived(p.id)}
-                    className="text-xs bg-forest-50 hover:bg-forest-100 text-forest-700 px-3 py-1.5 rounded-xl font-medium transition-colors"
+                    className="text-xs bg-brand-50 hover:bg-brand-100 text-brand-700 px-3 py-1.5 rounded-xl font-medium transition-colors"
                   >
                     Confirm Received
                   </button>
                 )}
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${p.payerId === user?.id ? "text-red-600" : "text-forest-600"}`}>
+                  <p className={`text-sm font-bold ${p.payerId === user?.id ? "text-red-600" : "text-brand-600"}`}>
                     {p.payerId === user?.id ? "-" : "+"}${p.amount}
                   </p>
                   <StatusBadge status={p.status} />

@@ -25,9 +25,9 @@ export default function PaymentProviderPicker({
             type="button"
             onClick={() => onChoose(p.id)}
             disabled={!!loadingProvider}
-            className="w-full flex items-center gap-3 border border-gray-200 hover:border-forest-400 rounded-xl px-4 py-3 text-left transition-colors disabled:opacity-60"
+            className="w-full flex items-center gap-3 border border-gray-200 hover:border-brand-400 rounded-xl px-4 py-3 text-left transition-colors disabled:opacity-60"
           >
-            <Icon className="w-5 h-5 text-forest-600 shrink-0" />
+            <Icon className="w-5 h-5 text-brand-600 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900">{p.label}</p>
               <p className="text-xs text-gray-500">{p.sublabel}</p>

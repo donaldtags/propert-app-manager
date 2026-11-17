@@ -63,7 +63,7 @@ function ReturnContent() {
           <p className="text-sm text-gray-500 mb-6">{error}</p>
           <button
             onClick={check}
-            className="inline-flex items-center gap-1.5 bg-forest-600 hover:bg-forest-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+            className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
           >
             <RefreshCw className="w-4 h-4" /> Try again
           </button>
@@ -72,14 +72,14 @@ function ReturnContent() {
 
       {!error && payment?.status === "SUCCESSFUL" && (
         <>
-          <CheckCircle className="w-14 h-14 text-forest-600 mx-auto mb-4" />
+          <CheckCircle className="w-14 h-14 text-brand-600 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-gray-900 mb-2">Payment confirmed</h1>
           <p className="text-sm text-gray-500 mb-6">
             {payment.purpose ?? "Your payment"} for {payment.currency} {payment.amount} was successful.
           </p>
           <Link
             href={destination.href}
-            className="inline-block bg-forest-600 hover:bg-forest-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+            className="inline-block bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
           >
             {destination.label}
           </Link>
@@ -95,7 +95,7 @@ function ReturnContent() {
           </p>
           <Link
             href={destination.href}
-            className="inline-block text-forest-600 font-semibold text-sm hover:underline"
+            className="inline-block text-brand-600 font-semibold text-sm hover:underline"
           >
             {destination.label}
           </Link>
@@ -114,7 +114,7 @@ function ReturnContent() {
           <button
             onClick={check}
             disabled={checking}
-            className="inline-flex items-center gap-1.5 bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+            className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${checking ? "animate-spin" : ""}`} /> Check again
           </button>

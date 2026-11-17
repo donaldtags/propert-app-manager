@@ -339,7 +339,7 @@ export default function PropertyDetailPage() {
       <div className="text-center py-32 text-gray-500">
         <MapPin className="w-12 h-12 mx-auto mb-4 opacity-30" />
         <p className="text-xl font-semibold">Property not found</p>
-        <Link href="/properties" className="mt-4 inline-block text-forest-600 hover:underline">
+        <Link href="/properties" className="mt-4 inline-block text-brand-600 hover:underline">
           ← Back to listings
         </Link>
       </div>
@@ -539,7 +539,7 @@ export default function PropertyDetailPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
             {viewingResult ? (
               <div className="text-center">
-                <CheckCircle className="w-12 h-12 text-forest-500 mx-auto mb-3" />
+                <CheckCircle className="w-12 h-12 text-brand-500 mx-auto mb-3" />
                 <p className="font-bold text-gray-900 text-lg mb-1">Viewing requested!</p>
                 <p className="text-sm text-gray-500 mb-4">
                   The {property.agentName ? "agent" : "landlord"} will confirm your {viewingResult.mode === "VIDEO_CALL" ? "video" : "in-person"} viewing.
@@ -552,7 +552,7 @@ export default function PropertyDetailPage() {
                 )}
                 <button
                   onClick={() => setViewingModalOpen(false)}
-                  className="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                  className="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
                 >
                   Done
                 </button>
@@ -573,7 +573,7 @@ export default function PropertyDetailPage() {
                         type="button"
                         onClick={() => setViewingMode(m)}
                         className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border transition-colors ${
-                          viewingMode === m ? "bg-forest-600 text-white border-forest-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
+                          viewingMode === m ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 hover:border-gray-300"
                         }`}
                       >
                         {m === "IN_PERSON" ? "In-Person" : "Video Call"}
@@ -585,13 +585,13 @@ export default function PropertyDetailPage() {
                       type="date"
                       value={viewingDate}
                       onChange={(e) => setViewingDate(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500"
                     />
                     <input
                       type="time"
                       value={viewingTime}
                       onChange={(e) => setViewingTime(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500"
                     />
                   </div>
                   <textarea
@@ -599,13 +599,13 @@ export default function PropertyDetailPage() {
                     onChange={(e) => setViewingNotes(e.target.value)}
                     rows={2}
                     placeholder="Anything else the landlord/agent should know? (optional)"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500 resize-none"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500 resize-none"
                   />
                   {viewingError && <p className="text-xs text-red-600">{viewingError}</p>}
                   <button
                     onClick={submitViewingRequest}
                     disabled={viewingSubmitting}
-                    className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                    className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors"
                   >
                     {viewingSubmitting ? "Requesting…" : "Request Viewing"}
                   </button>
@@ -622,7 +622,7 @@ export default function PropertyDetailPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
             {applicationResult ? (
               <div className="text-center">
-                <CheckCircle className="w-12 h-12 text-forest-500 mx-auto mb-3" />
+                <CheckCircle className="w-12 h-12 text-brand-500 mx-auto mb-3" />
                 <p className="font-bold text-gray-900 text-lg mb-1">Application submitted!</p>
                 <p className="text-sm text-gray-500 mb-4">
                   {applicationResult.status === "VERIFICATION_REQUIRED"
@@ -633,7 +633,7 @@ export default function PropertyDetailPage() {
                   {applicationResult.status === "VERIFICATION_REQUIRED" && (
                     <Link
                       href="/verification"
-                      className="flex-1 bg-forest-600 hover:bg-forest-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-center"
+                      className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-center"
                     >
                       Verify Identity
                     </Link>
@@ -661,7 +661,7 @@ export default function PropertyDetailPage() {
                       type="date"
                       value={applicationMoveInDate}
                       onChange={(e) => setApplicationMoveInDate(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500"
                     />
                   </div>
                   <div>
@@ -671,7 +671,7 @@ export default function PropertyDetailPage() {
                       min={0}
                       value={applicationIncome}
                       onChange={(e) => setApplicationIncome(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500"
                     />
                   </div>
                   <textarea
@@ -679,13 +679,13 @@ export default function PropertyDetailPage() {
                     onChange={(e) => setApplicationMessage(e.target.value)}
                     rows={3}
                     placeholder="Tell the landlord why you'd be a great tenant (optional)"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-forest-500 resize-none"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500 resize-none"
                   />
                   {applicationError && <p className="text-xs text-red-600">{applicationError}</p>}
                   <button
                     onClick={submitApplication}
                     disabled={applicationSubmitting}
-                    className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                    className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors"
                   >
                     {applicationSubmitting ? "Submitting…" : "Submit Application"}
                   </button>
@@ -724,12 +724,12 @@ export default function PropertyDetailPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {property.verificationStatus === "VERIFIED" && (
-                  <span className="flex items-center gap-1 bg-forest-50 text-forest-700 text-xs font-bold px-3 py-1.5 rounded-full border border-forest-200">
+                  <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200">
                     <CheckCircle className="w-3.5 h-3.5" /> Verified
                   </span>
                 )}
                 {property.escrowRequired && (
-                  <span className="flex items-center gap-1 bg-forest-50 text-forest-700 text-xs font-bold px-3 py-1.5 rounded-full border border-forest-200">
+                  <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200">
                     <Shield className="w-3.5 h-3.5" /> Escrow Protected
                   </span>
                 )}
@@ -806,7 +806,7 @@ export default function PropertyDetailPage() {
                   }}
                   className={`px-4 py-3 text-sm font-semibold capitalize transition-colors ${
                     tab === t
-                      ? "text-forest-600 border-b-2 border-forest-600"
+                      ? "text-brand-600 border-b-2 border-brand-600"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -921,7 +921,7 @@ export default function PropertyDetailPage() {
                           <div className="absolute left-1.5 top-1 bottom-1 w-px bg-gray-200" />
                           {passport.timeline.map((event, i) => (
                             <div key={i} className="relative">
-                              <div className="absolute -left-5 top-1 w-3 h-3 rounded-full bg-forest-500 ring-4 ring-white" />
+                              <div className="absolute -left-5 top-1 w-3 h-3 rounded-full bg-brand-500 ring-4 ring-white" />
                               <p className="text-sm text-gray-900 font-medium">{event.label}</p>
                               <p className="text-xs text-gray-400">{new Date(event.occurredAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</p>
                             </div>
@@ -934,7 +934,7 @@ export default function PropertyDetailPage() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Property Health Score</h3>
-                        <span className="text-2xl font-bold text-forest-600">{passport.healthScore.overall}/100</span>
+                        <span className="text-2xl font-bold text-brand-600">{passport.healthScore.overall}/100</span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
@@ -967,12 +967,12 @@ export default function PropertyDetailPage() {
                         </span>
                       )}
                       {passport.waterSource && (
-                        <span className="flex items-center gap-1.5 bg-forest-50 text-forest-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-forest-200">
+                        <span className="flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-brand-200">
                           <Droplets className="w-3.5 h-3.5" /> Water: {passport.waterSource.charAt(0) + passport.waterSource.slice(1).toLowerCase()}
                         </span>
                       )}
                       {passport.verificationStatus === "VERIFIED" && (
-                        <span className="flex items-center gap-1.5 bg-forest-50 text-forest-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-forest-200">
+                        <span className="flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-brand-200">
                           <ShieldCheck className="w-3.5 h-3.5" /> Verified {passport.verifiedAt ? new Date(passport.verifiedAt).toLocaleDateString() : ""}
                         </span>
                       )}
@@ -1079,7 +1079,7 @@ export default function PropertyDetailPage() {
                             </div>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-2">Curated by the PrimeNest team, not automated.</p>
+                        <p className="text-xs text-gray-400 mt-2">Curated by the EstateX team, not automated.</p>
                       </div>
                     )}
                   </div>
@@ -1110,7 +1110,7 @@ export default function PropertyDetailPage() {
               {property.listingType === "RENT" && (
                 <button
                   onClick={handleApply}
-                  className="w-full bg-forest-600 hover:bg-forest-700 text-white font-bold py-3 rounded-xl transition-colors mb-3"
+                  className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl transition-colors mb-3"
                 >
                   Apply Now
                 </button>
@@ -1118,7 +1118,7 @@ export default function PropertyDetailPage() {
               {property.listingType === "SALE" && (
                 <button
                   onClick={handleApply}
-                  className="w-full bg-forest-600 hover:bg-forest-700 text-white font-bold py-3 rounded-xl transition-colors mb-3"
+                  className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl transition-colors mb-3"
                 >
                   Make an Offer
                 </button>
@@ -1126,7 +1126,7 @@ export default function PropertyDetailPage() {
 
               <button
                 onClick={handleBookViewing}
-                className="w-full border border-forest-600 text-forest-600 hover:bg-forest-50 font-bold py-3 rounded-xl transition-colors mb-3 flex items-center justify-center gap-2"
+                className="w-full border border-brand-600 text-brand-600 hover:bg-brand-50 font-bold py-3 rounded-xl transition-colors mb-3 flex items-center justify-center gap-2"
               >
                 <Calendar className="w-4 h-4" />
                 Book Viewing
@@ -1174,7 +1174,7 @@ export default function PropertyDetailPage() {
                           className={`text-xs rounded-lg px-3 py-2 ${
                             affordabilityResult.fitsRecommendedBudget === false
                               ? "bg-red-50 text-red-700"
-                              : "bg-forest-50 text-forest-700"
+                              : "bg-brand-50 text-brand-700"
                           }`}
                         >
                           <p className="font-semibold">
@@ -1207,7 +1207,7 @@ export default function PropertyDetailPage() {
               <div className="mt-5 pt-5 border-t border-gray-100 space-y-3">
                 {property.escrowRequired && (
                   <div className="flex items-start gap-3 text-sm text-gray-600">
-                    <Shield className="w-5 h-5 text-forest-600 shrink-0 mt-0.5" />
+                    <Shield className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-gray-900">Deposit Escrow</p>
                       <p className="text-xs text-gray-500">Your deposit is held safely until you receive the keys.</p>
@@ -1216,7 +1216,7 @@ export default function PropertyDetailPage() {
                 )}
                 {property.verificationStatus === "VERIFIED" && (
                   <div className="flex items-start gap-3 text-sm text-gray-600">
-                    <CheckCircle className="w-5 h-5 text-forest-600 shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-gray-900">Verified Property</p>
                       <p className="text-xs text-gray-500">Inspected and verified by a certified agent.</p>
@@ -1238,21 +1238,21 @@ export default function PropertyDetailPage() {
             {/* Contact card — visible to everyone */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <User className="w-5 h-5 text-forest-600" />
+                <User className="w-5 h-5 text-brand-600" />
                 <h3 className="font-semibold text-gray-900 text-sm">
                   {property.agentName ? "Listed by Agent" : "Listed by Owner"}
                 </h3>
               </div>
 
               <p className="text-base font-bold text-gray-900 mb-1">
-                {property.agentName ?? property.landlordName ?? "PrimeNest Listing"}
+                {property.agentName ?? property.landlordName ?? "EstateX Listing"}
               </p>
 
               {(() => {
                 const trustScore = property.agentName ? property.agentTrustScore : property.landlordTrustScore;
                 if (trustScore == null) return null;
                 const tier =
-                  trustScore >= 80 ? "text-forest-700 bg-forest-50" : trustScore >= 50 ? "text-amber-700 bg-amber-50" : "text-gray-600 bg-gray-50";
+                  trustScore >= 80 ? "text-brand-700 bg-brand-50" : trustScore >= 50 ? "text-amber-700 bg-amber-50" : "text-gray-600 bg-gray-50";
                 return (
                   <div className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full mb-2 ${tier}`}>
                     <BadgeCheck className="w-3.5 h-3.5" />
@@ -1262,7 +1262,7 @@ export default function PropertyDetailPage() {
               })()}
 
               {(property.agentName ? property.agentCompanyName : property.landlordCompanyName) && (
-                <div className="flex items-center gap-1.5 text-sm text-forest-700 font-medium mb-1">
+                <div className="flex items-center gap-1.5 text-sm text-brand-700 font-medium mb-1">
                   <Building2 className="w-4 h-4" />
                   {property.agentName ? property.agentCompanyName : property.landlordCompanyName}
                 </div>
@@ -1271,7 +1271,7 @@ export default function PropertyDetailPage() {
               {property.agentPhone && (
                 <a
                   href={`tel:${property.agentPhone}`}
-                  className="flex items-center gap-2 text-sm text-forest-600 hover:text-forest-700 font-medium mb-4"
+                  className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium mb-4"
                 >
                   <Phone className="w-4 h-4" />
                   {property.agentPhone}
@@ -1283,10 +1283,10 @@ export default function PropertyDetailPage() {
                 <div className="mt-2">
                   <p className="text-xs text-gray-500 mb-3">Send a message directly — no login required</p>
                   {inquirySent ? (
-                    <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 text-center">
-                      <CheckCircle className="w-6 h-6 text-forest-600 mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-forest-800">Inquiry sent!</p>
-                      <p className="text-xs text-forest-600 mt-1">The agent will get back to you shortly.</p>
+                    <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 text-center">
+                      <CheckCircle className="w-6 h-6 text-brand-600 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-brand-800">Inquiry sent!</p>
+                      <p className="text-xs text-brand-600 mt-1">The agent will get back to you shortly.</p>
                     </div>
                   ) : (
                     <form onSubmit={handleInquiry} className="space-y-3">
@@ -1299,7 +1299,7 @@ export default function PropertyDetailPage() {
                         placeholder="Your name"
                         value={inquiryName}
                         onChange={(e) => setInquiryName(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                       />
                       <input
                         type="email"
@@ -1307,14 +1307,14 @@ export default function PropertyDetailPage() {
                         placeholder="Your email"
                         value={inquiryEmail}
                         onChange={(e) => setInquiryEmail(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                       />
                       <input
                         type="tel"
                         placeholder="Phone (optional)"
                         value={inquiryPhone}
                         onChange={(e) => setInquiryPhone(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                       />
                       <textarea
                         required
@@ -1322,12 +1322,12 @@ export default function PropertyDetailPage() {
                         placeholder={`Hi, I'm interested in this property. Is it still available?`}
                         value={inquiryMessage}
                         onChange={(e) => setInquiryMessage(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 transition-colors resize-none"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
                       />
                       <button
                         type="submit"
                         disabled={inquiryLoading}
-                        className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
                       >
                         <Send className="w-4 h-4" />
                         {inquiryLoading ? "Sending…" : "Send Inquiry"}
@@ -1342,7 +1342,7 @@ export default function PropertyDetailPage() {
                 <button
                   onClick={handleMessageAgent}
                   disabled={messagingAgent}
-                  className="w-full mt-2 bg-forest-50 hover:bg-forest-100 disabled:opacity-60 text-forest-700 font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="w-full mt-2 bg-brand-50 hover:bg-brand-100 disabled:opacity-60 text-brand-700 font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   <MessageCircle className="w-4 h-4" />
                   {messagingAgent ? "Sending..." : `Message ${property.agentName ?? property.landlordName ?? "Agent"}`}
@@ -1354,7 +1354,7 @@ export default function PropertyDetailPage() {
             {property.listingType === "SALE" && (
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <FileText className="w-5 h-5 text-forest-600" />
+                  <FileText className="w-5 h-5 text-brand-600" />
                   <h3 className="font-semibold text-gray-900 text-sm">Legal Documents</h3>
                 </div>
                 <p className="text-xs text-gray-500 mb-4">
@@ -1364,7 +1364,7 @@ export default function PropertyDetailPage() {
                   <a
                     href="/templates/PrimeNest_Agreement_of_Sale.docx"
                     download
-                    className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700 hover:text-forest-700 bg-gray-50 hover:bg-forest-50 px-3.5 py-2.5 rounded-xl transition-colors"
+                    className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700 hover:text-brand-700 bg-gray-50 hover:bg-brand-50 px-3.5 py-2.5 rounded-xl transition-colors"
                   >
                     <span>Agreement of Sale</span>
                     <Download className="w-4 h-4 shrink-0" />
@@ -1372,7 +1372,7 @@ export default function PropertyDetailPage() {
                   <a
                     href="/templates/PrimeNest_Mandate_to_Sell.docx"
                     download
-                    className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700 hover:text-forest-700 bg-gray-50 hover:bg-forest-50 px-3.5 py-2.5 rounded-xl transition-colors"
+                    className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700 hover:text-brand-700 bg-gray-50 hover:bg-brand-50 px-3.5 py-2.5 rounded-xl transition-colors"
                   >
                     <span>Mandate to Sell</span>
                     <Download className="w-4 h-4 shrink-0" />

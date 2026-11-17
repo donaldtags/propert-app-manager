@@ -7,10 +7,11 @@ import { useAuth } from "@/lib/auth";
 import { properties as propertiesApi } from "@/lib/api";
 import { Home, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X } from "lucide-react";
 import type { Property, PropertyBilling } from "@/lib/types";
-import { ZIMBABWE_CITIES, ZIMBABWE_SUBURBS } from "@/lib/zimbabweLocations";
+import { useZimbabweLocations } from "@/lib/locations";
 import LocationPicker from "@/components/LocationPicker";
 
 export default function EditPropertyPage() {
+  const { cities: ZIMBABWE_CITIES, suburbs: ZIMBABWE_SUBURBS } = useZimbabweLocations();
   const { id } = useParams<{ id: string }>();
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -192,7 +193,7 @@ export default function EditPropertyPage() {
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
         <p className="text-gray-700 font-medium">{loadError || "Listing not found."}</p>
-        <Link href="/properties" className="text-forest-600 hover:underline mt-4 inline-block">
+        <Link href="/properties" className="text-brand-600 hover:underline mt-4 inline-block">
           ← Back to listings
         </Link>
       </div>
@@ -202,11 +203,11 @@ export default function EditPropertyPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <Link href={`/properties/${property.id}`} className="text-sm text-forest-600 hover:underline flex items-center gap-1 mb-4">
+        <Link href={`/properties/${property.id}`} className="text-sm text-brand-600 hover:underline flex items-center gap-1 mb-4">
           ← Back to listing
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Home className="w-7 h-7 text-forest-600" /> Edit Listing
+          <Home className="w-7 h-7 text-brand-600" /> Edit Listing
         </h1>
         <p className="text-gray-500 mt-1">Update your listing's details or photos.</p>
       </div>
@@ -234,7 +235,7 @@ export default function EditPropertyPage() {
       )}
 
       {success && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 text-brand-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> Listing updated.
         </div>
       )}
@@ -254,7 +255,7 @@ export default function EditPropertyPage() {
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
           <div>
@@ -263,7 +264,7 @@ export default function EditPropertyPage() {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={4}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 resize-none"
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -272,7 +273,7 @@ export default function EditPropertyPage() {
               <select
                 value={form.bedrooms}
                 onChange={(e) => setForm((f) => ({ ...f, bedrooms: Number(e.target.value) }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
               >
                 {[0, 1, 2, 3, 4, 5, 6].map((n) => (
                   <option key={n} value={n}>{n}</option>
@@ -284,7 +285,7 @@ export default function EditPropertyPage() {
               <select
                 value={form.bathrooms}
                 onChange={(e) => setForm((f) => ({ ...f, bathrooms: Number(e.target.value) }))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
               >
                 {[0, 1, 2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>{n}</option>
@@ -301,7 +302,7 @@ export default function EditPropertyPage() {
                 value={form.price}
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                 required
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -318,7 +319,7 @@ export default function EditPropertyPage() {
                 value={form.city}
                 onChange={(e) => setForm((f) => ({ ...f, city: e.target.value, suburb: "" }))}
                 required
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
               <datalist id="edit-city-options">
                 {ZIMBABWE_CITIES.map((c) => (
@@ -334,7 +335,7 @@ export default function EditPropertyPage() {
                 value={form.suburb}
                 onChange={(e) => setForm((f) => ({ ...f, suburb: e.target.value }))}
                 required
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
               <datalist id="edit-suburb-options">
                 {suburbs.map((s) => (
@@ -350,7 +351,7 @@ export default function EditPropertyPage() {
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
               placeholder="e.g. 15 Borrowdale Road"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-forest-500 focus:ring-2 focus:ring-forest-100"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
           <div>
@@ -369,7 +370,7 @@ export default function EditPropertyPage() {
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-forest-600" /> Photos
+            <ImageIcon className="w-5 h-5 text-brand-600" /> Photos
           </h2>
 
           {property.photoDetails.length > 0 && (
@@ -402,7 +403,7 @@ export default function EditPropertyPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-300 hover:border-forest-400 hover:bg-forest-50/50 rounded-xl px-4 py-6 text-sm font-semibold text-gray-600 hover:text-forest-700 transition-colors"
+            className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/50 rounded-xl px-4 py-6 text-sm font-semibold text-gray-600 hover:text-brand-700 transition-colors"
           >
             <Upload className="w-5 h-5" />
             Add more photos
@@ -448,7 +449,7 @@ export default function EditPropertyPage() {
               <label key={key} className="flex items-center gap-3 cursor-pointer group">
                 <div
                   onClick={() => setForm((f) => ({ ...f, [key]: !f[key] }))}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${form[key] ? "bg-forest-600" : "bg-gray-200"}`}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${form[key] ? "bg-brand-600" : "bg-gray-200"}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form[key] ? "translate-x-7" : "translate-x-1"}`} />
                 </div>
@@ -462,7 +463,7 @@ export default function EditPropertyPage() {
               type="url"
               value={form.virtualTourUrl}
               onChange={(e) => setForm((f) => ({ ...f, virtualTourUrl: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-forest-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500"
             />
           </div>
         </div>
@@ -471,7 +472,7 @@ export default function EditPropertyPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 sm:flex-none bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-bold py-3.5 px-10 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-bold py-3.5 px-10 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             {submitting ? "Saving..." : "Save Changes"}
           </button>

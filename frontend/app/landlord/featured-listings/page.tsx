@@ -110,7 +110,7 @@ export default function FeaturedListingsPage() {
               Featuring a listing costs ${settings.price.toFixed(2)} {settings.currency} for {settings.durationDays} days
             </p>
             <p className="text-xs text-amber-700 mt-1">
-              This price is set by PrimeNest admin and can change. You&apos;ll pay through Paynow or Stripe, and the
+              This price is set by EstateX admin and can change. You&apos;ll pay through Paynow or Stripe, and the
               charge appears in your <Link href="/payments" className="underline">billing history</Link> once confirmed.
             </p>
           </div>
@@ -123,7 +123,7 @@ export default function FeaturedListingsPage() {
         </div>
       )}
       {success && (
-        <div className="bg-forest-50 border border-forest-200 text-forest-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
+        <div className="bg-brand-50 border border-brand-200 text-brand-700 text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" /> {success}
         </div>
       )}
@@ -132,7 +132,7 @@ export default function FeaturedListingsPage() {
         <div className="text-center py-16 text-gray-500">
           <Star className="w-12 h-12 mx-auto mb-4 opacity-30" />
           <p className="text-lg font-medium">No listings yet</p>
-          <Link href="/properties/new" className="mt-3 inline-block text-sm text-forest-600 hover:underline">+ Add your first property</Link>
+          <Link href="/properties/new" className="mt-3 inline-block text-sm text-brand-600 hover:underline">+ Add your first property</Link>
         </div>
       ) : (
         <div className="space-y-3">
@@ -141,7 +141,7 @@ export default function FeaturedListingsPage() {
             return (
               <div key={prop.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <Link href={`/properties/${prop.id}`} className="text-sm font-semibold text-gray-900 hover:text-forest-600 transition-colors truncate block">
+                  <Link href={`/properties/${prop.id}`} className="text-sm font-semibold text-gray-900 hover:text-brand-600 transition-colors truncate block">
                     {prop.title}
                   </Link>
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">

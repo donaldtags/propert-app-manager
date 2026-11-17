@@ -170,7 +170,7 @@ export default function LocationPicker({ value, onChange, address, suburb, city,
           type="button"
           onClick={() => findAddress(true)}
           disabled={searching || !token || (!city && !suburb)}
-          className="flex items-center gap-1.5 bg-forest-600 hover:bg-forest-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-xl"
+          className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-xl"
         >
           {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           Find address on map
@@ -179,7 +179,7 @@ export default function LocationPicker({ value, onChange, address, suburb, city,
           type="button"
           onClick={useMyLocation}
           disabled={locating}
-          className="flex items-center gap-1.5 border border-gray-200 hover:border-forest-500 disabled:opacity-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl bg-white"
+          className="flex items-center gap-1.5 border border-gray-200 hover:border-brand-500 disabled:opacity-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-xl bg-white"
         >
           {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
           I&apos;m at the property
@@ -197,7 +197,7 @@ export default function LocationPicker({ value, onChange, address, suburb, city,
       </div>
 
       {message && (
-        <p className={`text-xs rounded-lg px-3 py-2 ${message.tone === "info" ? "bg-forest-50 text-forest-800" : "bg-amber-50 text-amber-800"}`}>
+        <p className={`text-xs rounded-lg px-3 py-2 ${message.tone === "info" ? "bg-brand-50 text-brand-800" : "bg-amber-50 text-amber-800"}`}>
           {message.text}
         </p>
       )}

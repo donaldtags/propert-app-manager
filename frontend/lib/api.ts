@@ -54,6 +54,15 @@ import type {
   SubscriptionPlan,
   PropertyBilling,
   GeocodeResult,
+  Organisation,
+  OrgContext,
+  OrgMember,
+  OrgAuditEntry,
+  OrgRole,
+  Division,
+  UpdateOrganisationRequest,
+  LocationNode,
+  DensityTier,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -1048,6 +1057,59 @@ export const ai = {
 
   leaseExplanation: (leaseId: number, token: string) =>
     request<{ answer: string; aiPowered: boolean }>(`/ai/lease-explanation/${leaseId}`, {}, token),
+};
+
+// Organisation workspaces
+export const organisations = {
+  mine: (token: string) => request<OrgContext[]>("/orgs/mine", {}, token),
+
+  /** Public profile; includes internal fields when the caller is staff of the org. */
+  get: (slug: string, token?: string | null) =>
+    request<Organisation>(`/orgs/${encodeURIComponent(slug)}`, {}, token ?? undefined),
+
+  me: (slug: string, token: string) => request<OrgContext>(`/orgs/${encodeURIComponent(slug)}/me`, {}, token),
+
+  update: (slug: string, data: UpdateOrganisationRequest, token: string) =>
+    request<Organisation>(`/orgs/${encodeURIComponent(slug)}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+
+  members: (slug: string, token: string) =>
+    request<OrgMember[]>(`/orgs/${encodeURIComponent(slug)}/members`, {}, token),
+
+  addMember: (slug: string, data: { email: string; roles: OrgRole[]; divisions?: Division[] }, token: string) =>
+    request<OrgMember>(`/orgs/${encodeURIComponent(slug)}/members`, { method: "POST", body: JSON.stringify(data) }, token),
+
+  updateMember: (
+    slug: string,
+    membershipId: number,
+    data: { roles?: OrgRole[]; divisions?: Division[]; active?: boolean },
+    token: string
+  ) =>
+    request<OrgMember>(
+      `/orgs/${encodeURIComponent(slug)}/members/${membershipId}`,
+      { method: "PATCH", body: JSON.stringify(data) },
+      token
+    ),
+
+  audit: (slug: string, token: string, limit = 100) =>
+    request<OrgAuditEntry[]>(`/orgs/${encodeURIComponent(slug)}/audit?limit=${limit}`, {}, token),
+};
+
+// Location reference data (provinces, cities/towns, suburbs)
+export const locations = {
+  all: () => request<LocationNode[]>("/locations"),
+
+  pending: (token: string) => request<LocationNode[]>("/locations/pending", {}, token),
+
+  suggest: (cityId: number, name: string, token: string) =>
+    request<LocationNode>("/locations/suggestions", { method: "POST", body: JSON.stringify({ cityId, name }) }, token),
+
+  update: (
+    id: number,
+    data: { name?: string; densityTier?: DensityTier; aliases?: string[]; verified?: boolean },
+    token: string
+  ) => request<LocationNode>(`/locations/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+
+  reject: (id: number, token: string) => request<void>(`/locations/${id}`, { method: "DELETE" }, token),
 };
 
 // Frontend logging

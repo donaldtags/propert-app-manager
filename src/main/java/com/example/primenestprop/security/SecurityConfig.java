@@ -68,6 +68,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/subscriptions/plans").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/subscriptions/plans/*").hasAuthority("PERM_SUBSCRIPTION_PLANS_MANAGE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/market/reits/zw").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/locations").permitAll()
+                        // Org public profile (brand, contact, EAC registration). /orgs/mine also matches this
+                        // pattern; its service rejects anonymous callers with 401 itself.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orgs/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/neighbourhoods").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/neighbourhoods").hasAuthority("PERM_NEIGHBOURHOOD_MANAGE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/vendors").permitAll()

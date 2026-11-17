@@ -1,18 +1,27 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import AppShell from "@/components/AppShell";
 
-const geist = Geist({
-  variable: "--font-geist-sans",
+// EstateX type: Montserrat for headings, Inter for body. Self-hosted by next/font.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "PrimeNest – Find Your Next Home in Africa",
+  title: "EstateX – More Than Property. Building Possibilities.",
   description:
-    "Verified property listings with escrow-protected deposits, digital leases, and AI-powered search for African real estate.",
+    "Verified property listings, escrow-protected deposits, digital leases and agency tools for Zimbabwe and the diaspora.",
 };
 
 export default function RootLayout({
@@ -21,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-white text-gray-900 antialiased">
+    <html lang="en" className={`${inter.variable} ${montserrat.variable} h-full`}>
+      <body className="min-h-full flex flex-col bg-background text-gray-900 antialiased">
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>

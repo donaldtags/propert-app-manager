@@ -1,0 +1,1299 @@
+{
+ "source": "EstateX compiled list 2026-11 (unverified, spot-check with councils/ZIMSTAT)",
+ "provinces": [
+  {
+   "name": "Harare Metropolitan",
+   "places": [
+    {
+     "name": "Harare",
+     "type": "CITY",
+     "lat": -17.8292,
+     "lng": 31.0522,
+     "suburbs": {
+      "CBD": [
+       "Harare CBD|Central Business District;City Centre",
+       "Kopje"
+      ],
+      "LOW_DENSITY": [
+       "Alexandra Park",
+       "Avonlea",
+       "Ballantyne Park",
+       "Belgravia",
+       "Bluff Hill|Bluffhill",
+       "Borrowdale",
+       "Borrowdale Brooke|The Brooke",
+       "Borrowdale West",
+       "Brooke Ridge",
+       "Carrick Creagh",
+       "Chisipite",
+       "Colne Valley",
+       "Emerald Hill",
+       "Glen Lorne",
+       "Greystone Park",
+       "Gunhill",
+       "Helensvale",
+       "Highlands",
+       "Hogerty Hill",
+       "Kambanji",
+       "Lewisam",
+       "Mandara",
+       "Manresa",
+       "Monavale",
+       "Mount Pleasant",
+       "Mount Pleasant Heights",
+       "Newlands",
+       "Philadelphia",
+       "Pomona",
+       "Quinnington",
+       "Rolf Valley",
+       "Shawasha Hills",
+       "Strathaven",
+       "Umwinsidale",
+       "Vainona",
+       "Ashbrittle",
+       "Northwood",
+       "Sentosa",
+       "Gletwyn",
+       "Tynwald North",
+       "Teviotdale",
+       "Ridgeview",
+       "Hatfield Estates"
+      ],
+      "MEDIUM_DENSITY": [
+       "Avondale",
+       "Avondale West",
+       "Arcadia",
+       "Ashdown Park",
+       "Belvedere",
+       "Bloomingdale",
+       "Braeside",
+       "Cotswold Hills",
+       "Cranborne",
+       "Eastlea",
+       "Greendale",
+       "Greendale North",
+       "Groombridge",
+       "Haig Park",
+       "Hatfield",
+       "Hillside",
+       "Houghton Park",
+       "Kensington",
+       "Logan Park",
+       "Mabelreign|Malbereign",
+       "Madokero",
+       "Mainway Meadows",
+       "Malvern",
+       "Marimba Park",
+       "Marlborough",
+       "Meyrick Park",
+       "Milton Park",
+       "Msasa Park",
+       "Parktown",
+       "Prospect",
+       "Queensdale",
+       "Rhodesville",
+       "St Martins",
+       "Sunridge",
+       "Waterfalls",
+       "Westgate",
+       "Coronation Park",
+       "Athlone",
+       "Midlands",
+       "Chadcombe",
+       "Beverley",
+       "Uplands",
+       "Tynwald",
+       "Lochinvar"
+      ],
+      "HIGH_DENSITY": [
+       "Budiriro",
+       "Caledonia",
+       "Crowborough",
+       "Dzivarasekwa|Dzivaresekwa",
+       "Dzivarasekwa Extension",
+       "Glen Norah",
+       "Glen View|Glenview",
+       "Granary",
+       "Hatcliffe",
+       "Highfield",
+       "Hopley",
+       "Kambuzuma",
+       "Kuwadzana",
+       "Kuwadzana Extension",
+       "Mabvuku",
+       "Mbare",
+       "Mufakose",
+       "Rugare",
+       "Southlea Park",
+       "Sunningdale",
+       "Tafara",
+       "Warren Park|Warren Park 1;Warren Park D",
+       "Whitecliff",
+       "Cold Comfort",
+       "Westlea",
+       "Ushewokunze",
+       "Retreat",
+       "Southview",
+       "Harare South",
+       "Gleneagles"
+      ],
+      "INDUSTRIAL": [
+       "Ardbennie",
+       "Graniteside",
+       "Msasa",
+       "Southerton",
+       "Willowvale",
+       "Workington",
+       "Aspindale Park"
+      ],
+      "PERI_URBAN": [
+       "Mount Hampden",
+       "Hatcliffe Extension",
+       "Goromonzi Road"
+      ]
+     }
+    },
+    {
+     "name": "Chitungwiza",
+     "type": "CITY",
+     "lat": -18.0127,
+     "lng": 31.0756,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "St Mary's",
+       "Zengeza 1",
+       "Zengeza 2",
+       "Zengeza 3",
+       "Zengeza 4",
+       "Zengeza 5",
+       "Manyame Park",
+       "Makoni",
+       "Seke Unit A|Unit A",
+       "Seke Unit B|Unit B",
+       "Seke Unit C|Unit C",
+       "Seke Unit D|Unit D",
+       "Seke Unit E|Unit E",
+       "Seke Unit F|Unit F",
+       "Seke Unit G|Unit G",
+       "Seke Unit H|Unit H",
+       "Seke Unit J|Unit J",
+       "Seke Unit K|Unit K",
+       "Seke Unit L|Unit L",
+       "Seke Unit M|Unit M",
+       "Seke Unit N|Unit N",
+       "Seke Unit O|Unit O",
+       "Seke Unit P|Unit P"
+      ],
+      "INDUSTRIAL": [
+       "Chitungwiza Industrial"
+      ]
+     }
+    },
+    {
+     "name": "Epworth",
+     "type": "TOWN",
+     "lat": -17.89,
+     "lng": 31.1475,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Overspill",
+       "Domboramwari",
+       "Chinamano",
+       "Zinyengere",
+       "Makomo",
+       "Chiremba",
+       "Muguta",
+       "Jacha"
+      ]
+     }
+    },
+    {
+     "name": "Ruwa",
+     "type": "TOWN",
+     "lat": -17.8897,
+     "lng": 31.2447,
+     "suburbs": {
+      "MEDIUM_DENSITY": [
+       "Ruwa Central",
+       "Damofalls",
+       "Zimre Park",
+       "Fairview",
+       "Windsor Park (Ruwa)",
+       "Springvale",
+       "Riverside (Ruwa)"
+      ],
+      "HIGH_DENSITY": [
+       "Chipukutu",
+       "Cherima",
+       "Mabvazuva"
+      ],
+      "INDUSTRIAL": [
+       "Sunway City"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Bulawayo Metropolitan",
+   "places": [
+    {
+     "name": "Bulawayo",
+     "type": "CITY",
+     "lat": -20.1325,
+     "lng": 28.6265,
+     "suburbs": {
+      "CBD": [
+       "Bulawayo CBD|City Centre"
+      ],
+      "LOW_DENSITY": [
+       "Burnside",
+       "Hillside",
+       "Suburbs",
+       "Kumalo|Khumalo",
+       "Khumalo North",
+       "Matsheumhlope",
+       "Fourwinds",
+       "Morningside",
+       "Paddonhurst",
+       "Selborne Park",
+       "Woodlands",
+       "Ilanda",
+       "Famona",
+       "Bradfield",
+       "Malindela",
+       "Parklands",
+       "North End",
+       "Northlea",
+       "Romney Park",
+       "Glengarry",
+       "Riverside",
+       "Douglasdale",
+       "Barham Green",
+       "Killarney",
+       "Lochview",
+       "Montrose",
+       "Waterford",
+       "Willsgrove",
+       "Granite Park",
+       "Ascot",
+       "Hillcrest",
+       "Eloana",
+       "Glencoe",
+       "Highmount",
+       "Jacaranda",
+       "Orange Grove",
+       "Sunninghill",
+       "Napier",
+       "Fortunes Gate",
+       "Hillside South",
+       "Newton West"
+      ],
+      "MEDIUM_DENSITY": [
+       "Mahatshula",
+       "Woodville",
+       "Woodville Park",
+       "Queens Park",
+       "Queens Park East",
+       "Queens Park West",
+       "Northvale",
+       "Bellevue",
+       "Sauerstown",
+       "Tegela",
+       "Raylton",
+       "Westondale",
+       "Thorngrove",
+       "Richmond",
+       "Lobengula West"
+      ],
+      "HIGH_DENSITY": [
+       "Nkulumane",
+       "Pumula",
+       "Pumula South",
+       "Old Pumula",
+       "Luveve",
+       "Entumbane",
+       "Emakhandeni",
+       "Cowdray Park",
+       "Magwegwe",
+       "Magwegwe North",
+       "Magwegwe West",
+       "Lobengula",
+       "Mpopoma",
+       "Makokoba",
+       "Mzilikazi",
+       "Barbourfields",
+       "Njube",
+       "Nguboyenja",
+       "Mabutweni|Mabuthweni",
+       "Iminyela",
+       "Tshabalala",
+       "Sizinda",
+       "Nketa",
+       "Emganwini",
+       "Gwabalanda",
+       "Matshobana",
+       "Insukamini",
+       "Pelandaba",
+       "Mpopoma South",
+       "Engutsheni",
+       "Hyde Park"
+      ],
+      "INDUSTRIAL": [
+       "Belmont",
+       "Kelvin",
+       "Steeldale",
+       "Donnington",
+       "Thorngrove Industrial",
+       "Westondale Industrial"
+      ],
+      "PERI_URBAN": [
+       "Rangemore",
+       "Umvutcha",
+       "Reigate"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Manicaland",
+   "places": [
+    {
+     "name": "Mutare",
+     "type": "CITY",
+     "lat": -18.9707,
+     "lng": 32.6709,
+     "suburbs": {
+      "CBD": [
+       "Mutare CBD"
+      ],
+      "LOW_DENSITY": [
+       "Murambi",
+       "Palmerstone",
+       "Tiger's Kloof",
+       "Bordervale",
+       "Fairbridge Park",
+       "Morningside (Mutare)",
+       "Darlington",
+       "Bvumba|Vumba"
+      ],
+      "MEDIUM_DENSITY": [
+       "Greenside",
+       "Fern Valley",
+       "Yeovil",
+       "Avenues (Mutare)",
+       "Westlea (Mutare)",
+       "Utopia"
+      ],
+      "HIGH_DENSITY": [
+       "Sakubva",
+       "Dangamvura",
+       "Chikanga",
+       "Hobhouse",
+       "Gimboki",
+       "Federation"
+      ],
+      "INDUSTRIAL": [
+       "Paulington",
+       "Weirmouth"
+      ]
+     }
+    },
+    {
+     "name": "Rusape",
+     "type": "TOWN",
+     "lat": -18.5278,
+     "lng": 32.1284,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Vengere",
+       "Magamba",
+       "Tsanzaguru"
+      ],
+      "MEDIUM_DENSITY": [
+       "Castle Base"
+      ]
+     }
+    },
+    {
+     "name": "Chipinge",
+     "type": "TOWN",
+     "lat": -20.1883,
+     "lng": 32.6236,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Gaza"
+      ]
+     }
+    },
+    {
+     "name": "Nyanga",
+     "type": "TOWN",
+     "lat": -18.2167,
+     "lng": 32.75
+    },
+    {
+     "name": "Chimanimani",
+     "type": "TOWN",
+     "lat": -19.8,
+     "lng": 32.8667
+    },
+    {
+     "name": "Penhalonga",
+     "type": "TOWN",
+     "lat": -18.8833,
+     "lng": 32.6833
+    },
+    {
+     "name": "Odzi",
+     "type": "TOWN",
+     "lat": -18.9667,
+     "lng": 32.3833
+    },
+    {
+     "name": "Headlands",
+     "type": "TOWN",
+     "lat": -18.2833,
+     "lng": 32.05
+    },
+    {
+     "name": "Birchenough Bridge",
+     "type": "TOWN",
+     "lat": -19.9667,
+     "lng": 32.35
+    },
+    {
+     "name": "Murambinda",
+     "type": "GROWTH_POINT",
+     "lat": -19.2667,
+     "lng": 31.65
+    },
+    {
+     "name": "Buhera",
+     "type": "GROWTH_POINT",
+     "lat": -19.3333,
+     "lng": 31.4333
+    },
+    {
+     "name": "Checheche",
+     "type": "GROWTH_POINT",
+     "lat": -20.7667,
+     "lng": 32.2333
+    },
+    {
+     "name": "Hauna",
+     "type": "GROWTH_POINT",
+     "lat": -18.4167,
+     "lng": 32.95
+    }
+   ]
+  },
+  {
+   "name": "Mashonaland Central",
+   "places": [
+    {
+     "name": "Bindura",
+     "type": "TOWN",
+     "lat": -17.3019,
+     "lng": 31.3306,
+     "suburbs": {
+      "LOW_DENSITY": [
+       "Greenhill",
+       "Shashi View"
+      ],
+      "MEDIUM_DENSITY": [
+       "Aerodrome (Bindura)"
+      ],
+      "HIGH_DENSITY": [
+       "Chipadze",
+       "Chiwaridzo",
+       "Garikai (Bindura)"
+      ]
+     }
+    },
+    {
+     "name": "Mvurwi",
+     "type": "TOWN",
+     "lat": -17.0333,
+     "lng": 30.85
+    },
+    {
+     "name": "Shamva",
+     "type": "TOWN",
+     "lat": -17.3167,
+     "lng": 31.5667
+    },
+    {
+     "name": "Glendale",
+     "type": "TOWN",
+     "lat": -17.35,
+     "lng": 31.0667
+    },
+    {
+     "name": "Concession",
+     "type": "TOWN",
+     "lat": -17.3833,
+     "lng": 30.95
+    },
+    {
+     "name": "Mount Darwin",
+     "type": "TOWN",
+     "lat": -16.7667,
+     "lng": 31.5833
+    },
+    {
+     "name": "Guruve",
+     "type": "TOWN",
+     "lat": -16.65,
+     "lng": 30.7
+    },
+    {
+     "name": "Centenary",
+     "type": "TOWN",
+     "lat": -16.7167,
+     "lng": 31.1167
+    },
+    {
+     "name": "Mazowe",
+     "type": "TOWN",
+     "lat": -17.5167,
+     "lng": 30.9667
+    },
+    {
+     "name": "Rushinga",
+     "type": "GROWTH_POINT",
+     "lat": -16.6667,
+     "lng": 32.2167
+    },
+    {
+     "name": "Muzarabani",
+     "type": "GROWTH_POINT",
+     "lat": -16.3833,
+     "lng": 31.0167
+    }
+   ]
+  },
+  {
+   "name": "Mashonaland East",
+   "places": [
+    {
+     "name": "Marondera",
+     "type": "TOWN",
+     "lat": -18.1853,
+     "lng": 31.5519,
+     "suburbs": {
+      "LOW_DENSITY": [
+       "Morningside (Marondera)",
+       "Paradise Park",
+       "Lendy Park",
+       "Winston Park"
+      ],
+      "MEDIUM_DENSITY": [
+       "Rusike",
+       "Yellow City",
+       "Rujeko (Marondera)"
+      ],
+      "HIGH_DENSITY": [
+       "Dombotombo",
+       "Cherutombo",
+       "Nyameni",
+       "Ruvimbo",
+       "Garikai (Marondera)"
+      ]
+     }
+    },
+    {
+     "name": "Murehwa",
+     "type": "TOWN",
+     "lat": -17.65,
+     "lng": 31.7833
+    },
+    {
+     "name": "Mutoko",
+     "type": "TOWN",
+     "lat": -17.4,
+     "lng": 32.2167
+    },
+    {
+     "name": "Macheke",
+     "type": "TOWN",
+     "lat": -18.15,
+     "lng": 31.85
+    },
+    {
+     "name": "Hwedza",
+     "type": "TOWN",
+     "lat": -18.6167,
+     "lng": 31.5667
+    },
+    {
+     "name": "Chivhu",
+     "type": "TOWN",
+     "lat": -19.0167,
+     "lng": 30.9
+    },
+    {
+     "name": "Goromonzi",
+     "type": "TOWN",
+     "lat": -17.85,
+     "lng": 31.3667
+    },
+    {
+     "name": "Beatrice",
+     "type": "TOWN",
+     "lat": -18.25,
+     "lng": 30.85
+    },
+    {
+     "name": "Juru",
+     "type": "GROWTH_POINT",
+     "lat": -17.6167,
+     "lng": 31.4667
+    },
+    {
+     "name": "Mutawatawa",
+     "type": "GROWTH_POINT",
+     "lat": -17.25,
+     "lng": 32.0833
+    },
+    {
+     "name": "Kotwa",
+     "type": "GROWTH_POINT",
+     "lat": -16.9833,
+     "lng": 32.6667
+    },
+    {
+     "name": "Nyamapanda",
+     "type": "GROWTH_POINT",
+     "lat": -16.9667,
+     "lng": 32.85
+    },
+    {
+     "name": "Domboshava",
+     "type": "GROWTH_POINT",
+     "lat": -17.6167,
+     "lng": 31.1667
+    },
+    {
+     "name": "Seke",
+     "type": "GROWTH_POINT",
+     "lat": -18.1333,
+     "lng": 31.15
+    }
+   ]
+  },
+  {
+   "name": "Mashonaland West",
+   "places": [
+    {
+     "name": "Chinhoyi",
+     "type": "CITY",
+     "lat": -17.3667,
+     "lng": 30.2,
+     "suburbs": {
+      "LOW_DENSITY": [
+       "Orange Grove (Chinhoyi)",
+       "Hunyani",
+       "Brundish"
+      ],
+      "MEDIUM_DENSITY": [
+       "Gadzema",
+       "Mzari",
+       "White City",
+       "Cold Comfort (Chinhoyi)"
+      ],
+      "HIGH_DENSITY": [
+       "Chikonohono",
+       "Ruvimbo (Chinhoyi)",
+       "Chitambo"
+      ]
+     }
+    },
+    {
+     "name": "Kadoma",
+     "type": "CITY",
+     "lat": -18.3333,
+     "lng": 29.9167,
+     "suburbs": {
+      "CBD": [
+       "Kadoma CBD"
+      ],
+      "LOW_DENSITY": [
+       "Waverley",
+       "Westview (Kadoma)",
+       "Cleveland"
+      ],
+      "MEDIUM_DENSITY": [
+       "Eiffel Flats",
+       "Ngezi"
+      ],
+      "HIGH_DENSITY": [
+       "Rimuka",
+       "Rimuka Extension"
+      ]
+     }
+    },
+    {
+     "name": "Norton",
+     "type": "TOWN",
+     "lat": -17.8833,
+     "lng": 30.7,
+     "suburbs": {
+      "MEDIUM_DENSITY": [
+       "Knowe",
+       "Galloway",
+       "Westview",
+       "Maridale",
+       "Twinlakes"
+      ],
+      "HIGH_DENSITY": [
+       "Katanga",
+       "Ngoni",
+       "Govans",
+       "Nharira",
+       "Johanne Marange"
+      ]
+     }
+    },
+    {
+     "name": "Chegutu",
+     "type": "TOWN",
+     "lat": -18.1302,
+     "lng": 30.1407,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Pfupajena",
+       "Kaguvi"
+      ],
+      "MEDIUM_DENSITY": [
+       "Hintonville"
+      ],
+      "LOW_DENSITY": [
+       "Chegutu Central"
+      ]
+     }
+    },
+    {
+     "name": "Karoi",
+     "type": "TOWN",
+     "lat": -16.8099,
+     "lng": 29.6925,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Chiedza",
+       "Chikangwe"
+      ]
+     }
+    },
+    {
+     "name": "Kariba",
+     "type": "TOWN",
+     "lat": -16.5167,
+     "lng": 28.8,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Nyamhunga",
+       "Mahombekombe"
+      ],
+      "LOW_DENSITY": [
+       "Kariba Heights",
+       "Baobab Ridge"
+      ]
+     }
+    },
+    {
+     "name": "Banket",
+     "type": "TOWN",
+     "lat": -17.3833,
+     "lng": 30.4
+    },
+    {
+     "name": "Mhangura",
+     "type": "TOWN",
+     "lat": -16.9,
+     "lng": 30.15
+    },
+    {
+     "name": "Raffingora",
+     "type": "TOWN",
+     "lat": -17.0333,
+     "lng": 30.4333
+    },
+    {
+     "name": "Chirundu",
+     "type": "TOWN",
+     "lat": -16.0333,
+     "lng": 28.85
+    },
+    {
+     "name": "Selous",
+     "type": "TOWN",
+     "lat": -18.0333,
+     "lng": 30.4167
+    },
+    {
+     "name": "Magunje",
+     "type": "GROWTH_POINT",
+     "lat": -16.8,
+     "lng": 29.4167
+    },
+    {
+     "name": "Sanyati",
+     "type": "GROWTH_POINT",
+     "lat": -17.9667,
+     "lng": 29.3167
+    },
+    {
+     "name": "Chakari",
+     "type": "GROWTH_POINT",
+     "lat": -18.0667,
+     "lng": 29.8833
+    },
+    {
+     "name": "Murombedzi",
+     "type": "GROWTH_POINT",
+     "lat": -17.7,
+     "lng": 30.2
+    }
+   ]
+  },
+  {
+   "name": "Masvingo",
+   "places": [
+    {
+     "name": "Masvingo",
+     "type": "CITY",
+     "lat": -20.0744,
+     "lng": 30.8328,
+     "suburbs": {
+      "CBD": [
+       "Masvingo CBD"
+      ],
+      "LOW_DENSITY": [
+       "Rhodene",
+       "Clipsham",
+       "Eastvale",
+       "Morningside (Masvingo)",
+       "Hillside (Masvingo)",
+       "Victoria Ranch"
+      ],
+      "MEDIUM_DENSITY": [
+       "Target Kopje",
+       "Runyararo North"
+      ],
+      "HIGH_DENSITY": [
+       "Mucheke",
+       "Rujeko",
+       "Runyararo West",
+       "Majange"
+      ]
+     }
+    },
+    {
+     "name": "Chiredzi",
+     "type": "TOWN",
+     "lat": -21.05,
+     "lng": 31.6667,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Tshovani"
+      ],
+      "MEDIUM_DENSITY": [
+       "Chiredzi Town Centre"
+      ],
+      "LOW_DENSITY": [
+       "Buffalo Range"
+      ]
+     }
+    },
+    {
+     "name": "Triangle",
+     "type": "TOWN",
+     "lat": -21.0333,
+     "lng": 31.45
+    },
+    {
+     "name": "Mashava",
+     "type": "TOWN",
+     "lat": -20.0333,
+     "lng": 30.4833
+    },
+    {
+     "name": "Gutu",
+     "type": "GROWTH_POINT",
+     "lat": -19.65,
+     "lng": 31.1667,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Mupandawana"
+      ]
+     }
+    },
+    {
+     "name": "Zaka",
+     "type": "GROWTH_POINT",
+     "lat": -20.3333,
+     "lng": 31.4667,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Jerera"
+      ]
+     }
+    },
+    {
+     "name": "Mwenezi",
+     "type": "GROWTH_POINT",
+     "lat": -21.4167,
+     "lng": 30.7333,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Rutenga"
+      ]
+     }
+    },
+    {
+     "name": "Ngundu",
+     "type": "GROWTH_POINT",
+     "lat": -20.9167,
+     "lng": 30.75
+    },
+    {
+     "name": "Nyika",
+     "type": "GROWTH_POINT",
+     "lat": -19.9667,
+     "lng": 31.4333
+    },
+    {
+     "name": "Bikita",
+     "type": "GROWTH_POINT",
+     "lat": -20.0833,
+     "lng": 31.6
+    }
+   ]
+  },
+  {
+   "name": "Matabeleland North",
+   "places": [
+    {
+     "name": "Victoria Falls",
+     "type": "CITY",
+     "lat": -17.9243,
+     "lng": 25.8572,
+     "suburbs": {
+      "CBD": [
+       "Victoria Falls Town Centre"
+      ],
+      "LOW_DENSITY": [
+       "Aerodrome (Victoria Falls)",
+       "Suburbs (Victoria Falls)"
+      ],
+      "HIGH_DENSITY": [
+       "Chinotimba",
+       "Mkhosana",
+       "Mfelandawonye"
+      ]
+     }
+    },
+    {
+     "name": "Hwange",
+     "type": "TOWN",
+     "lat": -18.3646,
+     "lng": 26.4988,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Lwendulu",
+       "Madumabisa",
+       "Empumalanga",
+       "Ingagula"
+      ]
+     }
+    },
+    {
+     "name": "Lupane",
+     "type": "TOWN",
+     "lat": -18.9315,
+     "lng": 27.807
+    },
+    {
+     "name": "Binga",
+     "type": "TOWN",
+     "lat": -17.6167,
+     "lng": 27.3333
+    },
+    {
+     "name": "Dete",
+     "type": "TOWN",
+     "lat": -18.6167,
+     "lng": 26.8667
+    },
+    {
+     "name": "Kamativi",
+     "type": "TOWN",
+     "lat": -18.3167,
+     "lng": 27.05
+    },
+    {
+     "name": "Nkayi",
+     "type": "GROWTH_POINT",
+     "lat": -19.0,
+     "lng": 28.9
+    },
+    {
+     "name": "Tsholotsho",
+     "type": "GROWTH_POINT",
+     "lat": -19.7667,
+     "lng": 27.75
+    },
+    {
+     "name": "Inyathi",
+     "type": "GROWTH_POINT",
+     "lat": -19.6667,
+     "lng": 28.85
+    }
+   ]
+  },
+  {
+   "name": "Matabeleland South",
+   "places": [
+    {
+     "name": "Gwanda",
+     "type": "TOWN",
+     "lat": -20.9333,
+     "lng": 29.0,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Jahunda",
+       "Phakama"
+      ],
+      "MEDIUM_DENSITY": [
+       "Spitzkop"
+      ]
+     }
+    },
+    {
+     "name": "Beitbridge",
+     "type": "TOWN",
+     "lat": -22.2167,
+     "lng": 30.0,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Dulivhadzimu"
+      ],
+      "MEDIUM_DENSITY": [
+       "Beitbridge Town Centre"
+      ]
+     }
+    },
+    {
+     "name": "Plumtree",
+     "type": "TOWN",
+     "lat": -20.4833,
+     "lng": 27.8167,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Dingumuzi"
+      ]
+     }
+    },
+    {
+     "name": "Esigodini",
+     "type": "TOWN",
+     "lat": -20.2833,
+     "lng": 28.9333
+    },
+    {
+     "name": "Filabusi",
+     "type": "GROWTH_POINT",
+     "lat": -20.5333,
+     "lng": 29.2833
+    },
+    {
+     "name": "West Nicholson",
+     "type": "TOWN",
+     "lat": -21.0667,
+     "lng": 29.3667
+    },
+    {
+     "name": "Kezi",
+     "type": "GROWTH_POINT",
+     "lat": -20.9167,
+     "lng": 28.4667
+    },
+    {
+     "name": "Maphisa",
+     "type": "GROWTH_POINT",
+     "lat": -21.0667,
+     "lng": 28.4333
+    },
+    {
+     "name": "Colleen Bawn",
+     "type": "TOWN",
+     "lat": -21.0,
+     "lng": 29.2167
+    }
+   ]
+  },
+  {
+   "name": "Midlands",
+   "places": [
+    {
+     "name": "Gweru",
+     "type": "CITY",
+     "lat": -19.45,
+     "lng": 29.8167,
+     "suburbs": {
+      "CBD": [
+       "Gweru CBD"
+      ],
+      "LOW_DENSITY": [
+       "Ridgemont",
+       "Lundi Park",
+       "Daylesford",
+       "Southdowns",
+       "Riverside (Gweru)",
+       "Kopje (Gweru)",
+       "Hertfordshire",
+       "Brackenhurst",
+       "Harben Park",
+       "Northlea (Gweru)"
+      ],
+      "MEDIUM_DENSITY": [
+       "Windsor Park",
+       "Athlone (Gweru)",
+       "Ascot (Gweru)",
+       "Southview (Gweru)",
+       "Clydesdale Park",
+       "Ivene",
+       "Woodlands (Gweru)",
+       "Mtausi Park",
+       "Randolph"
+      ],
+      "HIGH_DENSITY": [
+       "Mkoba",
+       "Senga",
+       "Nehosho",
+       "Mambo",
+       "Mtapa",
+       "Sithabile Park",
+       "Senga Extension"
+      ],
+      "INDUSTRIAL": [
+       "Gweru Heavy Industrial",
+       "Gweru Light Industrial"
+      ]
+     }
+    },
+    {
+     "name": "Kwekwe",
+     "type": "CITY",
+     "lat": -18.9281,
+     "lng": 29.8149,
+     "suburbs": {
+      "CBD": [
+       "Kwekwe CBD"
+      ],
+      "LOW_DENSITY": [
+       "Fitchlea",
+       "Hillandale"
+      ],
+      "MEDIUM_DENSITY": [
+       "Newtown",
+       "Msasa (Kwekwe)",
+       "Garden Park"
+      ],
+      "HIGH_DENSITY": [
+       "Mbizo",
+       "Amaveni",
+       "Chicago"
+      ]
+     }
+    },
+    {
+     "name": "Redcliff",
+     "type": "TOWN",
+     "lat": -19.0333,
+     "lng": 29.7833,
+     "suburbs": {
+      "MEDIUM_DENSITY": [
+       "Torwood"
+      ],
+      "HIGH_DENSITY": [
+       "Rutendo",
+       "Redcliff Extension"
+      ]
+     }
+    },
+    {
+     "name": "Zvishavane",
+     "type": "TOWN",
+     "lat": -20.3267,
+     "lng": 30.0665,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Mandava",
+       "Maglas"
+      ],
+      "MEDIUM_DENSITY": [
+       "Eastlea (Zvishavane)",
+       "Highlands (Zvishavane)"
+      ]
+     }
+    },
+    {
+     "name": "Shurugwi",
+     "type": "TOWN",
+     "lat": -19.6667,
+     "lng": 30.0,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Makusha",
+       "Ironsides"
+      ]
+     }
+    },
+    {
+     "name": "Gokwe",
+     "type": "TOWN",
+     "lat": -18.2167,
+     "lng": 28.9333,
+     "suburbs": {
+      "HIGH_DENSITY": [
+       "Mapfungautsi"
+      ]
+     }
+    },
+    {
+     "name": "Mvuma",
+     "type": "TOWN",
+     "lat": -19.2833,
+     "lng": 30.5333
+    },
+    {
+     "name": "Lalapanzi",
+     "type": "TOWN",
+     "lat": -19.3333,
+     "lng": 30.1833
+    },
+    {
+     "name": "Mberengwa",
+     "type": "GROWTH_POINT",
+     "lat": -20.4667,
+     "lng": 29.9167
+    },
+    {
+     "name": "Shangani",
+     "type": "TOWN",
+     "lat": -19.7833,
+     "lng": 29.3667
+    },
+    {
+     "name": "Silobela",
+     "type": "GROWTH_POINT",
+     "lat": -18.9333,
+     "lng": 29.3167
+    }
+   ]
+  }
+ ]
+}
