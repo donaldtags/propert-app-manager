@@ -35,3 +35,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Installed dependencies (run `npm install` in qa-automation/)
+qa-automation/node_modules/
+qa-automation/test-results/
+qa-automation/playwright-report/

@@ -10,12 +10,19 @@ RUN ./mvnw -B -q package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN addgroup -S primenest && adduser -S primenest -G primenest \
+# fontconfig + a font: the JRE image has none, and server-side image rendering (listing share
+# image, Java2D) fails without them. PDFs use built-in fonts and don't need this.
+RUN apk add --no-cache fontconfig ttf-dejavu \
+    && addgroup -S primenest && adduser -S primenest -G primenest \
     && mkdir -p /app/storage/lease-documents /app/storage/property-photos \
+       /app/storage/mandate-documents /app/storage/agency-documents \
     && chown -R primenest:primenest /app
 
 COPY --from=build --chown=primenest:primenest /app/target/*.jar app.jar
 
 USER primenest
 EXPOSE 8081
+# Sized for small containers (Render free = 512 MB): cap the heap below the container limit,
+# headless AWT for image rendering, and a container-friendly GC.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -Djava.awt.headless=true"
 ENTRYPOINT ["java", "-jar", "app.jar"]
