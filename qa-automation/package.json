@@ -1,11 +1,21 @@
 {
-  "devDependencies": {
-    "@playwright/test": "^1.65.1"
-  },
+  "name": "estatex-qa",
+  "private": true,
+  "description": "End-to-end and API regression suite for EstateX (Playwright).",
   "scripts": {
     "test": "playwright test",
-    "test:headed": "playwright test --headed",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:api": "playwright test --project=api",
+    "test:e2e": "playwright test --project=desktop --project=mobile",
+    "test:headed": "playwright test --project=desktop --headed",
     "test:ui": "playwright test --ui",
+    "typecheck": "tsc -p .",
     "report": "playwright show-report reports/html"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
   }
 }

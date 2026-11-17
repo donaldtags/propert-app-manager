@@ -128,7 +128,7 @@ public class UserService {
         return user;
     }
 
-    private void syncRoleAssignments(AppUser user) {
+    void syncRoleAssignments(AppUser user) {
         for (UserRole userRole : user.getRoles()) {
             RoleLookup role = roleLookups.findByName(userRole).orElseGet(() -> {
                 RoleLookup lookup = new RoleLookup();

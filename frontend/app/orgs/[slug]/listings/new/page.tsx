@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Camera } from "lucide-react";
@@ -48,6 +49,7 @@ export default function NewOrgListingPage() {
     minimumPrice: "",
   });
   const [signedCopy, setSignedCopy] = useState<File | null>(null);
+  const [savedOffline, setSavedOffline] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -142,7 +144,13 @@ export default function NewOrgListingPage() {
       if (allSent && serverId) {
         router.push(`/orgs/${slug}/listings/${serverId}`);
       } else {
-        router.push(`/orgs/${slug}/listings?saved=offline`);
+        // Offline: stay on this page. Navigating needs the network (the next page's server data),
+        // so a negotiator with no signal would be left on a loading screen.
+        setSavedOffline((list) => [...list, title]);
+        setForm((f) => ({ ...f, title: "", description: "", address: "", price: "", titleReference: "", ownerName: "", ownerPhone: "", minimumPrice: "" }));
+        setSignedCopy(null);
+        setSaving(false);
+        window.scrollTo({ top: 0 });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save on this device");
@@ -152,6 +160,16 @@ export default function NewOrgListingPage() {
 
   return (
     <form onSubmit={submit} className="max-w-2xl space-y-6">
+      {savedOffline.length > 0 && (
+        <div role="status" className="rounded-2xl border border-line bg-raised p-4 text-sm">
+          <p className="font-semibold">Saved on this device</p>
+          <ul className="mt-1 list-disc pl-5">
+            {savedOffline.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+          <p className="mt-1 text-muted">They&apos;ll sync automatically when you&apos;re back online. You can carry on with the next one.</p>
+          <Link href={`/orgs/${slug}/listings`} className="mt-2 inline-block underline">See all listings</Link>
+        </div>
+      )}
       <div>
         <h1 className="text-xl font-semibold">New listing</h1>
         <p className="text-sm text-muted mt-1">

@@ -75,7 +75,12 @@ export default function NotificationBell() {
 
   return (
     <div className="relative">
-      <button onClick={toggleOpen} className="relative p-2 text-gray-600 hover:text-brand-600 transition-colors">
+      <button
+        onClick={toggleOpen}
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+        aria-expanded={open}
+        className="relative p-2 text-gray-600 hover:text-brand-600 transition-colors"
+      >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">

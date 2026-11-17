@@ -70,6 +70,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/market/reits/zw").permitAll()
                         // Seller report share links: an unguessable expiring token is the credential.
                         .requestMatchers(HttpMethod.GET, "/api/v1/shared/seller-reports/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/version").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/locations").permitAll()
                         // Org public profile (brand, contact, EAC registration). /orgs/mine also matches this
                         // pattern; its service rejects anonymous callers with 401 itself.

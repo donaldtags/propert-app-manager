@@ -47,6 +47,7 @@ public class AuthService {
     private final PasswordResetTokenRepository resetTokens;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final com.example.primenestprop.user.AdminBootstrap adminBootstrap;
     private final long sessionTtlHours;
     private final String frontendBaseUrl;
 
@@ -56,6 +57,7 @@ public class AuthService {
             PasswordResetTokenRepository resetTokens,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
+            com.example.primenestprop.user.AdminBootstrap adminBootstrap,
             @Value("${app.auth.session-ttl-hours:168}") long sessionTtlHours,
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl
     ) {
@@ -64,6 +66,7 @@ public class AuthService {
         this.resetTokens = resetTokens;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.adminBootstrap = adminBootstrap;
         this.sessionTtlHours = sessionTtlHours;
         this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
     }
@@ -82,7 +85,7 @@ public class AuthService {
                 request.country(),
                 request.roles()
         ));
-        return issue(user);
+        return issue(adminBootstrap.apply(user));
     }
 
     @Transactional
@@ -91,7 +94,7 @@ public class AuthService {
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
-        return issue(user);
+        return issue(adminBootstrap.apply(user));
     }
 
     @Transactional
