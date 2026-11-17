@@ -21,6 +21,7 @@ public final class ListingDtos {
     }
 
     public record CreateListingRequest(
+            @Size(max = 40) String clientId,
             @NotBlank @Size(max = 200) String title,
             @Size(max = 4000) String description,
             @NotNull ListingType listingType,

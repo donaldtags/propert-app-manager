@@ -1,6 +1,6 @@
 # ESTATEX Integration Plan
 
-Status: **APPROVED 2026-11-17.** Phases 1a and 1b done (branch `feature/estatex`), awaiting review before Phase 1c.
+Status: **APPROVED 2026-11-17.** Phase 1 (1a, 1b, 1c) done (branch `feature/estatex`), awaiting review before Phase 2.
 
 ### Decisions (answers to §9)
 - **D1 (Q1).** The target is the Next.js web app, made into an installable, offline-capable PWA. There is no Flutter app.
@@ -11,6 +11,7 @@ Status: **APPROVED 2026-11-17.** Phases 1a and 1b done (branch `feature/estatex`
 - **D6 (Q9).** The pre-existing uncommitted work was committed as `e803b01` on the new branch `feature/estatex`. Nothing was committed to `main`.
 - **D7 (Q10).** Sale commission defaults to **5%**. Other fees use common Zimbabwe agency practice as editable org settings: letting fee = 1 month's rent, management fee = 10% of rent collected. The ESTATEX PREA should confirm them.
 - **D9 (Phase 1b questions).** Expired mandates are **auto-unpublished** just after midnight Harare. **Price, address and title type** are the material fields whose change withdraws PREA approval.
+- **D10 (Phase 1c).** The offline-first scope is **listing intake and enquiry capture**. Approvals, title verification, mandate sign-off/cancel and publishing stay online-only.
 - **D8 (Q8, Q11, defaults applied).** The yield calculator is staff-only for now. Logos live in `frontend/public/orgs/estatex/`.
 
 ### Baseline before any EstateX code (commit `e803b01`)
@@ -400,9 +401,60 @@ Every province, city and town listed below gets suburbs/townships in the seed JS
 **Open questions for Phase 1c (offline)**
 - Which screens must work fully offline first? I'd suggest listing intake (create, title, consent, mandate photo) and enquiry capture. Approvals and publishing are deliberately online-only server commands.
 
+### Phase 1c: Offline foundation, intake and enquiries offline (DONE 2026-11-17)
+
+**Built: backend**
+- `enquiry/`: `Enquiry` (channel: WhatsApp, call, walk-in, Instagram, Facebook, portal, website, email, referral, board, other; intent; status; contact; budget in cents; device `capturedAt`, where a future time is treated as clock skew and replaced with server time). Captures are idempotent on `clientId`. Endpoints: `GET|POST /orgs/{slug}/enquiries`, `PATCH .../{id}/status`. New org permission `ENQUIRY_CAPTURE` for all staff roles.
+- Public website enquiries on an org listing (`POST /properties/{id}/inquiries`) also land in the agency's enquiry inbox (channel WEBSITE) via `PropertyInquirySubmittedEvent`. Enquiring about an unpublished org listing now returns 404.
+- Listing create is idempotent on `clientId` (new `listing_compliance.client_id`). Mandate create already was.
+- **`MigrationGuard`**: at startup the backend refuses to run any classpath migration that isn't named `V<n>__what_it_does.sql` or that contains DROP TABLE / DROP COLUMN / TRUNCATE / DELETE FROM without `-- reviewed-destructive: <reason>` on the line above. This also catches stale copies left in `target/classes`. `MigrationSafetyTest` checks src, the classpath, and the exact generated file described below.
+
+**Built: frontend (offline layer, `lib/offline/`)**
+- **Outbox** (IndexedDB via `idb`): every offline-capable write is queued and replayed FIFO per user. Client ids map to server ids, so a listing created offline can have its title, consent, mandate and signed copy queued behind it.
+  - Network failure: stop and retry later.
+  - 401: pause; nothing is dropped.
+  - 5xx: back off (30 s, 2 m, 10 m, then hourly).
+  - Other 4xx: moved to the "Needs attention" tray with the server's reason; unrelated work keeps syncing.
+  - Web Locks stop two tabs replaying at once, and a user's queue never replays under another user's session.
+- **Conflict rule, as implemented** (`merge.ts`, unit-tested): three-way, field by field. If only I changed a field, mine applies. If the server already has my value, nothing happens. If both changed it, **the server wins** and my value goes to the tray (shown as *yours / kept on server*). Creates are idempotent by `clientId`. Approvals and publishing are online-only commands and are never queued.
+- **Reads offline**: workspace context, listings, listing detail and enquiries are read network-first with the last copy cached in IndexedDB. Auth now keeps the session when the API is unreachable (cached profile) and only signs out on 401/403. Previously **any** failure of `/auth/me`, including the server restarting, logged the user out.
+- **Service worker** (`public/sw.js`, production builds only): cache-first for hashed static assets, network-first navigations with cached-page then `/offline.html` fallback, and warming of the workspace pages after sign-in. Plus the **web manifest** (installable, `start_url /orgs`, navy theme) and icons.
+- **Screens**:
+  - The intake form can save a whole intake offline as one ordered batch: listing, title type/reference, owner consent, optional mandate, and a **photo/PDF of the signed mandate**, compressed client-side (≤2048 px JPEG).
+  - On the listing page, title, consent, mandate and signed copy work offline; verify, approve, sign-off, cancel and publish are disabled offline with an explanation.
+  - **Enquiries** inbox (call/WhatsApp/email actions, status) and a one-tap **Enquiry** button on every workspace page.
+  - **Sync** page (waiting items with discard; needs-attention with dismiss; sync now) and a header indicator (Synced / N waiting / Offline / N need attention) with an offline banner.
+- `next.config.ts` reads `NEXT_DIST_DIR`, so test builds can't touch the `.next` folder a running `next dev` uses.
+
+**Verification**
+- Backend **42/42** (+8: `OfflineReplayTests` for replayed enquiry/listing creates landing once, clock-skew clamp, contact required, external roles blocked, drafts not enquirable; `MigrationSafetyTest` ×4). The CHECK-constraint guard now also covers `enquiries`.
+- Frontend: tsc clean; Vitest **30/30** (+12: merge rule ×5, outbox processor ×7 covering ordered intake replay, resume without duplicates, 401, backoff, refused write plus dependants, server-wins conflict, per-user isolation); `next build` OK; lint 62 (= baseline).
+- **End-to-end in Chrome against a production build** (isolated H2 backend :8082, `next start` :3001, 375 px):
+  - Online first, so the service worker took control.
+  - Offline: the intake page opened from cache. A full intake was saved, including a photographed signed mandate (5 queued writes), plus an enquiry. Reloading offline showed the cached listings.
+  - Reconnected: synced automatically. The server has **exactly one** listing with title reference, both consents and the mandate awaiting PREA sign-off with the photo attached, and exactly one enquiry with its device capture time.
+  - A deliberate same-field conflict kept the server's value and showed both values on the Sync page.
+  - `/`, `/properties`, `/login`, a property page, `/orgs`, the workspace home, `/landlord` and `/tenant` all returned 200 with no console errors.
+- Against the developer's **local MariaDB**, a temporary instance on :8083 validated 3 migrations ("up to date"), served 543 locations, ESTATEX with 5 divisions and 15 public listings, and was then stopped.
+
+**Incidents this phase (recorded so they aren't repeated)**
+1. During the 1b smoke test I deleted `frontend/.next/dev` while the developer's `next dev` (:3000) was using it, which corrupted its Turbopack cache, so every page hung or returned 500. Fixed by restarting it with a clean `.next`. Prevention: `NEXT_DIST_DIR` and `.next-*` ignores; test builds now use `.next-agent`.
+2. IDE-generated `V3__.sql`/`V4__.sql` (unnamed, re-adding Hibernate columns and ending in `DROP TABLE app_user_roles`) were staged. A restart at 11:54 ran Flyway against local MariaDB: V3 failed (recorded `success=0`). **No data was lost**: all 6 role rows and the foreign key are intact. With the developer's approval both files were removed and the single failed history row deleted (the `flyway repair` equivalent). Prevention: `MigrationGuard`.
+3. A stale `target/classes/.../V3__.sql` (from my own guard demonstration) survived the source deletion and ran on a throwaway smoke database. Removed; `MigrationGuard` now blocks this class of problem at startup.
+
+**Deviations / notes**
+- Chunked, resumable video upload (planned in §3.6) moves to Phase 3 with inspection video. Phase 1c uploads are photos/PDFs of signed mandates, compressed on the device.
+- iOS Safari has no Background Sync: queued work syncs when the app is open and online, on reconnect, or every 30 s while there's work.
+- `next build` with `NEXT_DIST_DIR` rewrites `tsconfig.json` to add `.next-*/types` includes. Revert it after such builds; it isn't committed.
+- `next/font/google` downloads fonts at build time; one build failed on a transient network error and the rebuild passed.
+
+**Open questions for Phase 2**
+- Should captured enquiries create or merge into **Contacts** automatically, matched on phone number? I'd suggest yes, matching on the normalised +263 number.
+
 ---
 
 ## Changelog
 - 2026-11-17: Initial draft (exploration only, no code).
 - 2026-11-17: Decisions D1–D8 recorded; Phase 1a built and verified.
 - 2026-11-17: D9 recorded; Phase 1b built and verified.
+- 2026-11-17: D10 recorded; Phase 1c built and verified; V3/V4 incident resolved.

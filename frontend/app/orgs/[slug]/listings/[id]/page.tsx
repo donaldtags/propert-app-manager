@@ -8,6 +8,9 @@ import { orgListings } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { addDays, formatDate, harareToday } from "@/lib/dates";
 import { formatCents, parseToCents } from "@/lib/money";
+import { compressForUpload } from "@/lib/offline/compress";
+import { enqueueAndWait, readThrough, useSyncStatus } from "@/lib/offline/sync";
+import type { OutboxOp } from "@/lib/offline/types";
 import type { Mandate, MandateType, OrgListingDetail, TitleType, TitleVerificationStatus } from "@/lib/types";
 import CessionBadge from "@/components/CessionBadge";
 import { useOrgWorkspace, ws } from "@/components/workspace/OrgWorkspace";
@@ -19,6 +22,9 @@ import {
 } from "@/components/workspace/listingLabels";
 
 type Run = (label: string, action: () => Promise<OrgListingDetail | unknown>) => Promise<boolean>;
+/** Queue an offline-capable change; resolves true once it's on the server. */
+type Queue = (op: OutboxOp) => Promise<boolean>;
+const NEEDS_CONNECTION = "Needs a connection: approvals and publishing are always checked live on the server.";
 
 export default function OrgListingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,13 +35,19 @@ export default function OrgListingDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const { user } = useAuth();
+  const sync = useSyncStatus();
+  const cacheKey = `listing:${slug}:${propertyId}:${user?.id}`;
+
+  const load = () => readThrough(cacheKey, () => orgListings.get(slug, propertyId, token!)).then((r) => setDetail(r.data));
 
   useEffect(() => {
     if (!token) return;
-    orgListings.get(slug, propertyId, token).then(setDetail, (e: unknown) =>
-      setError(e instanceof Error ? e.message : "Could not load the listing")
+    readThrough(cacheKey, () => orgListings.get(slug, propertyId, token)).then(
+      (r) => setDetail(r.data),
+      (e: unknown) => setError(e instanceof Error ? e.message : "Could not load the listing")
     );
-  }, [slug, propertyId, token]);
+  }, [slug, propertyId, token, cacheKey, sync.pending]);
 
   /** Runs an action, then refreshes from the server so the checklist always reflects backend truth. */
   const run: Run = async (label, action) => {
@@ -45,7 +57,7 @@ export default function OrgListingDetailPage() {
     setNotice(null);
     try {
       await action();
-      setDetail(await orgListings.get(slug, propertyId, token));
+      await load();
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Action failed");
@@ -55,9 +67,27 @@ export default function OrgListingDetailPage() {
     }
   };
 
+  const queue: Queue = async (op) => {
+    setError(null);
+    setNotice(null);
+    setBusy("queue");
+    try {
+      const sent = await enqueueAndWait(slug, op);
+      await load().catch(() => undefined);
+      setNotice(sent ? "Saved." : "Saved on this device. It will sync when you're back online.");
+      return sent;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save");
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  };
+
   if (!detail) {
     return error ? <p className="text-danger">{error}</p> : <p className="text-muted">Loading…</p>;
   }
+  const offline = !sync.online;
 
   const { property: p, compliance: c, mandates } = detail;
   const live = p.status === "AVAILABLE";
@@ -125,8 +155,8 @@ export default function OrgListingDetailPage() {
           {can("LISTING_APPROVE_PUBLISH") && !approved && (
             <button
               className={ws.button}
-              disabled={!c.readyForApproval || !!busy}
-              title={c.readyForApproval ? undefined : "Every other check must be met first"}
+              disabled={!c.readyForApproval || !!busy || offline}
+              title={offline ? NEEDS_CONNECTION : c.readyForApproval ? undefined : "Every other check must be met first"}
               onClick={() => run("approve", () => orgListings.approve(slug, p.id, token!))}
             >
               <ShieldCheck className="w-4 h-4" /> Approve as PREA
@@ -136,7 +166,8 @@ export default function OrgListingDetailPage() {
             (live ? (
               <button
                 className={ws.buttonGhost}
-                disabled={!!busy}
+                disabled={!!busy || offline}
+                title={offline ? NEEDS_CONNECTION : undefined}
                 onClick={() => run("unpublish", () => orgListings.unpublish(slug, p.id, undefined, token!))}
               >
                 Unpublish
@@ -144,7 +175,8 @@ export default function OrgListingDetailPage() {
             ) : (
               <button
                 className={ws.button}
-                disabled={!c.publishable || !!busy}
+                disabled={!c.publishable || !!busy || offline}
+                title={offline ? NEEDS_CONNECTION : undefined}
                 onClick={async () => {
                   if (await run("publish", () => orgListings.publish(slug, p.id, token!))) setNotice("Published. The listing is live.");
                 }}
@@ -153,19 +185,20 @@ export default function OrgListingDetailPage() {
               </button>
             ))}
         </div>
+        {offline && <p className="mt-3 text-xs text-muted">{NEEDS_CONNECTION}</p>}
         {!can("LISTING_APPROVE_PUBLISH") && !approved && c.readyForApproval && (
           <p className="mt-3 text-xs text-muted">Waiting for the Principal Registered Estate Agent to approve.</p>
         )}
       </section>
 
-      <TitleSection detail={detail} run={run} busy={!!busy} />
-      <MandateSection detail={detail} mandates={mandates} run={run} busy={!!busy} />
-      <ConsentSection detail={detail} run={run} busy={!!busy} />
+      <TitleSection detail={detail} run={run} queue={queue} busy={!!busy} offline={offline} />
+      <MandateSection detail={detail} mandates={mandates} run={run} queue={queue} busy={!!busy} offline={offline} />
+      <ConsentSection detail={detail} queue={queue} busy={!!busy} />
     </div>
   );
 }
 
-function TitleSection({ detail, run, busy }: { detail: OrgListingDetail; run: Run; busy: boolean }) {
+function TitleSection({ detail, run, queue, busy, offline }: { detail: OrgListingDetail; run: Run; queue: Queue; busy: boolean; offline: boolean }) {
   const { slug, can } = useOrgWorkspace();
   const { token } = useAuth();
   const { property: p, compliance: c } = detail;
@@ -177,7 +210,13 @@ function TitleSection({ detail, run, busy }: { detail: OrgListingDetail; run: Ru
   const save = (e: FormEvent) => {
     e.preventDefault();
     if (!titleType) return;
-    void run("title", () => orgListings.setTitle(slug, p.id, { titleType, titleReference: reference.trim() || undefined }, token!));
+    void queue({
+      kind: "setTitle",
+      listing: { id: p.id },
+      base: { titleType: p.titleType ?? null, titleReference: c.titleReference ?? null },
+      mine: { titleType, titleReference: reference.trim() || null },
+      label: `Title for ${p.title}`,
+    });
   };
   const verify = (status: TitleVerificationStatus) =>
     run("verify", () => orgListings.verifyTitle(slug, p.id, { status, notes: notes.trim() || undefined }, token!));
@@ -233,13 +272,13 @@ function TitleSection({ detail, run, busy }: { detail: OrgListingDetail; run: Ru
           <div className="mt-3 space-y-2">
             <input className={ws.input} placeholder="Notes (e.g. Deeds Office search done 12 Nov)" value={notes} onChange={(e) => setNotes(e.target.value)} />
             <div className="flex flex-wrap gap-2">
-              <button className={ws.button} disabled={busy || !p.titleType || !c.titleReference} onClick={() => verify("VERIFIED")}>
+              <button className={ws.button} disabled={busy || offline || !p.titleType || !c.titleReference} onClick={() => verify("VERIFIED")}>
                 Mark verified
               </button>
-              <button className={ws.buttonGhost} disabled={busy} onClick={() => verify("IN_PROGRESS")}>
+              <button className={ws.buttonGhost} disabled={busy || offline} onClick={() => verify("IN_PROGRESS")}>
                 In progress
               </button>
-              <button className={ws.buttonGhost} disabled={busy} onClick={() => verify("FAILED")}>
+              <button className={ws.buttonGhost} disabled={busy || offline} onClick={() => verify("FAILED")}>
                 Failed
               </button>
             </div>
@@ -253,9 +292,22 @@ function TitleSection({ detail, run, busy }: { detail: OrgListingDetail; run: Ru
   );
 }
 
-function MandateSection({ detail, mandates, run, busy }: { detail: OrgListingDetail; mandates: Mandate[]; run: Run; busy: boolean }) {
-  const { slug, can } = useOrgWorkspace();
-  const { token } = useAuth();
+function MandateSection({
+  detail,
+  mandates,
+  run,
+  queue,
+  busy,
+  offline,
+}: {
+  detail: OrgListingDetail;
+  mandates: Mandate[];
+  run: Run;
+  queue: Queue;
+  busy: boolean;
+  offline: boolean;
+}) {
+  const { can } = useOrgWorkspace();
   const open = mandates.some((m) => ["DRAFT", "AWAITING_SIGN_OFF", "ACTIVE"].includes(m.status));
   const [showForm, setShowForm] = useState(false);
 
@@ -282,7 +334,14 @@ function MandateSection({ detail, mandates, run, busy }: { detail: OrgListingDet
           busy={busy}
           onCancel={() => setShowForm(false)}
           onSubmit={async (data) => {
-            if (await run("mandate", () => orgListings.createMandate(slug, detail.property.id, data, token!))) setShowForm(false);
+            await queue({
+              kind: "createMandate",
+              clientId: data.clientId!,
+              listing: { id: detail.property.id },
+              payload: data,
+              label: `Mandate for ${detail.property.title}`,
+            });
+            setShowForm(false);
           }}
         />
       )}
@@ -292,7 +351,7 @@ function MandateSection({ detail, mandates, run, busy }: { detail: OrgListingDet
       ) : (
         <ul className="mt-4 space-y-3">
           {mandates.map((m) => (
-            <MandateRow key={m.id} mandate={m} run={run} busy={busy} />
+            <MandateRow key={m.id} mandate={m} run={run} queue={queue} busy={busy} offline={offline} />
           ))}
         </ul>
       )}
@@ -300,7 +359,7 @@ function MandateSection({ detail, mandates, run, busy }: { detail: OrgListingDet
   );
 }
 
-function MandateRow({ mandate: m, run, busy }: { mandate: Mandate; run: Run; busy: boolean }) {
+function MandateRow({ mandate: m, run, queue, busy, offline }: { mandate: Mandate; run: Run; queue: Queue; busy: boolean; offline: boolean }) {
   const { slug, can } = useOrgWorkspace();
   const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -337,7 +396,8 @@ function MandateRow({ mandate: m, run, busy }: { mandate: Mandate; run: Run; bus
           </button>
         )}
         {m.status === "AWAITING_SIGN_OFF" && can("MANDATE_SIGN_OFF") && (
-          <button className={ws.button} disabled={busy} onClick={() => run("signoff", () => orgListings.signOffMandate(slug, m.id, token!))}>
+          <button className={ws.button} disabled={busy || offline} title={offline ? NEEDS_CONNECTION : undefined}
+            onClick={() => run("signoff", () => orgListings.signOffMandate(slug, m.id, token!))}>
             <ShieldCheck className="w-4 h-4" /> Sign off as PREA
           </button>
         )}
@@ -347,7 +407,8 @@ function MandateRow({ mandate: m, run, busy }: { mandate: Mandate; run: Run; bus
         {["DRAFT", "AWAITING_SIGN_OFF", "ACTIVE"].includes(m.status) && can("LISTING_EDIT") && (
           <button
             className={ws.buttonGhost}
-            disabled={busy}
+            disabled={busy || offline}
+            title={offline ? NEEDS_CONNECTION : undefined}
             onClick={() => {
               if (window.confirm("Cancel this mandate? A live listing relying on it will be unpublished.")) {
                 void run("cancel", () => orgListings.cancelMandate(slug, m.id, undefined, token!));
@@ -378,7 +439,19 @@ function MandateRow({ mandate: m, run, busy }: { mandate: Mandate; run: Run; bus
           <button
             className={ws.button}
             disabled={busy || !file}
-            onClick={() => file && run("upload", () => orgListings.attachSignedMandate(slug, m.id, file, signedOn, token!))}
+            onClick={async () => {
+              if (!file) return;
+              const { blob, name } = await compressForUpload(file);
+              await queue({
+                kind: "attachMandateDocument",
+                mandate: { id: m.id },
+                file: blob,
+                fileName: name,
+                ownerSignedOn: signedOn,
+                label: `Signed mandate (${m.ownerName})`,
+              });
+              setFile(null);
+            }}
           >
             <Upload className="w-4 h-4" /> Attach
           </button>
@@ -502,9 +575,8 @@ function MandateForm({
   );
 }
 
-function ConsentSection({ detail, run, busy }: { detail: OrgListingDetail; run: Run; busy: boolean }) {
-  const { slug, can } = useOrgWorkspace();
-  const { token } = useAuth();
+function ConsentSection({ detail, queue, busy }: { detail: OrgListingDetail; queue: Queue; busy: boolean }) {
+  const { can } = useOrgWorkspace();
   const { compliance: c } = detail;
   const [photos, setPhotos] = useState(c.ownerConsentPhotos);
   const [address, setAddress] = useState(c.ownerConsentAddress);
@@ -541,7 +613,15 @@ function ConsentSection({ detail, run, busy }: { detail: OrgListingDetail; run: 
         <button
           className={`${ws.buttonGhost} mt-3`}
           disabled={!changed || busy}
-          onClick={() => run("consent", () => orgListings.setConsent(slug, detail.property.id, { photos, address }, token!))}
+          onClick={() =>
+            queue({
+              kind: "setConsent",
+              listing: { id: detail.property.id },
+              base: { photos: c.ownerConsentPhotos, address: c.ownerConsentAddress },
+              mine: { photos, address },
+              label: `Owner consent for ${detail.property.title}`,
+            })
+          }
         >
           Save consent
         </button>

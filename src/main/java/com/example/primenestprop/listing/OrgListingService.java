@@ -111,6 +111,15 @@ public class OrgListingService {
     public Property create(String slug, ListingDtos.CreateListingRequest r, AppUser user) {
         OrgContext ctx = access.require(user, slug, OrgPermission.LISTING_CREATE);
         Organisation org = ctx.organisation();
+        if (r.clientId() != null) {
+            ListingCompliance existing = compliances.findByClientId(r.clientId()).orElse(null);
+            if (existing != null) {
+                if (!existing.getOrganisationId().equals(org.getId())) {
+                    throw new ApiException(HttpStatus.CONFLICT, "clientId already used");
+                }
+                return propertyService.require(existing.getPropertyId()); // offline replay
+            }
+        }
         Division division = r.division() == null ? Division.PROPERTIES : r.division();
         if (!org.getDivisions().contains(division)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, division + " is not enabled for " + org.getName());
@@ -130,6 +139,7 @@ public class OrgListingService {
 
         ListingCompliance c = new ListingCompliance();
         c.setPropertyId(property.getId());
+        c.setClientId(r.clientId());
         c.setOrganisationId(org.getId());
         c.setDivision(division);
         c.setNegotiatorUserId(negotiatorId);

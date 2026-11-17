@@ -17,6 +17,9 @@ public enum OrgPermission {
     /** PREA only. */
     MANDATE_SIGN_OFF,
 
+    /** Capture and work enquiries from any channel. All staff. */
+    ENQUIRY_CAPTURE,
+
     TRUST_LEDGER_VIEW,
     TRUST_LEDGER_WRITE,
     COMMISSION_CONFIRM,

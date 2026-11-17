@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "./types";
-import { auth } from "./api";
+import { ApiError, auth } from "./api";
 
 interface AuthState {
   user: User | null;
@@ -35,6 +35,26 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_KEY = "pn_token";
+/** Last known user, so the app still opens when the API can't be reached (offline, restarting). */
+const USER_KEY = "ex_user";
+
+function readCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheUser(user: User | null) {
+  try {
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_KEY);
+  } catch {
+    // storage unavailable: the app just won't open offline
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -46,9 +66,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUser = useCallback(async (token: string) => {
     try {
       const user = await auth.me(token);
+      cacheUser(user);
       setState({ user, token, loading: false });
-    } catch {
+    } catch (e) {
+      const rejected = e instanceof ApiError && (e.status === 401 || e.status === 403);
+      const cached = readCachedUser();
+      if (!rejected && cached) {
+        // Server unreachable or erroring: keep the session and work from the cached profile.
+        setState({ user: cached, token, loading: false });
+        return;
+      }
       localStorage.removeItem(TOKEN_KEY);
+      cacheUser(null);
       setState({ user: null, token: null, loading: false });
     }
   }, []);
@@ -65,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (identifier: string, password: string) => {
     const { token, user } = await auth.login({ identifier, password });
     localStorage.setItem(TOKEN_KEY, token);
+    cacheUser(user);
     setState({ user, token, loading: false });
     return user;
   }, []);
@@ -80,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }) => {
       const { token, user } = await auth.register(data);
       localStorage.setItem(TOKEN_KEY, token);
+      cacheUser(user);
       setState({ user, token, loading: false });
       return user;
     },
@@ -94,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {}
     }
     localStorage.removeItem(TOKEN_KEY);
+    cacheUser(null);
     setState({ user: null, token: null, loading: false });
   }, []);
 
@@ -103,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadUser]);
 
   const setUser = useCallback((user: User) => {
+    cacheUser(user);
     setState((s) => ({ ...s, user }));
   }, []);
 

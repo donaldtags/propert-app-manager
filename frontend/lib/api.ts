@@ -70,9 +70,25 @@ import type {
   Mandate,
   TitleType,
   TitleVerificationStatus,
+  Enquiry,
+  EnquiryStatus,
+  CaptureEnquiryRequest,
 } from "./types";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
+export const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
+
+/** An HTTP error response from the API. Network failures stay plain TypeErrors from fetch. */
+export class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** True when the request never reached the server (offline, DNS, server down, CORS preflight failed). */
+export function isNetworkError(e: unknown): boolean {
+  return e instanceof TypeError || (e instanceof Error && /Failed to fetch|NetworkError|Load failed|fetch failed/i.test(e.message));
+}
 
 async function request<T>(
   path: string,
@@ -92,7 +108,7 @@ async function request<T>(
       const body = await res.json();
       message = body.message ?? body.error ?? message;
     } catch {}
-    throw new Error(message);
+    throw new ApiError(res.status, message);
   }
   if (res.status === 204) return undefined as T;
   const contentLength = res.headers.get("content-length");
@@ -1156,7 +1172,7 @@ export const orgListings = {
       try {
         message = (await res.json()).message ?? message;
       } catch {}
-      throw new Error(message);
+      throw new ApiError(res.status, message);
     }
     return (await res.json()) as Mandate;
   },
@@ -1181,6 +1197,17 @@ export const orgListings = {
     window.open(url, "_blank", "noopener");
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   },
+};
+
+// Enquiries captured from any channel
+export const enquiries = {
+  list: (slug: string, token: string) => request<Enquiry[]>(`${orgPath(slug)}/enquiries`, {}, token),
+
+  capture: (slug: string, data: CaptureEnquiryRequest, token: string) =>
+    request<Enquiry>(`${orgPath(slug)}/enquiries`, { method: "POST", body: JSON.stringify(data) }, token),
+
+  setStatus: (slug: string, id: number, status: EnquiryStatus, token: string) =>
+    request<Enquiry>(`${orgPath(slug)}/enquiries/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }, token),
 };
 
 // Location reference data (provinces, cities/towns, suburbs)

@@ -378,7 +378,7 @@ public class PropertyService {
 
     @Transactional
     public void submitInquiry(Long id, PropertyDtos.InquiryRequest request) {
-        Property property = require(id);
+        Property property = requireVisible(id, null);
         PropertyInquiry inquiry = new PropertyInquiry();
         inquiry.setProperty(property);
         inquiry.setName(request.name());
@@ -386,6 +386,10 @@ public class PropertyService {
         inquiry.setPhone(request.phone());
         inquiry.setMessage(request.message());
         inquiries.save(inquiry);
+        if (property.isOrganisationListing()) {
+            events.publishEvent(new PropertyInquirySubmittedEvent(property.getId(), property.getOrganisationId(),
+                    request.name(), request.email(), request.phone(), request.message()));
+        }
         log.info("Inquiry for property '{}' (id={}): from {} <{}> phone={} - {}",
                 property.getTitle(), id, request.name(), request.email(), request.phone(), request.message());
     }

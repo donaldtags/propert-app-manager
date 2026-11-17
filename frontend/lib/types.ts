@@ -888,6 +888,7 @@ export type OrgPermission =
   | "LISTING_CREATE"
   | "LISTING_EDIT"
   | "TITLE_VERIFY"
+  | "ENQUIRY_CAPTURE"
   | "LISTING_APPROVE_PUBLISH"
   | "MANDATE_SIGN_OFF"
   | "TRUST_LEDGER_VIEW"
@@ -1118,6 +1119,8 @@ export interface OrgListingDetail {
 }
 
 export interface CreateOrgListingRequest {
+  /** Client-generated id; replaying the same create never makes a second listing. */
+  clientId?: string;
   title: string;
   description?: string;
   listingType: ListingType;
@@ -1143,4 +1146,46 @@ export interface CreateMandateRequest {
   minimumPriceCents?: number;
   commissionBps?: number;
   offerAuthority?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Enquiries (EstateX Phase 1c)
+// ---------------------------------------------------------------------------
+
+export type EnquiryChannel =
+  | "WHATSAPP" | "PHONE" | "WALK_IN" | "INSTAGRAM" | "FACEBOOK" | "PORTAL"
+  | "WEBSITE" | "EMAIL" | "REFERRAL" | "SIGNBOARD" | "OTHER";
+export type EnquiryIntent = "BUY" | "RENT" | "SELL" | "LET" | "INVEST" | "OTHER";
+export type EnquiryStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "CLOSED";
+
+export interface Enquiry {
+  id: number;
+  clientId?: string;
+  channel: EnquiryChannel;
+  intent?: EnquiryIntent;
+  status: EnquiryStatus;
+  name: string;
+  phone?: string;
+  email?: string;
+  message?: string;
+  propertyId?: number;
+  propertyTitle?: string;
+  budgetCents?: number;
+  currency?: string;
+  capturedByUserId?: number;
+  capturedAt: string;
+  version: number;
+}
+
+export interface CaptureEnquiryRequest {
+  clientId?: string;
+  channel: EnquiryChannel | string;
+  intent?: EnquiryIntent | string;
+  name: string;
+  phone?: string;
+  email?: string;
+  message?: string;
+  propertyId?: number;
+  budgetCents?: number;
+  capturedAt?: string;
 }

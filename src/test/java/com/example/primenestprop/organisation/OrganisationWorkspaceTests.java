@@ -75,7 +75,7 @@ class OrganisationWorkspaceTests {
                 SELECT COUNT(*) FROM information_schema.table_constraints
                 WHERE constraint_type = 'CHECK'
                   AND LOWER(table_name) IN ('organisations', 'organisation_memberships', 'locations',
-                                           'listing_compliance', 'mandates', 'trust_ledger_entries', 'commissions')
+                                           'listing_compliance', 'mandates', 'trust_ledger_entries', 'commissions', 'enquiries')
                 """, Integer.class);
         org.junit.jupiter.api.Assertions.assertEquals(0, checks);
     }

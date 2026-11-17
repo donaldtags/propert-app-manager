@@ -1,5 +1,6 @@
 package com.example.primenestprop.common;
 
+import java.util.List;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
@@ -33,6 +34,15 @@ class FlywayAfterHibernateConfig {
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     CommandLineRunner flywayMigrateAfterHibernate(Flyway flyway) {
-        return args -> flyway.migrate();
+        return args -> {
+            List<String> problems = MigrationGuard.classpathProblems();
+            if (!problems.isEmpty()) {
+                throw new IllegalStateException("Refusing to run database migrations:\n  - "
+                        + String.join("\n  - ", problems)
+                        + "\nRemove the file (run ./mvnw clean if it was already deleted from src), or mark a deliberate"
+                        + " destructive statement with '-- reviewed-destructive: <reason>' on the line above.");
+            }
+            flyway.migrate();
+        };
     }
 }

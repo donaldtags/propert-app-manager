@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Monitor, Moon, Sun } from "lucide-react";
+import { ArrowLeft, CloudOff, Monitor, Moon, Sun } from "lucide-react";
 import { organisations } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { themeStyle, useColorMode, type ColorMode } from "@/lib/orgTheme";
 import type { OrgContext, OrgPermission } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
 import { OrgWorkspaceProvider, ws } from "@/components/workspace/OrgWorkspace";
+import SyncIndicator from "@/components/workspace/SyncIndicator";
+import EnquirySheet from "@/components/workspace/EnquirySheet";
+import { readThrough, startSync, useSyncStatus } from "@/lib/offline/sync";
+import { registerServiceWorker } from "@/lib/offline/serviceWorker";
 
 const MODES: { mode: ColorMode; icon: typeof Sun; label: string }[] = [
   { mode: "light", icon: Sun, label: "Light" },
@@ -25,17 +29,29 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
   const [mode, setMode] = useColorMode();
   const [context, setContext] = useState<OrgContext | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cachedAt, setCachedAt] = useState<string | undefined>();
+  const sync = useSyncStatus();
+  const userId = user?.id;
 
+  // Network first; offline, fall back to the last copy of this workspace saved on the device.
   const fetchContext = useCallback(
     () =>
-      organisations.me(slug, token ?? "").then(
-        (ctx) => {
-          setContext(ctx);
+      readThrough(`orgctx:${slug}:${userId}`, () => organisations.me(slug, token ?? "")).then(
+        (r) => {
+          setContext(r.data);
+          setCachedAt(r.fromCache ? r.savedAt : undefined);
           setError(null);
         },
-        (e: unknown) => setError(e instanceof Error ? e.message : "Could not open this workspace")
+        (e: unknown) =>
+          setError(
+            e instanceof TypeError
+              ? "You're offline and this workspace hasn't been opened on this device before."
+              : e instanceof Error
+                ? e.message
+                : "Could not open this workspace"
+          )
       ),
-    [slug, token]
+    [slug, token, userId]
   );
 
   useEffect(() => {
@@ -44,8 +60,10 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
+    startSync(user.id, token);
+    registerServiceWorker([`/orgs/${slug}`, `/orgs/${slug}/listings`, `/orgs/${slug}/listings/new`, `/orgs/${slug}/enquiries`, `/orgs/${slug}/sync`]);
     void fetchContext();
-  }, [loading, user, token, fetchContext, router, pathname]);
+  }, [loading, user, token, fetchContext, router, pathname, slug]);
 
   const base = `/orgs/${slug}`;
   const org = context?.organisation;
@@ -53,6 +71,8 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
   const tabs = [
     { href: base, label: "Home", show: true },
     { href: `${base}/listings`, label: "Listings", show: can("LISTING_CREATE") || can("LISTING_EDIT") || can("ORG_SETTINGS_EDIT") },
+    { href: `${base}/enquiries`, label: "Enquiries", show: can("ENQUIRY_CAPTURE") },
+    { href: `${base}/sync`, label: "Sync", show: sync.pending > 0 || sync.conflicts > 0 || pathname.startsWith(`${base}/sync`) },
     { href: `${base}/settings`, label: "Settings", show: can("MEMBERS_VIEW") || can("ORG_SETTINGS_EDIT") },
     { href: `${base}/audit`, label: "Audit log", show: can("AUDIT_VIEW") },
   ].filter((t) => t.show);
@@ -91,6 +111,8 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
                   </span>
                 )}
               </div>
+              <div className="flex items-center gap-2">
+              <SyncIndicator slug={slug} />
               <div role="radiogroup" aria-label="Colour mode" className="flex rounded-lg border border-line overflow-hidden">
                 {MODES.map(({ mode: m, icon: Icon, label }) => (
                   <button
@@ -107,6 +129,7 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
                     <Icon className="w-4 h-4" />
                   </button>
                 ))}
+              </div>
               </div>
             </div>
             <nav className="max-w-6xl mx-auto w-full px-4 mt-3 flex gap-1 overflow-x-auto" aria-label="Workspace">
@@ -126,7 +149,17 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
               })}
             </nav>
           </header>
-          <div className="max-w-6xl mx-auto w-full px-4 py-6 flex-1">{children}</div>
+          {(!sync.online || cachedAt) && (
+            <div role="status" className="border-b border-line bg-surface">
+              <p className="max-w-6xl mx-auto px-4 py-2 text-xs flex items-center gap-2 text-warning">
+                <CloudOff className="w-4 h-4 shrink-0" aria-hidden />
+                You&apos;re offline. New listings, intake details and enquiries are saved on this device and sync
+                automatically. Approving and publishing need a connection.
+              </p>
+            </div>
+          )}
+          <div className="max-w-6xl mx-auto w-full px-4 py-6 pb-28 flex-1">{children}</div>
+          {can("ENQUIRY_CAPTURE") && <EnquirySheet slug={slug} />}
         </OrgWorkspaceProvider>
       )}
     </div>

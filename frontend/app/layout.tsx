@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
@@ -22,6 +22,13 @@ export const metadata: Metadata = {
   title: "EstateX – More Than Property. Building Possibilities.",
   description:
     "Verified property listings, escrow-protected deposits, digital leases and agency tools for Zimbabwe and the diaspora.",
+  applicationName: "EstateX",
+  appleWebApp: { capable: true, title: "EstateX", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0B1D32",
 };
 
 export default function RootLayout({

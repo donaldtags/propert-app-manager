@@ -23,7 +23,8 @@ import lombok.Setter;
 @Entity
 @Table(name = "listing_compliance", indexes = {
         @Index(name = "uq_listing_compliance_property", columnList = "propertyId", unique = true),
-        @Index(name = "idx_listing_compliance_org", columnList = "organisationId")
+        @Index(name = "idx_listing_compliance_org", columnList = "organisationId"),
+        @Index(name = "uq_listing_compliance_client_id", columnList = "clientId", unique = true)
 })
 @Getter
 @Setter
@@ -38,6 +39,10 @@ public class ListingCompliance {
 
     @Column(nullable = false)
     private Long propertyId;
+
+    /** Client-generated id of the create, for idempotent offline replay. */
+    @Column(length = 40)
+    private String clientId;
 
     @Column(nullable = false)
     private Long organisationId;
