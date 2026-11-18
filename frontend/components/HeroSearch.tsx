@@ -11,9 +11,9 @@ const HERO_CITIES = ["Harare", "Bulawayo", "Mutare", "Gweru", "Victoria Falls"];
 type Tab = "RENT" | "SALE" | "SHORT_STAY";
 
 const TABS: { value: Tab; label: string; placeholder: string }[] = [
-  { value: "RENT", label: "Rent", placeholder: "Where do you want to live? e.g. Borrowdale" },
-  { value: "SALE", label: "Buy", placeholder: "Where do you want to buy? e.g. Harare" },
-  { value: "SHORT_STAY", label: "Stays", placeholder: "Where are you going? e.g. Victoria Falls" },
+  { value: "RENT", label: "Rent", placeholder: "City or suburb, e.g. Borrowdale" },
+  { value: "SALE", label: "Buy", placeholder: "City or suburb, e.g. Harare" },
+  { value: "SHORT_STAY", label: "Stays", placeholder: "Where to? e.g. Victoria Falls" },
 ];
 
 export default function HeroSearch() {
