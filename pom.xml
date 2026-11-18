@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>PrimeNest-prop</artifactId>
+    <artifactId>estatex</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>PrimeNest-prop</name>
-    <description>PrimeNest-prop</description>
+    <name>EstateX</name>
+    <description>EstateX real estate platform</description>
     <url/>
     <licenses>
         <license/>

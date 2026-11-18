@@ -1,10 +1,13 @@
-const STORAGE_KEY = "primenest_compare_properties";
+import { readMigrated } from "./storageKeys";
+
+const STORAGE_KEY = "estatex_compare_properties";
+const LEGACY_KEY = "primenest_compare_properties";
 export const MAX_COMPARE = 4;
 
 function readIds(): number[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = readMigrated(STORAGE_KEY, LEGACY_KEY);
     return raw ? (JSON.parse(raw) as number[]) : [];
   } catch {
     return [];

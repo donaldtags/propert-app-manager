@@ -1370,7 +1370,7 @@ export default function PropertyDetailPage() {
                 </p>
                 <div className="space-y-2">
                   <a
-                    href="/templates/PrimeNest_Agreement_of_Sale.docx"
+                    href="/templates/EstateX_Agreement_of_Sale.docx"
                     download
                     className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700 hover:text-brand-700 bg-gray-50 hover:bg-brand-50 px-3.5 py-2.5 rounded-xl transition-colors"
                   >
@@ -1378,7 +1378,7 @@ export default function PropertyDetailPage() {
                     <Download className="w-4 h-4 shrink-0" />
                   </a>
                   <a
-                    href="/templates/PrimeNest_Mandate_to_Sell.docx"
+                    href="/templates/EstateX_Mandate_to_Sell.docx"
                     download
                     className="flex items-center justify-between gap-2 text-sm font-medium text-gray-700 hover:text-brand-700 bg-gray-50 hover:bg-brand-50 px-3.5 py-2.5 rounded-xl transition-colors"
                   >

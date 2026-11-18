@@ -1,4 +1,4 @@
-# PrimeNest Prop API
+# EstateX Prop API
 
 Base URL: `http://localhost:8081/api/v1`
 

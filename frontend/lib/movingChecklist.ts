@@ -1,4 +1,7 @@
-const STORAGE_KEY = "primenest_moving_checklist";
+import { readMigrated } from "./storageKeys";
+
+const STORAGE_KEY = "estatex_moving_checklist";
+const LEGACY_KEY = "primenest_moving_checklist";
 
 export interface MovingChecklistState {
   [taskId: string]: boolean;
@@ -7,7 +10,7 @@ export interface MovingChecklistState {
 function read(): MovingChecklistState {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = readMigrated(STORAGE_KEY, LEGACY_KEY);
     return raw ? (JSON.parse(raw) as MovingChecklistState) : {};
   } catch {
     return {};

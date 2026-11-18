@@ -101,8 +101,8 @@ chats, ai_requests, payments, disputes, reviews.
 
 Considered: CasaAfrica, PropFlow Africa, Nyumbani AI, Homeland Africa, TerraVest AI, EstateFlow,
 DiasporaHomes, AfriNest, HomeTrust Africa, ZimNest, Vesta Africa. Pitched recommendation:
-**HomeTrust Africa** (the product is fundamentally about trust) — no rename has been made; the
-codebase and all deployed artifacts are still named PrimeNest as of this writing.
+**HomeTrust Africa** (the product is fundamentally about trust) — the product was
+later renamed EstateX (formerly PrimeNest).
 
 ## Positioning
 

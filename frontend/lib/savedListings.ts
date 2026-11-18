@@ -1,9 +1,12 @@
- const STORAGE_KEY = "primenest_saved_properties";
+import { readMigrated } from "./storageKeys";
+
+const STORAGE_KEY = "estatex_saved_properties";
+const LEGACY_KEY = "primenest_saved_properties";
 
 function readIds(): number[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = readMigrated(STORAGE_KEY, LEGACY_KEY);
     return raw ? (JSON.parse(raw) as number[]) : [];
   } catch {
     return [];

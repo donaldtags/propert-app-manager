@@ -34,7 +34,7 @@ const DOCUMENT_TYPE_LABELS: Record<LeaseDocumentType, string> = {
 
 // Blank templates tenants/landlords can download, fill in, and re-upload as the matching document type.
 const DOCUMENT_TEMPLATES: Partial<Record<LeaseDocumentType, string>> = {
-  HAND_FILLED_APPLICATION: "/templates/PrimeNest_Rental_Application_Form.docx",
+  HAND_FILLED_APPLICATION: "/templates/EstateX_Rental_Application_Form.docx",
 };
 
 function DocStatusBadge({ status }: { status: string }) {

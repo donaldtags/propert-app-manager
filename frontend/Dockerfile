@@ -14,13 +14,13 @@ RUN npm run build
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-RUN addgroup -S primenest && adduser -S primenest -G primenest
+RUN addgroup -S estatex && adduser -S estatex -G estatex
 
 COPY --from=build /app/public ./public
-COPY --from=build --chown=primenest:primenest /app/.next/standalone ./
-COPY --from=build --chown=primenest:primenest /app/.next/static ./.next/static
+COPY --from=build --chown=estatex:estatex /app/.next/standalone ./
+COPY --from=build --chown=estatex:estatex /app/.next/static ./.next/static
 
-USER primenest
+USER estatex
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0

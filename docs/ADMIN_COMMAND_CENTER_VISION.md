@@ -1,6 +1,6 @@
-# PrimeNest Admin Portal — Command Center Vision
+# EstateX Admin Portal — Command Center Vision
 
-This is the product/technical north star for PrimeNest's Admin Portal, captured verbatim from
+This is the product/technical north star for EstateX's Admin Portal, captured verbatim from
 the founding master prompt so it persists across sessions and can be referenced when planning
 or reviewing work. It is intentionally aspirational and far larger than any single build — treat
 it as the destination, not a sprint backlog. See `docs/ADMIN_COMMAND_CENTER_ROADMAP.md` (once
@@ -8,12 +8,12 @@ created) for the phased, buildable plan against the current codebase.
 
 ## Premise
 
-PrimeNest is not a property listing website. It is the operating system for the real estate
+EstateX is not a property listing website. It is the operating system for the real estate
 industry in Zimbabwe first, and later Africa. The Admin Portal is a **Real Estate Command
 Center** — an airport-control-tower view from which administrators can monitor, control,
 automate, and improve every activity on the platform, across every participant in the real
 estate ecosystem (landlords, tenants, agents, property managers, investors, developers, lawyers,
-maintenance companies, banks, and PrimeNest ops).
+maintenance companies, banks, and EstateX ops).
 
 Product philosophy: not a CRUD dashboard, not an admin panel that only edits data. Every screen
 must answer "what problem does this solve?", every feature must reduce friction, every workflow
@@ -138,5 +138,5 @@ where legally permissible, and show clear consent notices on data usage/retentio
 
 Identity verification — and the Command Center as a whole — should feel simple, secure, and
 trustworthy. The goal isn't just verifying identity; it's building confidence that every
-participant on PrimeNest is a real person or business that has completed an appropriate level of
-verification. Trust is meant to be one of PrimeNest's strongest competitive advantages.
+participant on EstateX is a real person or business that has completed an appropriate level of
+verification. Trust is meant to be one of EstateX's strongest competitive advantages.

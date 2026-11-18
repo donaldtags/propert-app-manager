@@ -1,13 +1,13 @@
-# PrimeNest Landlord Workspace — "Property Business Hub"
+# EstateX Landlord Workspace — "Property Business Hub"
 
-Product specification for the landlord-facing side of PrimeNest, captured from the founding
+Product specification for the landlord-facing side of EstateX, captured from the founding
 master prompt so it persists across sessions. This is the destination, not a sprint backlog —
 see the relevant phase plan (created per build) for what's actually buildable against the
 current codebase at any given time.
 
 ## Positioning
 
-PrimeNest is not a property listing website — it is the operating system for real estate in
+EstateX is not a property listing website — it is the operating system for real estate in
 Zimbabwe, Africa, and eventually the world. The landlord workspace is not "another landlord
 dashboard." It is meant to replace spreadsheets, WhatsApp, notebooks, paper leases, manual rent
 collection, scattered maintenance records, and disconnected property management software — the
@@ -17,7 +17,7 @@ place where a landlord runs their entire business.
 framing matters: someone with one house should feel like they're building a property business;
 someone with twenty apartments should feel like they have enterprise software; someone with five
 hundred units should never feel they've outgrown the platform. This is meant to be one of
-PrimeNest's signature positioning moves.
+EstateX's signature positioning moves.
 
 Every feature must answer: "what real problem does this solve?" Don't add a feature because a
 competitor has it — only because it saves time, reduces fraud, increases revenue, improves
@@ -100,7 +100,7 @@ invoices, warranty, history.
 A network of verified professionals — electricians, plumbers, builders, painters, roofers, solar
 installers, ISPs, furniture suppliers, movers, cleaners, security companies, garden services.
 Every vendor: verification, trust score, ratings, completed jobs, average response time, pricing,
-insurance status, availability, performance analytics. PrimeNest may take a referral/service fee
+insurance status, availability, performance analytics. EstateX may take a referral/service fee
 where appropriate.
 
 ## Financial Center

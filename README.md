@@ -1,5 +1,6 @@
-#
-PrimeNest
+# EstateX
+
+*More Than Property. Building Possibilities.*
 
 A real estate platform for Zimbabwe (expanding to other African markets), built around one
 idea most local property sites don't offer: **trust**. Verified people, verified listings,
@@ -8,10 +9,11 @@ audience, not an afterthought, since they carry the hardest version of every pro
 platform solves (can't inspect a property, can't chase paperwork, can't be there for the
 handover).
 
-> Internal naming note: the codebase's Maven artifact is `primenestprop`, some docs still say
-> "Homestead" (an earlier name), and the long-range product vision docs call the bigger ambition
-> "AfricaProp AI" / "HomeTrust Africa". They're all the same product. This README uses
-> **PrimeNest**, the name currently live in the frontend (`app/layout.tsx`).
+> Naming note: the product was previously called EstateX (and before that Homestead); the
+> long-range vision docs call the bigger ambition "AfricaProp AI" / "HomeTrust Africa". They're
+> all the same product, now **EstateX**. A few infrastructure identifiers keep the old name on
+> purpose because renaming them would change live URLs or lose data: the Render services
+> (`primenest-*.onrender.com`), the database name `primenest_prop`, and the local Docker volumes.
 
 ---
 
@@ -69,7 +71,7 @@ A monorepo, two independently-deployable apps, one database:
 
 ## 3. How the backend works
 
-One Java package per business domain under `src/main/java/com/example/primenestprop/`:
+One Java package per business domain under `src/main/java/com/example/estatex/`:
 
 ```
 auth · user · property · lease · escrow · payment · maintenance · investment · market

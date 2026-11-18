@@ -48,7 +48,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_AUTH: ${SMTP_AUTH:-false}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
-      MAIL_FROM: ${MAIL_FROM:-no-reply@primenest.local}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@estatex.local}
     ports:
       - "8081:8081"
     volumes:

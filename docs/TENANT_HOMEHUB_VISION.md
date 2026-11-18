@@ -1,14 +1,14 @@
-# PrimeNest Tenant HomeHub — Product Specification
+# EstateX Tenant HomeHub — Product Specification
 
-Product specification for the tenant-facing side of PrimeNest, captured from the founding
+Product specification for the tenant-facing side of EstateX, captured from the founding
 master prompt so it persists across sessions. This is the destination, not a sprint backlog —
 see the relevant phase plan (created per build) for what's actually buildable against the
 current codebase at any given time.
 
 ## Positioning
 
-PrimeNest is not a listing app — it is the operating system for real estate. Most rental
-platforms stop at "search property → contact landlord → rent → leave." PrimeNest must own the
+EstateX is not a listing app — it is the operating system for real estate. Most rental
+platforms stop at "search property → contact landlord → rent → leave." EstateX must own the
 **complete tenant lifecycle**: finding a home → applying → verification → signing lease →
 moving in → paying rent → reporting issues → building rental reputation → renewing lease →
 moving → eventually becoming a homeowner or investor. Every feature must solve a real tenant
@@ -122,7 +122,7 @@ ownership, mortgage partners, and property investments.
 ## Tenant Services Marketplace
 
 Access to moving companies, cleaning services, ISPs, security services, furniture providers,
-insurance providers, home improvement services — PrimeNest can earn referral commissions.
+insurance providers, home improvement services — EstateX can earn referral commissions.
 
 ## Tenant Notification System
 
@@ -132,5 +132,5 @@ properties, investment opportunities, market changes, security alerts.
 ## Sequencing note
 
 The author's own recommendation: after the tenant module, build **Property Manager** next, since
-it's the piece that connects tenants and landlords operationally and turns PrimeNest from an app
+it's the piece that connects tenants and landlords operationally and turns EstateX from an app
 into a real estate company.
