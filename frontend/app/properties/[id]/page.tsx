@@ -1095,10 +1095,11 @@ export default function PropertyDetailPage() {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-4">
+          {/* Sidebar — sticks as one unit on desktop so the contact card stays under the price card
+              instead of sliding beneath it; scrolls internally if taller than the screen. */}
+          <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain">
             {/* Price + actions card */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm sticky top-20">
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
               {(user?.id === property.landlordId || user?.id === property.agentId || user?.roles?.includes("ADMIN")) && (
                 <Link
                   href={`/properties/${property.id}/edit`}

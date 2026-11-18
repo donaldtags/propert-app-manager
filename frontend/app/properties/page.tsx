@@ -96,6 +96,8 @@ function PropertiesContent() {
   );
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // On phones the search + filter controls start collapsed so the property cards get the screen.
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("city") ?? "");
 
   const filtersRef = useRef<HTMLDivElement>(null);
@@ -383,13 +385,57 @@ function PropertiesContent() {
     <div className="flex flex-col flex-1" style={{ height: "calc(100vh - 80px)" }}>
       <CompareBar />
 
-      {/* Page heading */}
-      <div className="px-4 pt-4 pb-1 bg-white border-b border-gray-100">
-        <h1 className="text-lg font-bold text-gray-900">
+      {/* Compact header: result counter, search/filter toggle, list/map switcher */}
+      <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center gap-3 shrink-0">
+        <h1 className="text-base sm:text-lg font-bold text-gray-900 min-w-0 flex-1 truncate">
           {loading ? "Searching…" : `${totalCount} ${listingTypeLabel} in ${locationLabel}`}
         </h1>
+        <button
+          type="button"
+          onClick={() => {
+            setControlsOpen((o) => !o);
+            setFiltersOpen(false);
+            setSortMenuOpen(false);
+          }}
+          aria-expanded={controlsOpen}
+          aria-controls="search-controls"
+          className={`sm:hidden shrink-0 flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            controlsOpen || activeChips.length > 0
+              ? "border-brand-500 bg-brand-50 text-brand-700"
+              : "border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          <span className="sr-only">{controlsOpen ? "Hide search & filters" : "Search & filters"}</span>
+          {activeChips.length > 0 && (
+            <span className="bg-brand-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              {activeChips.length}
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 transition-transform ${controlsOpen ? "rotate-180" : ""}`} />
+        </button>
+        <div className="flex shrink-0 rounded-lg border border-gray-200 overflow-hidden sm:hidden">
+          <button
+            onClick={() => setMobileView("list")}
+            aria-label="List view"
+            aria-pressed={mobileView === "list"}
+            className={`px-3 py-2 ${mobileView === "list" ? "bg-brand-600 text-white" : "text-gray-600"}`}
+          >
+            <List className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setMobileView("map")}
+            aria-label="Map view"
+            aria-pressed={mobileView === "map"}
+            className={`px-3 py-2 ${mobileView === "map" ? "bg-brand-600 text-white" : "text-gray-600"}`}
+          >
+            <Map className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
+      {/* Phones: collapsed behind the toggle above. Tablet/desktop: always shown. */}
+      <div id="search-controls" className={`${controlsOpen ? "block" : "hidden"} sm:block shrink-0`}>
       {/* Top filter bar */}
       <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 z-20">
         {/* Type tabs */}
@@ -610,13 +656,8 @@ function PropertiesContent() {
           )}
         </div>
 
-        {/* Result count */}
-        <span className="text-sm text-gray-500 ml-auto hidden sm:block">
-          {loading ? "Loading..." : `${totalCount} result${totalCount !== 1 ? "s" : ""}`}
-        </span>
-
         {/* Sort */}
-        <div className="relative hidden sm:block" ref={sortRef}>
+        <div className="relative hidden sm:block sm:ml-auto" ref={sortRef}>
           <button
             onClick={() => setSortMenuOpen((o) => !o)}
             className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -642,22 +683,39 @@ function PropertiesContent() {
           )}
         </div>
 
-        {/* Mobile: list/map toggle */}
-        <div className="flex rounded-lg border border-gray-200 overflow-hidden sm:hidden">
-          <button
-            onClick={() => setMobileView("list")}
-            className={`px-3 py-2 ${mobileView === "list" ? "bg-brand-600 text-white" : "text-gray-600"}`}
-          >
-            <List className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setMobileView("map")}
-            className={`px-3 py-2 ${mobileView === "map" ? "bg-brand-600 text-white" : "text-gray-600"}`}
-          >
-            <Map className="w-4 h-4" />
-          </button>
         </div>
-        </div>
+      </div>
+
+      {/* City + suburb quick filters */}
+      <div className="px-4 py-3 flex items-center gap-2 overflow-x-auto border-b border-gray-100 bg-white">
+        {CITIES.map((c) => (
+          <button
+            key={c}
+            onClick={() => { setCity(city === c ? "" : c); setSuburb(""); }}
+            className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+              city === c ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+        {city && (
+          <>
+            <input
+              type="text"
+              list="browse-suburb-options"
+              value={suburb}
+              onChange={(e) => setSuburb(e.target.value)}
+              placeholder={`All ${city} suburbs`}
+              className="shrink-0 w-40 text-xs font-medium border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-600 outline-none focus:border-brand-400 placeholder-gray-500"
+            />
+            <datalist id="browse-suburb-options">
+              {suburbOptions.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </>
+        )}
       </div>
 
       {/* Active filter chips */}
@@ -679,6 +737,7 @@ function PropertiesContent() {
           </button>
         </div>
       )}
+      </div>
 
       {/* Split layout */}
       <div className="flex flex-1 overflow-hidden">
@@ -688,38 +747,6 @@ function PropertiesContent() {
             mobileView === "map" ? "hidden" : "flex"
           } sm:flex flex-col w-full sm:w-[62%] lg:w-[65%] overflow-y-auto`}
         >
-          {/* City + suburb quick filters */}
-          <div className="px-4 py-3 flex items-center gap-2 overflow-x-auto border-b border-gray-100 shrink-0">
-            {CITIES.map((c) => (
-              <button
-                key={c}
-                onClick={() => { setCity(city === c ? "" : c); setSuburb(""); }}
-                className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                  city === c ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-            {city && (
-              <>
-                <input
-                  type="text"
-                  list="browse-suburb-options"
-                  value={suburb}
-                  onChange={(e) => setSuburb(e.target.value)}
-                  placeholder={`All ${city} suburbs`}
-                  className="shrink-0 w-40 text-xs font-medium border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-600 outline-none focus:border-brand-400 placeholder-gray-500"
-                />
-                <datalist id="browse-suburb-options">
-                  {suburbOptions.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-              </>
-            )}
-          </div>
-
           <div className="p-4 flex-1">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-sm text-red-700">
@@ -777,8 +804,7 @@ function PropertiesContent() {
         <div
           className={`${
             mobileView === "list" ? "hidden" : "flex"
-          } sm:flex flex-1 relative sticky top-0`}
-          style={{ height: "calc(100vh - 80px - 57px)" }}
+          } sm:flex flex-1 relative min-h-0`}
         >
           <PropertyMap
             properties={sortedResults}
