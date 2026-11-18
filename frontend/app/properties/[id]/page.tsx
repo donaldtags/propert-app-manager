@@ -39,6 +39,7 @@ import {
 import { properties as propertiesApi, ratings as ratingsApi, messages as messagesApi, ai as aiApi, viewings as viewingsApi, applications as applicationsApi } from "@/lib/api";
 import type { Property, PropertyPassport, Rating, Viewing, RentalApplication } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
+import StayBookingWidget from "@/components/stays/StayBookingWidget";
 import { logEvent } from "@/lib/api";
 import { isSaved, toggleSaved } from "@/lib/savedListings";
 import { settingsRoleUrl } from "@/lib/roleGate";
@@ -367,8 +368,8 @@ export default function PropertyDetailPage() {
                 alt={`${property.title} photo ${photoIndex + 1}`}
                 fill
                 className="object-cover"
+                sizes="100vw"
                 priority
-                unoptimized
                 onClick={() => openLightbox(photoIndex)}
               />
               {photos.length > 1 && (
@@ -405,7 +406,6 @@ export default function PropertyDetailPage() {
                   fill
                   className="object-cover hover:brightness-95 transition-[filter]"
                   priority
-                  unoptimized
                   sizes="50vw"
                 />
               </button>
@@ -426,7 +426,6 @@ export default function PropertyDetailPage() {
                         alt={`${property.title} photo ${photoAt + 1}`}
                         fill
                         className="object-cover hover:brightness-95 transition-[filter]"
-                        unoptimized
                         sizes="25vw"
                       />
                       {isLastTile && remaining > 0 && (
@@ -497,7 +496,7 @@ export default function PropertyDetailPage() {
               alt={`${property.title} photo ${photoIndex + 1}`}
               fill
               className="object-contain"
-              unoptimized
+              sizes="100vw"
             />
             {photos.length > 1 && (
               <>
@@ -526,7 +525,7 @@ export default function PropertyDetailPage() {
                     i === photoIndex ? "border-white" : "border-transparent opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <Image src={p} alt="" fill className="object-cover" unoptimized />
+                  <Image src={p} alt="" fill className="object-cover" sizes="120px" />
                 </button>
               ))}
             </div>
@@ -1115,6 +1114,14 @@ export default function PropertyDetailPage() {
                 {property.suburb}, {property.city}
               </p>
 
+              {property.listingType === "SHORT_STAY" && (
+                <div className="mb-3">
+                  <StayBookingWidget
+                    propertyId={property.id}
+                    isHost={user?.id === property.landlordId || user?.id === property.agentId}
+                  />
+                </div>
+              )}
               {property.listingType === "RENT" && (
                 <button
                   onClick={handleApply}
@@ -1132,15 +1139,17 @@ export default function PropertyDetailPage() {
                 </button>
               )}
 
-              <button
-                onClick={handleBookViewing}
-                className="w-full border border-brand-600 text-brand-600 hover:bg-brand-50 font-bold py-3 rounded-xl transition-colors mb-3 flex items-center justify-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                Book Viewing
-              </button>
+              {property.listingType !== "SHORT_STAY" && (
+                <button
+                  onClick={handleBookViewing}
+                  className="w-full border border-brand-600 text-brand-600 hover:bg-brand-50 font-bold py-3 rounded-xl transition-colors mb-3 flex items-center justify-center gap-2"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Book Viewing
+                </button>
+              )}
 
-              {property.listingType !== "SALE" && (
+              {property.listingType === "RENT" && (
                 <div className="mb-3">
                   <button
                     type="button"

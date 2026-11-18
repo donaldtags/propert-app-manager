@@ -154,6 +154,28 @@ export class Api {
     return listingId;
   }
 
+  /** A published short-stay (BnB) listing owned by a fresh host, with its stay rules set. */
+  async shortStay(opts: { nightly?: number; instantBook?: boolean; maxGuests?: number; minNights?: number; cleaningFee?: number } = {}): Promise<{ host: Account; id: number; title: string }> {
+    const host = await this.register("QA Host " + uniqueId(), "LANDLORD");
+    const title = `QA Stay ${uniqueId()}`;
+    const created = await this.ok<{ id: number }>("POST", "/properties", {
+      token: host.token,
+      data: {
+        title, description: "Garden cottage for QA", listingType: "SHORT_STAY", city: "Harare", suburb: "Avondale",
+        bedrooms: 1, bathrooms: 1, price: opts.nightly ?? 60, currency: "USD", escrowRequired: false, landlordId: host.id,
+        photoUrls: ["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200"],
+      },
+    });
+    await this.ok("PUT", `/stays/${created.id}/settings`, {
+      token: host.token,
+      data: {
+        maxGuests: opts.maxGuests ?? 3, minNights: opts.minNights ?? 1, maxNights: 30, cleaningFee: opts.cleaningFee ?? 10,
+        checkInTime: "14:00", checkOutTime: "10:00", instantBook: opts.instantBook ?? false, houseRules: "No smoking",
+      },
+    });
+    return { host, id: created.id, title };
+  }
+
   async contact(slug: string, as: Account, name: string, phone = uniquePhone()): Promise<number> {
     return (await this.ok("POST", `/orgs/${slug}/contacts`, { token: as.token, data: { fullName: name, phone, source: "NETWORK" } })).id;
   }

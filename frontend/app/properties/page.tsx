@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense, type FormEvent } fr
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Search, SlidersHorizontal, X, Map, List, ChevronDown, ArrowUpDown } from "lucide-react";
-import { properties as propertiesApi } from "@/lib/api";
+import { properties as propertiesApi, stays as staysApi } from "@/lib/api";
 import type { Property, ListingType } from "@/lib/types";
 import PropertyCard from "@/components/PropertyCard";
 import CompareBar from "@/components/CompareBar";
@@ -82,6 +82,13 @@ function PropertiesContent() {
   const [petsAllowed, setPetsAllowed] = useState(searchParams.get("petsAllowed") === "true");
   const [verifiedOnly, setVerifiedOnly] = useState(searchParams.get("verifiedOnly") === "true");
   const [escrowAvailable, setEscrowAvailable] = useState(searchParams.get("escrowAvailable") === "true");
+  // Short stays: dates and party size narrow results to places free on those nights.
+  const [checkIn, setCheckIn] = useState(searchParams.get("checkIn") ?? "");
+  const [checkOut, setCheckOut] = useState(searchParams.get("checkOut") ?? "");
+  const [guests, setGuests] = useState<number | undefined>(
+    searchParams.get("guests") ? Number(searchParams.get("guests")) : undefined
+  );
+  const isStay = listingType === "SHORT_STAY";
 
   const [results, setResults] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -182,6 +189,9 @@ function PropertiesContent() {
   };
 
   const clearFilters = () => {
+    setCheckIn("");
+    setCheckOut("");
+    setGuests(undefined);
     setDraftMinPrice("");
     setDraftMaxPrice("");
     setDraftBedrooms("");
@@ -243,7 +253,21 @@ function PropertiesContent() {
     else setLoading(true);
     setError("");
     try {
-      const { items, totalCount: count } = await propertiesApi.searchPaged({
+      const datesValid = checkIn && checkOut && checkOut > checkIn;
+      const { items, totalCount: count } = isStay && (datesValid || guests)
+        ? await staysApi.search({
+            city: city || undefined,
+            suburb: suburb || undefined,
+            checkIn: datesValid ? checkIn : undefined,
+            checkOut: datesValid ? checkOut : undefined,
+            guests,
+            minPrice,
+            maxPrice,
+            bedrooms,
+            page: pageToLoad,
+            size: PAGE_SIZE,
+          })
+        : await propertiesApi.searchPaged({
         listingType,
         city: city || undefined,
         suburb: suburb || undefined,
@@ -277,7 +301,7 @@ function PropertiesContent() {
   }, [
     listingType, city, suburb, bedrooms, bathrooms, minPrice, maxPrice, diasporaFriendly,
     solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
-    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable,
+    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, isStay, checkIn, checkOut, guests,
   ]);
 
   // Any filter change starts a fresh search from page 0.
@@ -309,13 +333,16 @@ function PropertiesContent() {
     if (petsAllowed) q.set("petsAllowed", "true");
     if (verifiedOnly) q.set("verifiedOnly", "true");
     if (escrowAvailable) q.set("escrowAvailable", "true");
+    if (isStay && checkIn) q.set("checkIn", checkIn);
+    if (isStay && checkOut) q.set("checkOut", checkOut);
+    if (isStay && guests) q.set("guests", String(guests));
     if (sortBy !== "newest") q.set("sort", sortBy);
     router.replace(`/properties?${q.toString()}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     listingType, city, suburb, bedrooms, bathrooms, minPrice, maxPrice, diasporaFriendly,
     solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
-    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, sortBy,
+    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, sortBy, isStay, checkIn, checkOut, guests,
   ]);
 
   const handleSearch = (e: FormEvent) => {
@@ -366,6 +393,8 @@ function PropertiesContent() {
           onRemove: () => { setMinPrice(undefined); setMaxPrice(undefined); },
         }]
       : []),
+    ...(isStay && checkIn && checkOut ? [{ label: `${checkIn.slice(5)} → ${checkOut.slice(5)}`, onRemove: () => { setCheckIn(""); setCheckOut(""); } }] : []),
+    ...(isStay && guests ? [{ label: `${guests} guest${guests === 1 ? "" : "s"}`, onRemove: () => setGuests(undefined) }] : []),
     ...(bedrooms != null ? [{ label: `${bedrooms}+ beds`, onRemove: () => setBedrooms(undefined) }] : []),
     ...(bathrooms != null ? [{ label: `${bathrooms}+ baths`, onRemove: () => setBathrooms(undefined) }] : []),
     ...(diasporaFriendly ? [{ label: "Diaspora friendly", onRemove: () => setDiasporaFriendly(false) }] : []),
@@ -485,6 +514,47 @@ function PropertiesContent() {
             Search
           </button>
         </form>
+
+        {isStay && (
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <label className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-sm">
+              <span className="text-gray-500 text-xs">Check-in</span>
+              <input
+                type="date"
+                value={checkIn}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => {
+                  setCheckIn(e.target.value);
+                  if (checkOut && e.target.value >= checkOut) setCheckOut("");
+                }}
+                className="outline-none text-gray-900 bg-transparent"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-sm">
+              <span className="text-gray-500 text-xs">Check-out</span>
+              <input
+                type="date"
+                value={checkOut}
+                min={checkIn || new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setCheckOut(e.target.value)}
+                className="outline-none text-gray-900 bg-transparent"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-sm">
+              <span className="text-gray-500 text-xs">Guests</span>
+              <select
+                value={guests ?? ""}
+                onChange={(e) => setGuests(e.target.value ? Number(e.target.value) : undefined)}
+                className="outline-none text-gray-900 bg-transparent"
+              >
+                <option value="">Any</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
 
         {/* Filters + mobile list/map toggle */}
         <div className="flex items-center justify-between gap-3 sm:contents">

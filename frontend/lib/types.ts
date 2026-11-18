@@ -1434,3 +1434,105 @@ export interface SellerReportSummary {
   generatedAt: string;
   expiresAt?: string;
 }
+
+// ---- Short stays (BnB) ----------------------------------------------------------------
+
+export interface StaySettings {
+  propertyId: number;
+  nightlyRate: number;
+  currency: string;
+  maxGuests: number;
+  minNights: number;
+  maxNights: number;
+  cleaningFee: number;
+  checkInTime: string;
+  checkOutTime: string;
+  instantBook: boolean;
+  houseRules: string | null;
+}
+
+/** Busy nights on the public calendar; `end` is exclusive (the checkout morning is free). */
+export interface BusyRange {
+  start: string;
+  end: string;
+}
+
+export interface StayQuote {
+  available: boolean;
+  unavailableReason: string | null;
+  nights: number;
+  nightlyRate: number;
+  accommodation: number;
+  cleaningFee: number;
+  serviceFee: number;
+  total: number;
+  currency: string;
+  instantBook: boolean;
+}
+
+export type StayBookingStatus =
+  | "PENDING"
+  | "AWAITING_PAYMENT"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "DECLINED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+export interface StayParty {
+  id: number;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface StayBooking {
+  id: number;
+  reference: string;
+  status: StayBookingStatus;
+  propertyId: number;
+  propertyTitle: string;
+  propertyCity: string;
+  propertySuburb: string | null;
+  coverPhotoUrl: string | null;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  guests: number;
+  nightlyRate: number;
+  cleaningFee: number;
+  serviceFee: number;
+  total: number;
+  currency: string;
+  guestMessage: string | null;
+  hostNote: string | null;
+  holdExpiresAt: string | null;
+  paidVia: string | null;
+  createdAt: string;
+  checkInTime: string;
+  checkOutTime: string;
+  guest: StayParty;
+  host: StayParty;
+}
+
+export interface StayBlock {
+  id: number;
+  start: string;
+  end: string;
+  note: string | null;
+}
+
+export interface HostedStay {
+  propertyId: number;
+  title: string;
+  city: string;
+  nightlyRate: number;
+  currency: string;
+  settings: StaySettings;
+  blocks: StayBlock[];
+}
+
+export interface HostingOverview {
+  bookings: StayBooking[];
+  stays: HostedStay[];
+}

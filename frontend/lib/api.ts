@@ -1,4 +1,10 @@
 import type {
+  StaySettings,
+  BusyRange,
+  StayQuote,
+  StayBooking,
+  StayBlock,
+  HostingOverview,
   Property,
   PropertySearchParams,
   User,
@@ -1413,3 +1419,56 @@ export async function logEvent(
     });
   } catch {}
 }
+
+// Short stays (BnB)
+export interface StaySearchParams {
+  city?: string;
+  suburb?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  bedrooms?: number;
+  page: number;
+  size: number;
+}
+
+export const stays = {
+  search: async (params: StaySearchParams) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+    });
+    const res = await fetch(`${BASE}/stays/search?${q.toString()}`);
+    if (!res.ok) throw new Error("Failed to load stays");
+    const items = (await res.json()) as Property[];
+    return { items, totalCount: Number(res.headers.get("X-Total-Count") ?? items.length) };
+  },
+  settings: (propertyId: number) => request<StaySettings>(`/stays/${propertyId}`),
+  updateSettings: (propertyId: number, data: Omit<StaySettings, "propertyId" | "nightlyRate" | "currency">, token: string) =>
+    request<StaySettings>(`/stays/${propertyId}/settings`, { method: "PUT", body: JSON.stringify(data) }, token),
+  availability: (propertyId: number, from: string, to: string) =>
+    request<BusyRange[]>(`/stays/${propertyId}/availability?from=${from}&to=${to}`),
+  quote: (propertyId: number, checkIn: string, checkOut: string, guests: number) =>
+    request<StayQuote>(`/stays/${propertyId}/quote?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`),
+  book: (propertyId: number, data: { checkIn: string; checkOut: string; guests: number; message?: string }, token: string) =>
+    request<StayBooking>(`/stays/${propertyId}/bookings`, { method: "POST", body: JSON.stringify(data) }, token),
+  mine: (token: string) => request<StayBooking[]>("/stays/bookings/mine", {}, token),
+  hosting: (token: string) => request<HostingOverview>("/stays/hosting", {}, token),
+  get: (id: number, token: string) => request<StayBooking>(`/stays/bookings/${id}`, {}, token),
+  accept: (id: number, note: string | undefined, token: string) =>
+    request<StayBooking>(`/stays/bookings/${id}/accept`, { method: "POST", body: JSON.stringify({ note }) }, token),
+  decline: (id: number, note: string | undefined, token: string) =>
+    request<StayBooking>(`/stays/bookings/${id}/decline`, { method: "POST", body: JSON.stringify({ note }) }, token),
+  cancel: (id: number, note: string | undefined, token: string) =>
+    request<StayBooking>(`/stays/bookings/${id}/cancel`, { method: "POST", body: JSON.stringify({ note }) }, token),
+  markPaid: (id: number, method: string, token: string) =>
+    request<StayBooking>(`/stays/bookings/${id}/mark-paid`, { method: "POST", body: JSON.stringify({ method }) }, token),
+  pay: (id: number, provider: "paynow" | "stripe", token: string) =>
+    request<{ paymentId: number; redirectUrl: string }>(`/stays/bookings/${id}/pay`, { method: "POST", body: JSON.stringify({ provider }) }, token),
+  block: (propertyId: number, data: { start: string; end: string; note?: string }, token: string) =>
+    request<StayBlock>(`/stays/${propertyId}/blocks`, { method: "POST", body: JSON.stringify(data) }, token),
+  unblock: (propertyId: number, blockId: number, token: string) =>
+    request<void>(`/stays/${propertyId}/blocks/${blockId}`, { method: "DELETE" }, token),
+};

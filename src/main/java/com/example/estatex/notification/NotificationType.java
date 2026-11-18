@@ -6,5 +6,7 @@ public enum NotificationType {
     MAINTENANCE_UPDATE,
     SECURITY_ALERT,
     /** Agency listing compliance: mandate expired, listing unpublished, approval needed. */
-    LISTING_COMPLIANCE
+    LISTING_COMPLIANCE,
+    /** Short-stay booking requests, decisions, payments and cancellations. */
+    STAY_BOOKING
 }

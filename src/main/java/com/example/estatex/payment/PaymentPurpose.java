@@ -8,5 +8,7 @@ public enum PaymentPurpose {
     SUBSCRIPTION,
     FEATURED_LISTING,
     INVESTMENT,
+    /** Short-stay booking paid online; metadata "stayBookingId=<id>". */
+    STAY_BOOKING,
     OTHER
 }

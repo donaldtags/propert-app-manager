@@ -63,6 +63,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/inquiries").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties", "/api/v1/properties/*", "/api/v1/properties/*/passport").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/investments/reits").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/stays/search", "/api/v1/stays/{propertyId:\\d+}",
+                                "/api/v1/stays/*/availability", "/api/v1/stays/*/quote").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/featured-listings/settings").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/featured-listings/settings").hasAuthority("PERM_FEATURED_LISTINGS_MANAGE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/subscriptions/plans").permitAll()

@@ -42,6 +42,7 @@ export default function Navbar() {
   const navLinks = [
     { href: "/properties?listingType=SALE", label: "Buy" },
     { href: "/properties?listingType=RENT", label: "Rent" },
+    { href: "/properties?listingType=SHORT_STAY", label: "Stays" },
     { href: "/investments", label: "Invest" },
     { href: "/services", label: "Services" },
     { href: "/ai", label: "AI Search" },
@@ -115,6 +116,10 @@ export default function Navbar() {
                   )}
                   {user.roles?.includes("SERVICE_PROVIDER") && (
                     <Link href="/provider" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Service Provider Profile</Link>
+                  )}
+                  <Link href="/trips" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Trips</Link>
+                  {(user.roles?.includes("LANDLORD") || user.roles?.includes("PRIVATE") || user.roles?.includes("AGENT")) && (
+                    <Link href="/hosting" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Hosting (BnB)</Link>
                   )}
                   <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Profile</Link>
                   <Link href="/messages" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Messages</Link>
