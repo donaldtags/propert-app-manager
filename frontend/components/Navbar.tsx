@@ -51,8 +51,8 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-screen-2xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center shrink-0 min-w-0">
-          <EstateXLogo size={40} wordmarkClassName="hidden sm:inline" />
+        <Link href="/" className="flex items-center min-w-0 shrink">
+          <EstateXLogo className="h-10 sm:h-14" />
         </Link>
 
         {/* Desktop nav links */}

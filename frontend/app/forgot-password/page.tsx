@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center mb-6">
-            <EstateXLogo size={36} />
+            <EstateXLogo variant="full" className="h-32 sm:h-40 mx-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Reset your password</h1>
           <p className="text-gray-500 mt-1">We&apos;ll send a reset link if your email exists</p>
