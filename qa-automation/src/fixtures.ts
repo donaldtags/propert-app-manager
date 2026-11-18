@@ -46,7 +46,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(async (page, account, opts = {}) => {
       await page.addInitScript(
         ([token, mode]) => {
-          window.localStorage.setItem("pn_token", token);
+          window.localStorage.setItem("estatex_token", token);
           window.localStorage.setItem("ex_color_mode", mode);
         },
         [account.token, opts.mode ?? "light"] as const

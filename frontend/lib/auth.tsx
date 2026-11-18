@@ -1,5 +1,6 @@
 "use client";
 
+import { readMigrated } from "./storageKeys";
 import {
   createContext,
   useContext,
@@ -34,7 +35,9 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = "pn_token";
+const TOKEN_KEY = "estatex_token";
+/** Where the token lived when the app was called PrimeNest; moved on first read so nobody is logged out. */
+const LEGACY_TOKEN_KEY = "pn_token";
 /** Last known user, so the app still opens when the API can't be reached (offline, restarting). */
 const USER_KEY = "ex_user";
 
@@ -83,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem(TOKEN_KEY);
+    const stored = readMigrated(TOKEN_KEY, LEGACY_TOKEN_KEY);
     if (stored) {
       loadUser(stored);
     } else {
@@ -118,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    const stored = localStorage.getItem(TOKEN_KEY);
+    const stored = readMigrated(TOKEN_KEY, LEGACY_TOKEN_KEY);
     if (stored) {
       try {
         await auth.logout(stored);
@@ -130,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
-    const stored = localStorage.getItem(TOKEN_KEY);
+    const stored = readMigrated(TOKEN_KEY, LEGACY_TOKEN_KEY);
     if (stored) await loadUser(stored);
   }, [loadUser]);
 

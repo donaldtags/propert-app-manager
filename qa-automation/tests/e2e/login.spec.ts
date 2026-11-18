@@ -8,7 +8,7 @@ test("a user signs in through the login form and reaches their dashboard", async
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: /sign in|log in/i }).click();
   await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
-  await expect(page.evaluate(() => localStorage.getItem("pn_token"))).resolves.toBeTruthy();
+  await expect(page.evaluate(() => localStorage.getItem("estatex_token"))).resolves.toBeTruthy();
 });
 
 test("wrong password is rejected with a message", async ({ page, api }) => {

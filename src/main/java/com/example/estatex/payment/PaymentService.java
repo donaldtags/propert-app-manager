@@ -93,7 +93,7 @@ public class PaymentService {
         payment.setPurposeType(purposeType);
         payment.setMetadata(metadata);
         payment.setEscrowTransactionId(escrowTransactionId);
-        payment.setReference("PN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        payment.setReference("EX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         return payments.save(payment);
     }
 
