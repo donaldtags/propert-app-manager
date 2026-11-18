@@ -84,7 +84,7 @@ export default function PropertyCard({
             fill
             className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 400px"
-            unoptimized
+           
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-gray-400">

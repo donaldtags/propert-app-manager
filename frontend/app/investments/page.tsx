@@ -470,7 +470,7 @@ export default function InvestmentsPage() {
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 100vw, 400px"
-                      unoptimized
+                     
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -610,7 +610,7 @@ export default function InvestmentsPage() {
                         >
                           <div className="relative h-20 bg-gray-100">
                             {p.coverPhotoUrl ? (
-                              <Image src={p.coverPhotoUrl} alt={p.title} fill className="object-cover" sizes="200px" unoptimized />
+                              <Image src={p.coverPhotoUrl} alt={p.title} fill className="object-cover" sizes="200px" />
                             ) : (
                               <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                                 <MapPin className="w-5 h-5" />

@@ -117,7 +117,7 @@ export default function TenantPassportPage() {
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6 flex items-center gap-5">
         <div className="w-20 h-20 rounded-full bg-gray-100 overflow-hidden shrink-0 relative">
           {user?.avatarUrl ? (
-            <Image src={user.avatarUrl} alt={user.fullName} fill className="object-cover" unoptimized />
+            <Image src={user.avatarUrl} alt={user.fullName} fill className="object-cover" sizes="96px" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400">
               {user?.fullName?.[0] ?? "?"}

@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname),
   },
   images: {
+    // Resizing is delegated to the image CDN (see lib/imageLoader.ts) rather than done on our server.
+    loader: "custom",
+    loaderFile: "./lib/imageLoader.ts",
+    // Fewer, smaller steps: phones on mobile data never pull more than ~1080px wide photos.
+    deviceSizes: [640, 828, 1080, 1440, 1920],
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "http", hostname: "localhost" },

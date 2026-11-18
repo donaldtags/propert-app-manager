@@ -1,5 +1,6 @@
 /**
- * EstateX logo from the official artwork (colour-adjusted crops in public/brand/).
+ * EstateX logo from the official artwork (colour-adjusted crops in public/brand/; the page uses
+ * the compact .webp copies, the .png masters are kept for print and e-mail).
  *
  * Variants:
  *  - horizontal (default): emblem beside ESTATEX with the tagline underneath — navbar
@@ -39,7 +40,7 @@ export default function EstateXLogo({
   return (
     // eslint-disable-next-line @next/next/no-img-element -- static brand asset, sized by CSS
     <img
-      src={`/brand/${asset.file}-${colour}.png`}
+      src={`/brand/${asset.file}-${colour}.webp`}
       alt={v === "emblem" ? "EstateX" : "EstateX — More Than Property. Building Possibilities."}
       width={Math.round((size * asset.w) / asset.h)}
       height={size}

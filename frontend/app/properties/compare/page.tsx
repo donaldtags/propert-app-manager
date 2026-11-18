@@ -182,7 +182,7 @@ function ComparePageInner() {
                       </button>
                       <div className="relative h-32 bg-gray-100">
                         {photo ? (
-                          <Image src={photo} alt={p.title} fill className="object-cover" unoptimized sizes="200px" />
+                          <Image src={photo} alt={p.title} fill className="object-cover" sizes="200px" />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                             <MapPin className="w-6 h-6" />
