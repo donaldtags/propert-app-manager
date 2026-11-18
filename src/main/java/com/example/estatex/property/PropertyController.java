@@ -95,12 +95,25 @@ public class PropertyController {
     ) {
         boolean paginated = page != null || size != null;
         int resolvedSize = size != null ? size : (paginated ? DEFAULT_PAGE_SIZE : LEGACY_UNPAGINATED_SIZE);
-        Page<Property> results = service.searchPage(listingType, city, suburb, minPrice, maxPrice, bedrooms, bathrooms,
-                diasporaFriendly, solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
-                parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, page != null ? page : 0, resolvedSize);
+        int resolvedPage = page != null ? page : 0;
+        // Public, viewer-independent results: identical searches share one database round trip.
+        String key = String.join("|", String.valueOf(listingType), String.valueOf(city), String.valueOf(suburb),
+                String.valueOf(minPrice), String.valueOf(maxPrice), String.valueOf(bedrooms), String.valueOf(bathrooms),
+                String.valueOf(diasporaFriendly), String.valueOf(solarInstalled), String.valueOf(backupPower),
+                String.valueOf(waterSource), String.valueOf(furnished), String.valueOf(internetAvailable),
+                String.valueOf(securityFeatures), String.valueOf(parkingAvailable), String.valueOf(petsAllowed),
+                String.valueOf(verifiedOnly), String.valueOf(escrowAvailable), String.valueOf(resolvedPage),
+                String.valueOf(resolvedSize));
+        PropertySearchCache.CachedPage cached = PropertySearchCache.get(key, k -> {
+            Page<Property> results = service.searchPage(listingType, city, suburb, minPrice, maxPrice, bedrooms, bathrooms,
+                    diasporaFriendly, solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
+                    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, resolvedPage, resolvedSize);
+            return new PropertySearchCache.CachedPage(
+                    results.getContent().stream().map(PropertyResponse::from).toList(), results.getTotalElements());
+        });
         return ResponseEntity.ok()
-                .header("X-Total-Count", String.valueOf(results.getTotalElements()))
-                .body(results.getContent().stream().map(PropertyResponse::from).toList());
+                .header("X-Total-Count", String.valueOf(cached.total()))
+                .body(cached.items());
     }
 
     @GetMapping("/{id}")

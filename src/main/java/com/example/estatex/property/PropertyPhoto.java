@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@jakarta.persistence.EntityListeners(PropertySearchCache.Invalidator.class)
 @Table(name = "property_photos", indexes = {
         @Index(name = "idx_property_photos_property", columnList = "property_id")
 })

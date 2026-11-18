@@ -53,7 +53,7 @@ export default function Navbar() {
       <div className="max-w-screen-2xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center min-w-0 shrink">
-          <EstateXLogo className="h-10 sm:h-14" />
+          <EstateXLogo variant="stacked" className="h-14 sm:h-[72px]" />
         </Link>
 
         {/* Desktop nav links */}

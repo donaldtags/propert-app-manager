@@ -3,7 +3,8 @@
  * the compact .webp copies, the .png masters are kept for print and e-mail).
  *
  * Variants:
- *  - horizontal (default): emblem beside ESTATEX with the tagline underneath — navbar
+ *  - stacked: emblem with ESTATEX and the tagline underneath it — navbar
+ *  - horizontal: emblem beside ESTATEX with the tagline underneath
  *  - full: the complete stacked logo — emblem, ESTATEX, tagline and services line
  *  - emblem: just the buildings mark — loaders, tight spaces
  *
@@ -14,6 +15,7 @@
  * to size it responsively instead; the image keeps its aspect ratio and can shrink to fit.
  */
 const ASSETS = {
+  stacked: { file: "estatex-logo-stacked", w: 1398, h: 639 },
   horizontal: { file: "estatex-logo-horizontal", w: 1781, h: 300 },
   full: { file: "estatex-logo-full", w: 1400, h: 767 },
   emblem: { file: "estatex-icon", w: 320, h: 180 },

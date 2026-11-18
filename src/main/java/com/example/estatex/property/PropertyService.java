@@ -354,6 +354,7 @@ public class PropertyService {
                 .getContent();
     }
 
+    @Transactional(readOnly = true)
     public Page<Property> searchPage(
             ListingType listingType,
             String city,
@@ -377,9 +378,14 @@ public class PropertyService {
             int size
     ) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return properties.search(listingType, blankToNull(city), blankToNull(suburb), minPrice, maxPrice, bedrooms, bathrooms,
+        Page<Property> result = properties.search(listingType, blankToNull(city), blankToNull(suburb), minPrice, maxPrice, bedrooms, bathrooms,
                 diasporaFriendly, solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
                 parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, pageable);
+        // Photos are loaded here, after the database has paged the rows, rather than joined into the
+        // paged query (which makes Hibernate fetch every match and page in memory). With
+        // hibernate.default_batch_fetch_size the whole page's photos arrive in one IN (...) query.
+        result.getContent().forEach(p -> org.hibernate.Hibernate.initialize(p.getPhotos()));
+        return result;
     }
 
     public List<Property> forLandlord(Long landlordId) {

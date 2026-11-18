@@ -143,3 +143,19 @@ export function useZimbabweLocations(): LocationIndex & {
   const index = useSyncExternalStore(subscribe, getSnapshot, () => SERVER_SNAPSHOT);
   return { ...index, resolve: (q: string) => resolveLocation(index, q) };
 }
+
+/**
+ * Turns whatever someone typed in a search box ("Harare", "Borrowdale", "Avondale, Harare",
+ * "somewhere new") into the city/suburb filters the API understands. Shared by the home page
+ * and the listings page so the same words always find the same homes.
+ */
+export function locationFilters(
+  query: string,
+  resolve: (q: string) => { city: string; suburb: string } | null
+): { city: string; suburb: string } {
+  const parts = query.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return { city: "", suburb: "" };
+  if (parts.length >= 2) return { city: parts[1], suburb: parts[0] };
+  // Unknown text goes in as a suburb: that filter is a partial match, the city filter is exact.
+  return resolve(parts[0]) ?? { city: "", suburb: parts[0] };
+}

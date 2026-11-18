@@ -8,7 +8,7 @@ import { properties as propertiesApi, stays as staysApi } from "@/lib/api";
 import type { Property, ListingType } from "@/lib/types";
 import PropertyCard from "@/components/PropertyCard";
 import CompareBar from "@/components/CompareBar";
-import { useZimbabweLocations } from "@/lib/locations";
+import { useZimbabweLocations, locationFilters } from "@/lib/locations";
 
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
   ssr: false,
@@ -347,23 +347,9 @@ function PropertiesContent() {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    const parts = searchQuery.split(",").map((s) => s.trim());
-    if (parts.length >= 2) {
-      setSuburb(parts[0]);
-      setCity(parts[1]);
-      return;
-    }
-    const resolved = resolveLocationQuery(parts[0]);
-    if (resolved) {
-      setCity(resolved.city);
-      setSuburb(resolved.suburb);
-      return;
-    }
-    // Unrecognized text: city filtering is an exact match on the backend, so a
-    // free-text guess is far more likely to find something as a suburb filter
-    // (partial match) than as a city filter.
-    setCity("");
-    setSuburb(parts[0]);
+    const { city: c, suburb: sb } = locationFilters(searchQuery, resolveLocationQuery);
+    setCity(c);
+    setSuburb(sb);
   };
 
   const priceRanges = listingType === "RENT" ? PRICE_RANGES_RENT : PRICE_RANGES_SALE;

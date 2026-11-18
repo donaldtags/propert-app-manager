@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import ReactDOM from "react-dom";
 import Link from "next/link";
-import { Shield, Globe, Zap, TrendingUp, CheckCircle } from "lucide-react";
+import {
+  Shield, Globe, Zap, TrendingUp, CheckCircle, Home, KeyRound, BedDouble, Building2, Search, CalendarCheck, Handshake,
+} from "lucide-react";
 import HeroSearch from "@/components/HeroSearch";
 import FeaturedListings, { FeaturedListingsSkeleton } from "@/components/FeaturedListings";
 
@@ -34,6 +36,36 @@ export default function HomePage() {
           </p>
 
           <HeroSearch />
+        </div>
+      </section>
+
+      {/* Start here: one obvious door for each kind of visitor */}
+      <section className="py-10 px-4 max-w-screen-xl mx-auto w-full" aria-labelledby="start-here">
+        <h2 id="start-here" className="text-xl sm:text-2xl font-bold text-gray-900 text-center mb-6">
+          What would you like to do?
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          {[
+            { href: "/properties?listingType=RENT", icon: KeyRound, title: "Rent a home", desc: "Long-term rentals" },
+            { href: "/properties?listingType=SALE", icon: Home, title: "Buy a home", desc: "Houses, flats and land" },
+            { href: "/properties?listingType=SHORT_STAY", icon: BedDouble, title: "Book a stay", desc: "Nightly BnB stays" },
+            { href: "/properties/new", icon: Building2, title: "List my property", desc: "Rent, sell or host" },
+            { href: "/investments", icon: TrendingUp, title: "Invest", desc: "REIT units from $10" },
+          ].map(({ href, icon: Icon, title, desc }, i) => (
+            <Link
+              key={href}
+              href={href}
+              className={`group flex flex-col items-center text-center gap-2 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 hover:border-brand-400 hover:shadow-md transition ${
+                i === 4 ? "col-span-2 lg:col-span-1" : ""
+              }`}
+            >
+              <span className="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                <Icon className="w-6 h-6" aria-hidden />
+              </span>
+              <span className="font-semibold text-gray-900 text-sm sm:text-base">{title}</span>
+              <span className="text-gray-500 text-xs">{desc}</span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -75,6 +107,34 @@ export default function HomePage() {
         </Suspense>
       </section>
 
+      {/* How it works */}
+      <section className="bg-gray-50 border-y border-gray-200 py-12 px-4" aria-labelledby="how-it-works">
+        <div className="max-w-5xl mx-auto">
+          <h2 id="how-it-works" className="text-2xl font-bold text-gray-900 text-center mb-2">How it works</h2>
+          <p className="text-gray-500 text-sm text-center mb-8">Three steps, whether you&apos;re renting, buying or booking a stay.</p>
+          <ol className="grid sm:grid-cols-3 gap-6">
+            {[
+              { icon: Search, title: "1. Search", desc: "Pick Rent, Buy or Stays, type a city or suburb, and narrow it down with filters or the map." },
+              { icon: CalendarCheck, title: "2. View or book", desc: "Open a listing to see photos and the agent. Book a viewing, make an offer, or pick dates for a stay." },
+              { icon: Handshake, title: "3. Move in safely", desc: "Pay through EstateX, sign the lease online, and keep every receipt and message in one place." },
+            ].map(({ icon: Icon, title, desc }) => (
+              <li key={title} className="bg-white rounded-2xl border border-gray-200 p-5">
+                <Icon className="w-7 h-7 text-brand-600 mb-3" aria-hidden />
+                <p className="font-semibold text-gray-900 mb-1">{title}</p>
+                <p className="text-gray-600 text-sm leading-relaxed">{desc}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="text-center text-sm text-gray-600 mt-6">
+            Own a property?{" "}
+            <Link href="/properties/new" className="text-brand-600 font-semibold hover:underline">
+              List it in a few minutes
+            </Link>{" "}
+            and manage enquiries, viewings and bookings from your dashboard.
+          </p>
+        </div>
+      </section>
+
       {/* Invest CTA */}
       <section className="bg-brand-600 py-16 px-4 text-center text-white">
         <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-80" />
@@ -95,8 +155,9 @@ export default function HomePage() {
       <footer className="bg-gray-900 text-gray-400 text-sm py-8 px-4">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© {new Date().getFullYear()} EstateX. All rights reserved.</p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <Link href="/properties" className="hover:text-white">Browse</Link>
+            <Link href="/properties?listingType=SHORT_STAY" className="hover:text-white">Stays</Link>
             <Link href="/investments" className="hover:text-white">Invest</Link>
             <Link href="/ai" className="hover:text-white">AI Search</Link>
             <Link href="/register" className="hover:text-white">Sign Up</Link>

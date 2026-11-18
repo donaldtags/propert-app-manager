@@ -24,6 +24,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@jakarta.persistence.EntityListeners(PropertySearchCache.Invalidator.class)
 @Table(name = "properties", indexes = {
         @Index(name = "idx_properties_search", columnList = "status, listingType, city, suburb, price, bedrooms"),
         @Index(name = "idx_properties_landlord", columnList = "landlord_id"),

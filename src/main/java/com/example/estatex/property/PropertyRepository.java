@@ -21,7 +21,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @EntityGraph(attributePaths = {"landlord", "agent", "photos"})
     Optional<Property> findWithPhotosById(Long id);
 
-    @EntityGraph(attributePaths = {"landlord", "agent", "photos"})
+    @EntityGraph(attributePaths = {"landlord", "agent"})
     @Query(value = """
             select p from Property p
             where (:listingType is null or p.listingType = :listingType)
