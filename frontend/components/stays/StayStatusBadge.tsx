@@ -12,7 +12,7 @@ const STYLES: Record<StayBookingStatus, { label: string; cls: string }> = {
 
 export default function StayStatusBadge({ status }: { status: StayBookingStatus }) {
   const s = STYLES[status];
-  return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s.cls}`}>{s.label}</span>;
+  return <span className={`shrink-0 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded-full ${s.cls}`}>{s.label}</span>;
 }
 
 export function stayMoney(amount: number, currency: string) {

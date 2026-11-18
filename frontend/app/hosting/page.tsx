@@ -70,7 +70,7 @@ export default function HostingPage() {
         </div>
       ) : (
         <>
-          <div className="mt-6 flex gap-1 border-b border-gray-200" role="tablist">
+          <div className="mt-6 flex gap-1 border-b border-gray-200 overflow-x-auto" role="tablist">
             {([
               ["requests", `Requests (${groups.requests.length})`],
               ["upcoming", `Upcoming (${groups.upcoming.length})`],
@@ -81,7 +81,7 @@ export default function HostingPage() {
                 role="tab"
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
-                className={`px-4 py-2.5 text-sm font-semibold ${tab === key ? "text-brand-700 border-b-2 border-brand-600" : "text-gray-500"}`}
+                className={`whitespace-nowrap px-3 sm:px-4 py-2.5 text-sm font-semibold ${tab === key ? "text-brand-700 border-b-2 border-brand-600" : "text-gray-500"}`}
               >
                 {label}
               </button>
