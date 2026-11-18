@@ -119,14 +119,14 @@ export default function ProfilePage() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Header card */}
       <div className="bg-gradient-to-br from-brand-600 to-brand-700 rounded-2xl p-6 text-white mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-16 h-16 shrink-0 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
               {user.fullName?.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-xl font-bold">{user.fullName}</h1>
-              <p className="text-brand-100 text-sm">{user.email}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold break-words">{user.fullName}</h1>
+              <p className="text-brand-100 text-sm break-all">{user.email}</p>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {user.roles?.map((role) => (
                   <span key={role} className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">
@@ -136,7 +136,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             {user.trustScore != null && (
               <div className="flex items-center gap-1 text-white">
                 <Star className="w-4 h-4 fill-current text-amber-300" />

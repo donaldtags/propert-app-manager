@@ -194,3 +194,11 @@ h1, h2, h3, .font-heading {
   border-radius: 50%;
   box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.25);
 }
+
+/* <main> is a flex column, where a centred page container (max-w-* mx-auto) would otherwise
+   shrink-wrap its widest child — a table, a long e-mail — and push the page past the screen
+   edge on phones. Page containers fill the width (capped by their max-w) and may shrink. */
+main > * {
+  width: 100%;
+  min-width: 0;
+}

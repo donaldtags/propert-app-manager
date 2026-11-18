@@ -796,7 +796,7 @@ export default function PropertyDetailPage() {
             </p>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-200 mt-6 mb-4">
+            <div className="flex border-b border-gray-200 mt-6 mb-4 overflow-x-auto [scrollbar-width:none]">
               {(["overview", "details", "passport", "map", ...(property.virtualTourUrl ? (["tour"] as const) : [])] as const).map((t) => (
                 <button
                   key={t}
@@ -810,7 +810,7 @@ export default function PropertyDetailPage() {
                         .finally(() => setPassportLoading(false));
                     }
                   }}
-                  className={`px-4 py-3 text-sm font-semibold capitalize transition-colors ${
+                  className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-3 text-sm font-semibold capitalize transition-colors ${
                     tab === t
                       ? "text-brand-600 border-b-2 border-brand-600"
                       : "text-gray-500 hover:text-gray-700"
