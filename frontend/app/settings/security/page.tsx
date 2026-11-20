@@ -8,6 +8,7 @@ import { users as usersApi } from "@/lib/api";
 import { Shield, AlertCircle, CheckCircle, Plus, ArrowRight, Info } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
+import SecuritySection from "@/components/auth/SecuritySection";
 
 const SELF_SERVICE_ROLES: UserRole[] = ["TENANT", "LANDLORD", "AGENT", "DIASPORA", "INVESTOR", "DEVELOPER", "PRIVATE", "SERVICE_PROVIDER"];
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
@@ -114,6 +115,8 @@ function SecuritySettingsPageInner() {
         </div>
       )}
 
+      <SecuritySection />
+
       {/* Current roles */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
         <h2 className="font-bold text-gray-900 mb-4">Current Roles</h2>
@@ -193,7 +196,11 @@ function SecuritySettingsPageInner() {
         <div className="space-y-3 text-sm">
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="text-gray-500">Email</span>
-            <span className="text-gray-900 font-medium">{user.email}</span>
+            <span className="text-gray-900 font-medium break-all text-right">{user.email || "Not added"}</span>
+          </div>
+          <div className="flex justify-between items-center gap-4 py-2 border-b border-gray-100">
+            <span className="text-gray-500">Phone</span>
+            <span className="text-gray-900 font-medium">{user.phone || "Not added"}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
             <span className="text-gray-500">Verified</span>
@@ -212,18 +219,6 @@ function SecuritySettingsPageInner() {
             <span className={user.faceVerified ? "text-brand-600 font-medium" : "text-gray-400"}>
               {user.faceVerified ? "Yes" : "No"}
             </span>
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-gray-100">
-            <span className="text-gray-500">Two-Factor Auth</span>
-            <span className="text-gray-400">Coming soon</span>
-          </div>
-          <div className="pt-2">
-            <button
-              onClick={() => router.push("/forgot-password")}
-              className="text-brand-600 hover:underline text-sm font-medium"
-            >
-              Change Password
-            </button>
           </div>
         </div>
       </div>

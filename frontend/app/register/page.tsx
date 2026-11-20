@@ -45,10 +45,21 @@ function RegisterForm() {
     e.preventDefault();
     if (!pwOk) { setError("Password does not meet requirements."); return; }
     if (!pwMatch) { setError("Passwords do not match."); return; }
+    if (!email.trim() && !phone.trim()) {
+      setError("Enter an email address or a phone number - you'll use it to sign in.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      const registeredUser = await register({ fullName, email, phone: phone || undefined, password, country, roles: [role] });
+      const registeredUser = await register({
+        fullName,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        password,
+        country,
+        roles: [role],
+      });
       router.push(redirectParam ?? dashboardPathFor(registeredUser.roles));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed. Try again.");
@@ -94,28 +105,37 @@ function RegisterForm() {
             </div>
 
             <div>
-              <label htmlFor="reg-email" className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <label htmlFor="reg-email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Email <span className="font-normal text-gray-500">(optional if you give a phone number)</span>
+              </label>
               <input
                 id="reg-email"
                 type="email"
                 inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
                 autoComplete="email"
+                aria-describedby="reg-email-hint"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                 placeholder="you@example.com"
               />
+              <p id="reg-email-hint" className="text-xs text-gray-500 mt-1.5">
+                No email? Use your phone number instead - you&apos;ll sign in with it and we&apos;ll text you codes.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Phone {!email.trim() && <span className="font-normal text-red-600">*</span>}
+                </label>
                 <input
                   id="reg-phone"
                   type="tel"
+                  inputMode="tel"
                   autoComplete="tel"
                   value={phone}
+                  required={!email.trim()}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                   placeholder="+263 77 123 4567"

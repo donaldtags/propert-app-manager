@@ -9,6 +9,10 @@ import type {
   PropertySearchParams,
   User,
   AuthResponse,
+  LoginResponse,
+  TwoFactorMethod,
+  TwoFactorStatus,
+  TotpSetup,
   Lease,
   Escrow,
   Payment,
@@ -147,29 +151,62 @@ async function request<T>(
 export const auth = {
   register: (data: {
     fullName: string;
-    email: string;
+    /** Optional when a phone number is given. */
+    email?: string;
     phone?: string;
     password: string;
     country?: string;
     roles?: string[];
+    deviceId?: string;
   }) => request<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(data) }),
 
-  login: (data: { identifier: string; password: string }) =>
-    request<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+  /** A session, or a two-step challenge to answer with verifyTwoFactor. */
+  login: (data: { identifier: string; password: string; deviceId?: string }) =>
+    request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+
+  verifyTwoFactor: (data: { challengeToken: string; code: string; method: TwoFactorMethod; deviceId?: string }) =>
+    request<AuthResponse>("/auth/2fa/verify", { method: "POST", body: JSON.stringify(data) }),
+
+  /** "Text me a code instead" while signing in. */
+  sendLoginCode: (challengeToken: string) =>
+    request<{ message: string }>("/auth/2fa/sms/send", { method: "POST", body: JSON.stringify({ challengeToken }) }),
 
   logout: (token: string) =>
     request<void>("/auth/logout", { method: "POST" }, token),
 
+  /** Signs out every device, this one included. */
+  logoutAll: (token: string) =>
+    request<{ message: string }>("/auth/logout-all", { method: "POST" }, token),
+
   me: (token: string) => request<User>("/auth/me", {}, token),
 
-  forgotPassword: (email: string) =>
-    request<void>("/auth/forgot-password", {
+  /** Email -> a reset link; phone number -> a texted code. */
+  forgotPassword: (identifier: string) =>
+    request<{ message: string }>("/auth/forgot-password", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ identifier }),
     }),
 
-  resetPassword: (data: { token: string; password: string }) =>
-    request<void>("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
+  /** With the emailed link's token, or with the phone number and texted code. */
+  resetPassword: (data: { token?: string; identifier?: string; code?: string; password: string }) =>
+    request<{ message: string }>("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }, token: string) =>
+    request<{ message: string }>("/auth/change-password", { method: "POST", body: JSON.stringify(data) }, token),
+
+  twoFactor: {
+    status: (token: string) => request<TwoFactorStatus>("/auth/2fa", {}, token),
+    startApp: (token: string) => request<TotpSetup>("/auth/2fa/totp/start", { method: "POST" }, token),
+    confirmApp: (code: string, token: string) =>
+      request<{ backupCodes: string[] }>("/auth/2fa/totp/confirm", { method: "POST", body: JSON.stringify({ code }) }, token),
+    startSms: (token: string) => request<{ message: string }>("/auth/2fa/sms/start", { method: "POST" }, token),
+    confirmSms: (code: string, token: string) =>
+      request<{ backupCodes: string[] }>("/auth/2fa/sms/confirm", { method: "POST", body: JSON.stringify({ code }) }, token),
+    sendDisableCode: (token: string) =>
+      request<{ message: string }>("/auth/2fa/disable/code", { method: "POST" }, token),
+    disable: (data: { password: string; code: string; method: TwoFactorMethod }, token: string) =>
+      request<{ message: string }>("/auth/2fa/disable", { method: "POST", body: JSON.stringify(data) }, token),
+  },
 };
 
 // Properties
