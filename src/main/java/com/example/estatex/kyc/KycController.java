@@ -65,7 +65,8 @@ public class KycController {
 
     @GetMapping("/submissions")
     List<KycSubmissionResponse> listForAdmin(@RequestParam(required = false) KycStatus status) {
-        return service.listForAdmin(status).stream().map(KycSubmissionResponse::from).toList();
+        return service.listForAdmin(status).stream()
+                .map(sub -> KycSubmissionResponse.from(sub, service.checksFor(sub))).toList();
     }
 
     @GetMapping("/submissions/{submissionId}/documents/{documentId}/download")

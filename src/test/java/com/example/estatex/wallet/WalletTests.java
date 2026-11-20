@@ -205,12 +205,13 @@ class WalletTests {
     @Test
     void withdrawalsNeedIdentityAndPassword_holdTheMoney_andStaffPayOrReturnIt() throws Exception {
         Account admin = accounts.platformAdmin();
-        Account user = accounts.register("Withdrawer " + System.nanoTime(), UserRole.LANDLORD);
+        String withdrawerName = "Withdrawer " + System.nanoTime();
+        Account user = accounts.register(withdrawerName, UserRole.LANDLORD);
         topUp(user, "100");
         String ecocash = "{\"amount\": 40, \"method\": \"ECOCASH\", \"ecocashPhone\": \"0771 234 567\", \"password\": \"%s\"}";
 
         call(post("/api/v1/wallet/withdrawals"), user, ecocash.formatted(TestAccounts.PASSWORD)).andExpect(status().isForbidden());
-        userService.verify(user.id()); // identity verified
+        accounts.verifyIdentity(user, withdrawerName, admin); // ID document checked and approved
         call(post("/api/v1/wallet/withdrawals"), user, ecocash.formatted("wrong-password")).andExpect(status().isUnauthorized());
         call(post("/api/v1/wallet/withdrawals"), user,
                 "{\"amount\": 2, \"method\": \"ECOCASH\", \"ecocashPhone\": \"0771234567\", \"password\": \"%s\"}"

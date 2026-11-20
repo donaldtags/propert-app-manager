@@ -68,6 +68,9 @@ class TrustAndAgenciesTests {
                 .andExpect(jsonPath("$.status").value("PENDING"))).path("id").asLong();
 
         call(patch("/api/v1/agents/licences/" + licenceId), agent, "{\"approved\": true}").andExpect(status().isForbidden());
+        // The agent's ID must be checked before their licence can be approved.
+        call(patch("/api/v1/agents/licences/" + licenceId), admin, "{\"approved\": true}").andExpect(status().isConflict());
+        accounts.verifyIdentity(agent, "Agent Licensed", admin);
         call(patch("/api/v1/agents/licences/" + licenceId), admin, "{\"approved\": true}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
 
@@ -75,7 +78,8 @@ class TrustAndAgenciesTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("AVAILABLE"))
                 .andExpect(jsonPath("$.listedBy").value("AGENT"))
-                .andExpect(jsonPath("$.listerLicensed").value(true));
+                .andExpect(jsonPath("$.listerLicensed").value(true))
+                .andExpect(jsonPath("$.listerIdVerified").value(true));
     }
 
     @Test

@@ -1329,6 +1329,11 @@ export default function PropertyDetailPage() {
                   {property.listerLicensed ? "Licensed agent (checked by EstateX)" : "Agent licence not checked yet"}
                 </div>
               )}
+              {property.listerIdVerified && (
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full mb-3 ml-1 text-brand-700 bg-brand-50">
+                  <BadgeCheck className="w-3.5 h-3.5" /> ID checked by EstateX
+                </div>
+              )}
 
               {(property.organisationPhone ?? property.agentPhone) && (
                 <a

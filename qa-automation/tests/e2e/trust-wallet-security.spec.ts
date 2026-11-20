@@ -18,6 +18,31 @@ function totp(base32: string, at = Date.now()): string {
 }
 
 const PDF = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 1, 0, 0, 0, 1]);
+const ALL_CHECKS = ["NAME_MATCHES", "NUMBER_MATCHES", "FACE_MATCHES", "DOCUMENT_GENUINE"];
+let idSeq = Date.now() % 1_000_000;
+
+/** Sends an ID for checking (front, back, two selfies) through the real upload; returns the submission id. */
+async function submitId(api: import("../../src/api").Api, who: { token: string }, legalName: string): Promise<number> {
+  const form = new FormData();
+  form.append("legalFullName", legalName);
+  form.append("dateOfBirth", "1991-03-03");
+  form.append("nationalIdNumber", `63-${String(++idSeq).padStart(7, "0")} F 42`);
+  form.append("idDocumentType", "NATIONAL_ID");
+  for (const [type, name] of [["ID_FRONT", "front.png"], ["ID_BACK", "back.png"], ["SELFIE", "selfie.png"], ["SELFIE_WITH_ID", "selfie-id.png"]]) {
+    form.append("files", new Blob([PNG], { type: "image/png" }), name);
+    form.append("documentTypes", type);
+  }
+  return (await api.ok<{ id: number }>("POST", "/kyc/submissions", { token: who.token, multipart: form as never })).id;
+}
+
+/** An admin approves the ID after confirming every check (what the review screen sends). */
+async function approveId(api: import("../../src/api").Api, admin: { token: string }, submissionId: number) {
+  await api.ok("PATCH", `/kyc/submissions/${submissionId}/review`, {
+    token: admin.token,
+    data: { status: "APPROVED", confirmedChecks: ALL_CHECKS },
+  });
+}
 
 test.describe("Trust, agencies, wallet and sign-in security", () => {
   test("someone without an email signs up with just a phone number", async ({ page }) => {
@@ -110,6 +135,7 @@ test.describe("Trust, agencies, wallet and sign-in security", () => {
     await page.getByRole("button", { name: "Send for checking" }).click();
     await expect(page.getByText(/We're checking registration/)).toBeVisible();
 
+    await approveId(api, admin, await submitId(api, agent, "Licence Agent"));
     const pending = await api.ok<{ id: number; userId: number }[]>("GET", "/agents/licences/pending", { token: admin.token });
     await api.ok("PATCH", `/agents/licences/${pending.find((l) => l.userId === agent.id)!.id}`, { token: admin.token, data: { approved: true } });
 
@@ -118,6 +144,29 @@ test.describe("Trust, agencies, wallet and sign-in security", () => {
     await expect(page.getByText("Listed by an independent agent")).toBeVisible();
     await expect(page.getByText("Licensed agent (checked by EstateX)")).toBeVisible();
     await expect(page.getByText("Not yet verified").first()).toBeVisible();
+  });
+
+  test("an admin checks an ID side by side and can only approve after ticking every check", async ({ page, api, signIn }) => {
+    const person = await api.register("Nyasha Gumbo", "LANDLORD");
+    const admin = await api.platformAdmin();
+    await submitId(api, person, "Nyasha Gumbo");
+
+    await signIn(page, admin);
+    await page.goto("/admin");
+    await page.getByRole("button", { name: /Verification Queue/ }).first().click();
+    const card = page.locator("article").filter({ hasText: "Nyasha Gumbo" }).first();
+    await expect(card.getByRole("img", { name: "ID front" })).toBeVisible();
+    await expect(card.getByRole("img", { name: "Selfie holding the ID" })).toBeVisible();
+    await expect(card.getByText("ID number isn't used by another account")).toBeVisible();
+
+    const approve = card.getByRole("button", { name: "Approve ID" });
+    await expect(approve).toBeDisabled();
+    for (const label of [/name on the ID matches/, /ID number on the card matches/, /face on the ID matches/, /looks genuine/]) {
+      await card.getByLabel(label).check();
+    }
+    await expect(approve).toBeEnabled();
+    await approve.click();
+    await expect(page.locator("article").filter({ hasText: "Nyasha Gumbo" })).toHaveCount(0);
   });
 
   test("a visitor reports a suspicious listing without an account", async ({ page, api }) => {

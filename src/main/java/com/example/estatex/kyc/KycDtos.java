@@ -8,7 +8,11 @@ public final class KycDtos {
     private KycDtos() {
     }
 
-    public record ReviewKycRequest(KycStatus status, String reviewNote) {
+    /**
+     * confirmedChecks: what the reviewer confirmed by eye (see IdChecks.MANUAL_CHECKS). All of them
+     * are required to approve.
+     */
+    public record ReviewKycRequest(KycStatus status, String reviewNote, java.util.List<String> confirmedChecks) {
     }
 
     public record KycDocumentResponse(
@@ -45,9 +49,15 @@ public final class KycDtos {
             Instant reviewedAt,
             Long reviewedBy,
             String reviewNote,
-            List<KycDocumentResponse> documents
+            List<KycDocumentResponse> documents,
+            /** Reviewer-only: automatic ID checks (format, age, name, ID used on another account). */
+            List<IdChecks.Check> automatedChecks
     ) {
         public static KycSubmissionResponse from(KycSubmission submission) {
+            return from(submission, null);
+        }
+
+        public static KycSubmissionResponse from(KycSubmission submission, List<IdChecks.Check> checks) {
             return new KycSubmissionResponse(
                     submission.getId(),
                     submission.getUser().getId(),
@@ -62,7 +72,8 @@ public final class KycDtos {
                     submission.getReviewedAt(),
                     submission.getReviewedBy(),
                     submission.getReviewNote(),
-                    submission.getDocuments().stream().map(KycDocumentResponse::from).toList()
+                    submission.getDocuments().stream().map(KycDocumentResponse::from).toList(),
+                    checks
             );
         }
     }

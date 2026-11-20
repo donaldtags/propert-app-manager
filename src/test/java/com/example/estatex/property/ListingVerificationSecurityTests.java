@@ -53,7 +53,9 @@ class ListingVerificationSecurityTests {
     void setUp() throws Exception {
         accounts = new TestAccounts(mvc, userService, objectMapper);
         admin = accounts.platformAdmin();
-        landlord = accounts.register("Owner " + System.nanoTime(), UserRole.LANDLORD);
+        String name = "Owner " + System.nanoTime();
+        landlord = accounts.register(name, UserRole.LANDLORD);
+        accounts.verifyIdentity(landlord, name, admin);
     }
 
     @Test

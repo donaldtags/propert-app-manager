@@ -173,7 +173,9 @@ public final class PropertyDtos {
             String organisationName,
             String organisationSlug,
             String organisationLogoUrl,
-            String organisationPhone
+            String organisationPhone,
+            /** The person marketing it (agent, or owner) has had their ID document checked by EstateX. */
+            Boolean listerIdVerified
     ) {
         public static PropertyResponse from(Property property) {
             com.example.estatex.organisation.Organisation org = property.getOrganisationId() == null ? null
@@ -250,7 +252,8 @@ public final class PropertyDtos {
                     org == null ? null : org.getName(),
                     org == null ? null : org.getSlug(),
                     org == null ? null : org.getLogoOnLightUrl(),
-                    org == null ? null : (org.getPhone() != null ? org.getPhone() : org.getWhatsappNumber())
+                    org == null ? null : (org.getPhone() != null ? org.getPhone() : org.getWhatsappNumber()),
+                    lister.idVerified()
             );
         }
     }
@@ -259,15 +262,17 @@ public final class PropertyDtos {
     }
 
     /** How a listing's marketer is described to the public. */
-    record Lister(String listedBy, Boolean licensed) {
+    record Lister(String listedBy, Boolean licensed, Boolean idVerified) {
         static Lister of(Property p) {
             if (p.getOrganisationId() != null) {
-                return new Lister("AGENCY", p.getLandlord() == null ? null : p.getLandlord().isLicensedAgent());
+                return p.getLandlord() == null ? new Lister("AGENCY", null, null)
+                        : new Lister("AGENCY", p.getLandlord().isLicensedAgent(), p.getLandlord().isIdentityVerified());
             }
             com.example.estatex.user.AppUser agent = p.getAgent() != null ? p.getAgent()
                     : (p.getLandlord() != null && p.getLandlord().getRoles().contains(com.example.estatex.user.UserRole.AGENT)
                     ? p.getLandlord() : null);
-            return agent != null ? new Lister("AGENT", agent.isLicensedAgent()) : new Lister("OWNER", null);
+            if (agent != null) return new Lister("AGENT", agent.isLicensedAgent(), agent.isIdentityVerified());
+            return new Lister("OWNER", null, p.getLandlord() == null ? null : p.getLandlord().isIdentityVerified());
         }
     }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import IdReviewQueue from "@/components/admin/IdReviewQueue";
 import { AgentLicenceQueue, CompanyQueue, ReportQueue } from "@/components/admin/TrustQueues";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -24,7 +25,6 @@ import type {
   Property,
   Escrow,
   KycSubmission,
-  KycDocument,
   AdminDashboardOverview,
   AdminConversation,
   FraudSignal,
@@ -48,7 +48,6 @@ import {
   Lock,
   LayoutDashboard,
   IdCard,
-  Download,
   MessageSquare,
   ShieldAlert,
   MapPin,
@@ -278,10 +277,7 @@ export default function AdminPortalPage() {
   };
 
   const [kycSubmissions, setKycSubmissions] = useState<KycSubmission[]>([]);
-  const [kycLoading, setKycLoading] = useState(true);
-  const [rejectingId, setRejectingId] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [downloadingDoc, setDownloadingDoc] = useState<number | null>(null);
+  const [, setKycLoading] = useState(true);
 
   const [adminConversations, setAdminConversations] = useState<AdminConversation[]>([]);
   const [adminConversationsLoading, setAdminConversationsLoading] = useState(true);
@@ -462,40 +458,6 @@ export default function AdminPortalPage() {
       loadAll();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to release escrow.");
-    }
-  };
-
-  const handleReviewKyc = async (id: number, status: "APPROVED" | "REJECTED", reviewNote?: string) => {
-    if (!token) return;
-    setError(""); setSuccess("");
-    try {
-      await kycApi.review(id, { status, reviewNote }, token);
-      setSuccess(status === "APPROVED" ? "Identity verification approved." : "Identity verification rejected.");
-      setRejectingId(null);
-      setRejectReason("");
-      loadAll();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to review verification request.");
-    }
-  };
-
-  const handleDownloadKycDoc = async (submissionId: number, doc: KycDocument) => {
-    if (!token) return;
-    setDownloadingDoc(doc.id);
-    try {
-      const blob = await kycApi.downloadDocument(submissionId, doc.id, token);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = doc.fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to download document.");
-    } finally {
-      setDownloadingDoc(null);
     }
   };
 
@@ -825,115 +787,7 @@ export default function AdminPortalPage() {
         </div>
       )}
 
-      {tab === "kyc" && (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <IdCard className="w-5 h-5 text-brand-600" /> Verification Queue
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Review submitted ID documents and selfies for identity verification.</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-          {kycLoading ? (
-            <div className="p-4 space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
-            </div>
-          ) : kycSubmissions.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
-              <IdCard className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No identity verification requests</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-500 uppercase tracking-wide bg-gray-50">
-                    <th className="px-4 py-2.5 font-medium">User</th>
-                    <th className="px-4 py-2.5 font-medium">Submitted</th>
-                    <th className="px-4 py-2.5 font-medium">ID Type</th>
-                    <th className="px-4 py-2.5 font-medium">Documents</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
-                    <th className="px-4 py-2.5 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {kycSubmissions.map((s) => (
-                    <tr key={s.id}>
-                      <td className="px-4 py-2.5">
-                        <p className="font-medium text-gray-900">{s.userFullName}</p>
-                        <p className="text-xs text-gray-400">{s.userEmail}</p>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-400">{new Date(s.submittedAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-2.5 text-gray-600">{s.idDocumentType}</td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex flex-wrap gap-2">
-                          {s.documents.map((doc) => (
-                            <button
-                              key={doc.id}
-                              onClick={() => handleDownloadKycDoc(s.id, doc)}
-                              disabled={downloadingDoc === doc.id}
-                              className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 disabled:opacity-50"
-                            >
-                              <Download className="w-3 h-3" /> {doc.documentType}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          s.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                          s.status === "APPROVED" ? "bg-brand-100 text-brand-700" : "bg-red-100 text-red-700"
-                        }`}>{s.status}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        {s.status === "PENDING" && (
-                          rejectingId === s.id ? (
-                            <div className="flex flex-col items-end gap-2">
-                              <input
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                                placeholder="Reason for rejection"
-                                className="w-48 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-red-400"
-                              />
-                              <div className="flex gap-3">
-                                <button
-                                  onClick={() => setRejectingId(null)}
-                                  className="text-xs font-medium text-gray-500 hover:text-gray-700"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleReviewKyc(s.id, "REJECTED", rejectReason)}
-                                  className="text-xs font-medium text-red-600 hover:text-red-700"
-                                >
-                                  Confirm Reject
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex gap-3 justify-end">
-                              <button onClick={() => handleReviewKyc(s.id, "APPROVED")} className="text-xs font-medium text-brand-600 hover:text-brand-700">
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => { setRejectingId(s.id); setRejectReason(""); }}
-                                className="text-xs font-medium text-red-600 hover:text-red-700"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          </div>
-        </div>
-      )}
+      {tab === "kyc" && token && <IdReviewQueue token={token} onChanged={loadAll} />}
 
       {tab === "properties" && (
         <div>
@@ -960,6 +814,7 @@ export default function AdminPortalPage() {
                   <th className="px-4 py-2.5 font-medium">Title</th>
                   <th className="px-4 py-2.5 font-medium">Location</th>
                   <th className="px-4 py-2.5 font-medium">Price</th>
+                  <th className="px-4 py-2.5 font-medium">Owner&apos;s ID</th>
                   <th className="px-4 py-2.5 font-medium text-right">Actions</th>
                 </tr>
               </thead>
@@ -976,6 +831,15 @@ export default function AdminPortalPage() {
                     </td>
                     <td className="px-4 py-2.5 text-gray-600">{p.suburb}, {p.city}</td>
                     <td className="px-4 py-2.5 text-gray-600">{p.currency} {p.price.toLocaleString()}</td>
+                    <td className="px-4 py-2.5">
+                      {p.listerIdVerified ? (
+                        <span className="text-xs font-semibold text-brand-700">Checked</span>
+                      ) : (
+                        <button onClick={() => setTab("kyc")} className="text-xs font-semibold text-amber-700 underline">
+                          Not checked - see Verification Queue
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-right">
                       <button onClick={() => handleVerifyProperty(p.id)} className="text-xs font-medium text-brand-600 hover:text-brand-700 px-2 py-1">
                         Verify

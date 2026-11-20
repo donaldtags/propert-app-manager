@@ -556,6 +556,11 @@ public class PropertyService {
             throw new ApiException(HttpStatus.FORBIDDEN, "You can't verify a listing you own or represent");
         }
         boolean approved = request.approved() == null || request.approved();
+        AppUser lister = property.getAgent() != null ? property.getAgent() : property.getLandlord();
+        if (approved && !lister.isIdentityVerified()) {
+            throw new ApiException(HttpStatus.CONFLICT, lister.getFullName()
+                    + "'s ID hasn't been verified yet. Check their ID in the Verification Queue first.");
+        }
         if (!approved && (request.note() == null || request.note().isBlank())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Give the owner a reason when rejecting a listing");
         }

@@ -138,6 +138,10 @@ public class AgentLicenceService {
         if (!approved && (note == null || note.isBlank())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Tell the agent why their licence was rejected");
         }
+        if (approved && !users.require(licence.getUserId()).isIdentityVerified()) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Verify this agent's ID in the Verification Queue before approving their licence.");
+        }
         String from = licence.getStatus();
         licence.setStatus(approved ? AgentLicence.APPROVED : AgentLicence.REJECTED);
         licence.setReviewedAt(Instant.now());

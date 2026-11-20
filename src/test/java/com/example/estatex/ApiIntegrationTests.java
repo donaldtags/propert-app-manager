@@ -74,6 +74,9 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.verified").value(true));
 
         long propertyId = createProperty(landlord.id(), agent.id(), "Borrowdale API Apartment", landlord.token());
+        new com.example.estatex.support.TestAccounts(mvc, userService, objectMapper).verifyIdentity(
+                new com.example.estatex.support.TestAccounts.Account(agent.id(), "", agent.token()), "Agent ID",
+                new com.example.estatex.support.TestAccounts.Account(0L, "", admin.token()));
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -200,6 +203,12 @@ class ApiIntegrationTests {
         Registered tenant = registerUser("Mutation Tenant", tenantEmail, "TENANT");
         Registered agent = registerUser("Mutation Agent", "AGENT");
         long propertyId = createProperty(landlord.id(), agent.id(), "Mount Pleasant API Studio", landlord.token());
+
+        new com.example.estatex.support.TestAccounts(mvc, userService, objectMapper).verifyIdentity(
+
+                new com.example.estatex.support.TestAccounts.Account(agent.id(), "", agent.token()), "Agent ID",
+
+                new com.example.estatex.support.TestAccounts.Account(0L, "", admin.token()));
 
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
@@ -431,6 +440,9 @@ class ApiIntegrationTests {
         Registered stranger = registerUser("Unrelated Tenant", "TENANT");
 
         long propertyId = createProperty(landlord.id(), agent.id(), "Passport Test Villa", landlord.token());
+        new com.example.estatex.support.TestAccounts(mvc, userService, objectMapper).verifyIdentity(
+                new com.example.estatex.support.TestAccounts.Account(agent.id(), "", agent.token()), "Agent ID",
+                new com.example.estatex.support.TestAccounts.Account(0L, "", admin.token()));
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)

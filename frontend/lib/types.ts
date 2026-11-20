@@ -100,6 +100,8 @@ export interface Property {
   organisationSlug?: string | null;
   organisationLogoUrl?: string | null;
   organisationPhone?: string | null;
+  /** The person marketing it has had their ID document checked by EstateX. */
+  listerIdVerified?: boolean | null;
 }
 
 export interface FeaturedListingSettings {
@@ -693,6 +695,8 @@ export interface KycSubmission {
   reviewedBy?: number;
   reviewNote?: string;
   documents: KycDocument[];
+  /** Reviewer-only automatic checks: ID_FORMAT, AGE, NAME, DUPLICATE_ID. */
+  automatedChecks?: { key: string; label: string; result: "PASS" | "WARN" | "FAIL"; detail: string }[] | null;
 }
 
 export interface VerificationLevel {

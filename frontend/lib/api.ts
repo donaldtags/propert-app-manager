@@ -587,7 +587,7 @@ export const kyc = {
     return res.blob();
   },
 
-  review: (id: number, data: { status: string; reviewNote?: string }, token: string) =>
+  review: (id: number, data: { status: string; reviewNote?: string; confirmedChecks?: string[] }, token: string) =>
     request<KycSubmission>(`/kyc/submissions/${id}/review`, { method: "PATCH", body: JSON.stringify(data) }, token),
 };
 

@@ -214,8 +214,9 @@ public class UserService {
     @Transactional
     public AppUser verify(Long id) {
         AppUser user = require(id);
+        // Marks the account as checked. "Identity verified" is only ever set by approving an ID
+        // document in the verification queue (applyKycApproval), never by this shortcut.
         user.setVerified(true);
-        user.setIdentityVerified(true);
         trustScoreService.recompute(user);
         return user;
     }

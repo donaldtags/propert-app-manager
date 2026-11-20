@@ -145,6 +145,16 @@ public class KycService {
         return new Download(document, resource);
     }
 
+    /** Automatic checks for the reviewer's screen. */
+    @Transactional(readOnly = true)
+    public List<IdChecks.Check> checksFor(KycSubmission submission) {
+        List<String> others = submissions.findSameIdOnOtherAccounts(IdChecks.normalise(submission.getNationalIdNumber()),
+                        submission.getUser().getId(), List.of(KycStatus.PENDING, KycStatus.APPROVED)).stream()
+                .map(o -> o.getUser().getFullName() + " (" + o.getStatus().name().toLowerCase() + ")")
+                .distinct().toList();
+        return IdChecks.run(submission, java.time.LocalDate.now(), others);
+    }
+
     @Transactional
     public KycSubmission review(Long submissionId, AppUser currentAdmin, KycDtos.ReviewKycRequest request) {
         if (!isAdmin(currentAdmin)) {
@@ -156,6 +166,27 @@ public class KycService {
         KycSubmission submission = require(submissionId);
         if (submission.getStatus() != KycStatus.PENDING) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "This request has already been reviewed");
+        }
+        if (submission.getUser().getId().equals(currentAdmin.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can't review your own identity check");
+        }
+        if (request.status() == KycStatus.APPROVED) {
+            java.util.Set<String> confirmed = request.confirmedChecks() == null ? java.util.Set.of()
+                    : new java.util.HashSet<>(request.confirmedChecks());
+            List<String> missing = IdChecks.MANUAL_CHECKS.stream().filter(c -> !confirmed.contains(c)).toList();
+            if (!missing.isEmpty()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Confirm every check against the ID photos before approving: " + String.join(", ", missing));
+            }
+            boolean duplicate = checksFor(submission).stream()
+                    .anyMatch(c -> c.key().equals("DUPLICATE_ID") && c.result() == IdChecks.Result.FAIL);
+            if (duplicate && submissions.findSameIdOnOtherAccounts(IdChecks.normalise(submission.getNationalIdNumber()),
+                    submission.getUser().getId(), List.of(KycStatus.APPROVED)).size() > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "This ID number is already verified on another account. One person, one verified account.");
+            }
+        } else if (request.reviewNote() == null || request.reviewNote().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Tell the person why their ID wasn't accepted");
         }
         submission.setStatus(request.status());
         submission.setReviewNote(request.reviewNote());
@@ -182,7 +213,10 @@ public class KycService {
         try {
             log.setMetadataJson(objectMapper.writeValueAsString(Map.of(
                     "userId", submission.getUser().getId(),
-                    "reviewNote", request.reviewNote() == null ? "" : request.reviewNote()
+                    "reviewNote", request.reviewNote() == null ? "" : request.reviewNote(),
+                    "confirmedChecks", request.confirmedChecks() == null ? List.of() : request.confirmedChecks(),
+                    "automatedChecks", checksFor(submission).stream()
+                            .map(c -> c.key() + "=" + c.result()).toList()
             )));
         } catch (Exception ex) {
             log.setMetadataJson("{}");
