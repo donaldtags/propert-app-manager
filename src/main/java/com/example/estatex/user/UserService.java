@@ -40,12 +40,21 @@ public class UserService {
 
     @Transactional
     public AppUser create(UserDtos.CreateUserRequest request) {
-        users.findByEmailIgnoreCase(request.email()).ifPresent(existing -> {
-            throw new ApiException(HttpStatus.CONFLICT, "A user with this email already exists");
-        });
-
-
-        String phone = request.phone() == null || request.phone().isBlank() ? null : request.phone().trim();
+        String email = request.email() == null || request.email().isBlank() ? null : request.email().trim();
+        String phone = null;
+        if (request.phone() != null && !request.phone().isBlank()) {
+            phone = com.example.estatex.common.PhoneNumbers.forAccount(request.phone())
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                            "Enter your phone number with the country code, e.g. +263 77 123 4567"));
+        }
+        if (email == null && phone == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Enter an email address or a phone number");
+        }
+        if (email != null) {
+            users.findByEmailIgnoreCase(email).ifPresent(existing -> {
+                throw new ApiException(HttpStatus.CONFLICT, "A user with this email already exists");
+            });
+        }
         if (phone != null) {
             users.findFirstByPhone(phone).ifPresent(existing -> {
                 throw new ApiException(HttpStatus.CONFLICT, "A user with this phone number already exists");
@@ -54,7 +63,7 @@ public class UserService {
         PasswordPolicy.validate(request.password());
         AppUser user = new AppUser();
         user.setFullName(request.fullName());
-        user.setEmail(request.email());
+        user.setEmail(email);
         user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setCountry(request.country() == null || request.country().isBlank() ? "Zimbabwe" : request.country());
@@ -86,7 +95,14 @@ public class UserService {
             return Optional.empty();
         }
         String trimmed = identifier.trim();
-        return users.findByEmailIgnoreCase(trimmed).or(() -> users.findFirstByPhone(trimmed));
+        if (trimmed.contains("@")) {
+            return users.findByEmailIgnoreCase(trimmed);
+        }
+        // "0771 234 567", "+263771234567" and "263 77 123 4567" all find the same account; the raw
+        // text is tried too for numbers saved before phone numbers were normalised.
+        return com.example.estatex.common.PhoneNumbers.forAccount(trimmed)
+                .flatMap(users::findFirstByPhone)
+                .or(() -> users.findFirstByPhone(trimmed));
     }
 
     public AppUser require(Long id) {
@@ -231,7 +247,9 @@ public class UserService {
     public AppUser updateProfile(Long id, UserDtos.UpdateProfileRequest request) {
         AppUser user = require(id);
         setIfPresent(request.fullName(), user::setFullName);
-        setIfPresent(request.phone(), user::setPhone);
+        if (request.phone() != null) {
+            updatePhone(user, request.phone());
+        }
         setIfPresent(request.country(), user::setCountry);
         setIfPresent(request.preferredCurrency(), user::setPreferredCurrency);
         setIfPresent(request.avatarUrl(), user::setAvatarUrl);
@@ -249,10 +267,34 @@ public class UserService {
         if (request.smsNotifications() != null) {
             user.setSmsNotifications(request.smsNotifications());
         }
-        if (request.twoFactorEnabled() != null) {
-            user.setTwoFactorEnabled(request.twoFactorEnabled());
-        }
+        // twoFactorEnabled is deliberately ignored here: two-step sign-in is switched on and off only
+        // through /api/v1/auth/2fa/*, which prove the user controls the app or phone first.
         return user;
+    }
+
+    private void updatePhone(AppUser user, String raw) {
+        String phone = null;
+        if (!raw.isBlank()) {
+            phone = com.example.estatex.common.PhoneNumbers.forAccount(raw)
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                            "Enter your phone number with the country code, e.g. +263 77 123 4567"));
+        }
+        if (java.util.Objects.equals(phone, user.getPhone())) {
+            return;
+        }
+        if (phone == null && user.getEmail() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Your phone number is how you sign in. Add an email before removing it.");
+        }
+        if (user.isTwoFactorEnabled() && user.getTotpSecretEncrypted() == null) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Your sign-in codes are sent to this phone. Turn off two-step sign-in before changing the number.");
+        }
+        if (phone != null) {
+            users.findFirstByPhone(phone).filter(other -> !other.getId().equals(user.getId())).ifPresent(other -> {
+                throw new ApiException(HttpStatus.CONFLICT, "Another account already uses this phone number");
+            });
+        }
+        user.setPhone(phone);
     }
 
     private void setIfPresent(String value, java.util.function.Consumer<String> setter) {

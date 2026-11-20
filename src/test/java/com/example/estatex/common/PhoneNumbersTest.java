@@ -22,6 +22,22 @@ class PhoneNumbersTest {
     }
 
     @Test
+    void accountPhonesAreStrict() {
+        assertEquals("+263771234567", PhoneNumbers.forAccount("077 123 4567").orElseThrow());
+        assertEquals("+263771234567", PhoneNumbers.forAccount("+263 (77) 123-4567").orElseThrow());
+        org.junit.jupiter.api.Assertions.assertTrue(PhoneNumbers.forAccount("tariro@example.com").isEmpty());
+        org.junit.jupiter.api.Assertions.assertTrue(PhoneNumbers.forAccount("not a phone").isEmpty());
+        org.junit.jupiter.api.Assertions.assertTrue(PhoneNumbers.forAccount("12345").isEmpty());
+        org.junit.jupiter.api.Assertions.assertTrue(PhoneNumbers.forAccount(null).isEmpty());
+    }
+
+    @Test
+    void maskingKeepsOnlyTheCountryCodeAndLastFourDigits() {
+        assertEquals("+263•••••4567", PhoneNumbers.mask("+263771234567"));
+        assertNull(PhoneNumbers.mask(null));
+    }
+
+    @Test
     void tooShortIsNotAPhoneNumber() {
         assertNull(PhoneNumbers.normalise("123"));
         assertNull(PhoneNumbers.normalise(null));
