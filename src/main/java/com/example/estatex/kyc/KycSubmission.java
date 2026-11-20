@@ -63,6 +63,17 @@ public class KycSubmission {
     @Column(length = 1000)
     private String reviewNote;
 
+    /** ISO country that issued the ID (null = Zimbabwe, the default market). */
+    @Column(length = 2)
+    private String issuingCountry;
+
+    /** The person agreed that EstateX may check their ID number with a national register. */
+    private Boolean registryConsent;
+
+    public String getIssuingCountryOrDefault() {
+        return issuingCountry == null || issuingCountry.isBlank() ? "ZW" : issuingCountry.toUpperCase(java.util.Locale.ROOT);
+    }
+
     @OneToMany(mappedBy = "submission")
     private List<KycDocument> documents = new ArrayList<>();
 }

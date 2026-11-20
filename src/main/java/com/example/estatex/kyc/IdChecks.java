@@ -26,7 +26,12 @@ public final class IdChecks {
 
     public enum Result { PASS, WARN, FAIL }
 
-    public record Check(String key, String label, Result result, String detail) {}
+    /** blocking: a FAIL that stops approval outright (number not in the register, person deceased). */
+    public record Check(String key, String label, Result result, String detail, boolean blocking) {
+        public Check(String key, String label, Result result, String detail) {
+            this(key, label, result, detail, false);
+        }
+    }
 
     private IdChecks() {}
 
@@ -36,6 +41,11 @@ public final class IdChecks {
     }
 
     public static List<Check> run(KycSubmission s, LocalDate today, List<String> otherAccountsWithSameId) {
+        return run(s, today, otherAccountsWithSameId, List.of());
+    }
+
+    public static List<Check> run(KycSubmission s, LocalDate today, List<String> otherAccountsWithSameId,
+                                  List<com.example.estatex.kyc.check.IdentityCheck> external) {
         List<Check> checks = new ArrayList<>();
         String id = normalise(s.getNationalIdNumber());
 
@@ -73,6 +83,20 @@ public final class IdChecks {
                 : new Check("DUPLICATE_ID", "ID number isn't used by another account", Result.FAIL,
                 "Also submitted by: " + String.join(", ", otherAccountsWithSameId)
                         + ". One person, one verified account - this may be a stolen or shared ID."));
+
+        for (com.example.estatex.kyc.check.IdentityCheck c : external) {
+            boolean registry = com.example.estatex.kyc.check.IdentityCheck.REGISTRY.equals(c.getKind());
+            String label = registry ? "ID number matches the national register" : "Photo ID is genuine and the face matches";
+            String st = c.getStatus();
+            Result r = switch (st) {
+                case "MATCH", "APPROVED" -> Result.PASS;
+                case "NO_MATCH", "NOT_FOUND", "DECEASED", "DECLINED" -> Result.FAIL;
+                default -> Result.WARN; // PARTIAL, PENDING, IN_REVIEW, ERROR
+            };
+            String detail = (c.getSummary() == null ? st : c.getSummary()) + " (" + c.getProvider() + ")";
+            boolean blocking = registry && ("NOT_FOUND".equals(st) || "DECEASED".equals(st));
+            checks.add(new Check(registry ? "REGISTRY" : "DOCUMENT", label, r, detail, blocking));
+        }
         return checks;
     }
 

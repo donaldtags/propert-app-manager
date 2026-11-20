@@ -51,7 +51,9 @@ public final class KycDtos {
             String reviewNote,
             List<KycDocumentResponse> documents,
             /** Reviewer-only: automatic ID checks (format, age, name, ID used on another account). */
-            List<IdChecks.Check> automatedChecks
+            List<IdChecks.Check> automatedChecks,
+            String issuingCountry,
+            Boolean registryConsent
     ) {
         public static KycSubmissionResponse from(KycSubmission submission) {
             return from(submission, null);
@@ -73,7 +75,9 @@ public final class KycDtos {
                     submission.getReviewedBy(),
                     submission.getReviewNote(),
                     submission.getDocuments().stream().map(KycDocumentResponse::from).toList(),
-                    checks
+                    checks,
+                    submission.getIssuingCountryOrDefault(),
+                    submission.getRegistryConsent()
             );
         }
     }

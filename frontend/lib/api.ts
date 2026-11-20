@@ -587,6 +587,15 @@ export const kyc = {
     return res.blob();
   },
 
+  availableChecks: (token: string) =>
+    request<{ zimbabweRegister: boolean; internationalPhotoId: boolean }>("/kyc/checks/available", {}, token),
+
+  startDocumentCheck: (token: string) =>
+    request<{ url: string; checkId: number }>("/kyc/document-check", { method: "POST" }, token),
+
+  recheckRegistry: (id: number, token: string) =>
+    request<KycSubmission>(`/kyc/submissions/${id}/registry-check`, { method: "POST" }, token),
+
   review: (id: number, data: { status: string; reviewNote?: string; confirmedChecks?: string[] }, token: string) =>
     request<KycSubmission>(`/kyc/submissions/${id}/review`, { method: "PATCH", body: JSON.stringify(data) }, token),
 };

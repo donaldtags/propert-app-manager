@@ -119,7 +119,7 @@ function ReviewCard({ s, token, onDone }: { s: KycSubmission; token: string; onD
         <div><dt className="text-gray-500">Legal name</dt><dd className="font-semibold text-gray-900">{s.legalFullName}</dd></div>
         <div><dt className="text-gray-500">ID number</dt><dd className="font-semibold text-gray-900 font-mono">{s.nationalIdNumber}</dd></div>
         <div><dt className="text-gray-500">Date of birth</dt><dd className="font-semibold text-gray-900">{s.dateOfBirth}</dd></div>
-        <div><dt className="text-gray-500">Document</dt><dd className="font-semibold text-gray-900">{s.idDocumentType.replace("_", " ").toLowerCase()}</dd></div>
+        <div><dt className="text-gray-500">Document</dt><dd className="font-semibold text-gray-900">{s.idDocumentType.replace("_", " ").toLowerCase()} · {s.issuingCountry ?? "ZW"}</dd></div>
       </dl>
 
       <DocumentImages submission={s} token={token} />
@@ -133,6 +133,28 @@ function ReviewCard({ s, token, onDone }: { s: KycSubmission; token: string; onD
             </li>
           ))}
         </ul>
+      )}
+
+      {s.registryConsent && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              await kycApi.recheckRegistry(s.id, token);
+              onDone();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Couldn't reach the register");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="text-sm text-brand-600 font-medium py-1"
+        >
+          Check with the national register again
+        </button>
       )}
 
       {duplicate && (

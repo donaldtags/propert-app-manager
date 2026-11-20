@@ -40,6 +40,16 @@ public class KycService {
     private final AuditLogRepository auditLogs;
     private final ObjectMapper objectMapper;
     private final Path storageRoot;
+    // Setter-injected so the constructor stays as it was.
+    private org.springframework.context.ApplicationEventPublisher events;
+    private com.example.estatex.kyc.check.IdentityCheckService identityChecks;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setIdentityCheckSupport(org.springframework.context.ApplicationEventPublisher events,
+                                 com.example.estatex.kyc.check.IdentityCheckService identityChecks) {
+        this.events = events;
+        this.identityChecks = identityChecks;
+    }
 
     public KycService(
             KycSubmissionRepository submissions,
@@ -67,6 +77,26 @@ public class KycService {
             List<MultipartFile> files,
             List<KycDocumentType> documentTypes
     ) {
+        return submit(currentUser, legalFullName, dateOfBirth, nationalIdNumber, idDocumentType, files, documentTypes,
+                null, false);
+    }
+
+    /**
+     * @param issuingCountry ISO code of the country that issued the ID (default ZW)
+     * @param registryConsent the person agreed to a national-register lookup of their ID number
+     */
+    @Transactional
+    public KycSubmission submit(
+            AppUser currentUser,
+            String legalFullName,
+            LocalDate dateOfBirth,
+            String nationalIdNumber,
+            IdDocumentType idDocumentType,
+            List<MultipartFile> files,
+            List<KycDocumentType> documentTypes,
+            String issuingCountry,
+            boolean registryConsent
+    ) {
         if (currentUser.isIdentityVerified()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Your identity is already verified");
         }
@@ -92,6 +122,9 @@ public class KycService {
         submission.setDateOfBirth(dateOfBirth);
         submission.setNationalIdNumber(nationalIdNumber);
         submission.setIdDocumentType(idDocumentType);
+        submission.setIssuingCountry(issuingCountry == null || issuingCountry.isBlank() ? null
+                : issuingCountry.trim().toUpperCase(java.util.Locale.ROOT).substring(0, Math.min(2, issuingCountry.trim().length())));
+        submission.setRegistryConsent(registryConsent);
         submission = submissions.save(submission);
 
         try {
@@ -105,6 +138,8 @@ public class KycService {
                 .mapToObj(index -> saveOne(finalSubmission, files.get(index), documentTypes.get(index)))
                 .toList();
         submission.getDocuments().addAll(saved);
+        // The register lookup runs once this transaction has committed (see IdentityCheckService).
+        events.publishEvent(new com.example.estatex.kyc.check.KycSubmittedEvent(submission.getId()));
         return submission;
     }
 
@@ -152,7 +187,7 @@ public class KycService {
                         submission.getUser().getId(), List.of(KycStatus.PENDING, KycStatus.APPROVED)).stream()
                 .map(o -> o.getUser().getFullName() + " (" + o.getStatus().name().toLowerCase() + ")")
                 .distinct().toList();
-        return IdChecks.run(submission, java.time.LocalDate.now(), others);
+        return IdChecks.run(submission, java.time.LocalDate.now(), others, identityChecks.forSubmission(submission));
     }
 
     @Transactional
@@ -178,7 +213,15 @@ public class KycService {
                 throw new ApiException(HttpStatus.BAD_REQUEST,
                         "Confirm every check against the ID photos before approving: " + String.join(", ", missing));
             }
-            boolean duplicate = checksFor(submission).stream()
+            List<IdChecks.Check> automatic = checksFor(submission);
+            automatic.stream()
+                    .filter(c -> c.key().equals("REGISTRY") && c.result() == IdChecks.Result.FAIL && c.blocking())
+                    .findFirst()
+                    .ifPresent(c -> {
+                        throw new ApiException(HttpStatus.CONFLICT, "The national register says: " + c.detail()
+                                + " This ID can't be approved.");
+                    });
+            boolean duplicate = automatic.stream()
                     .anyMatch(c -> c.key().equals("DUPLICATE_ID") && c.result() == IdChecks.Result.FAIL);
             if (duplicate && submissions.findSameIdOnOtherAccounts(IdChecks.normalise(submission.getNationalIdNumber()),
                     submission.getUser().getId(), List.of(KycStatus.APPROVED)).size() > 0) {

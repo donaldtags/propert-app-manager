@@ -695,7 +695,9 @@ export interface KycSubmission {
   reviewedBy?: number;
   reviewNote?: string;
   documents: KycDocument[];
-  /** Reviewer-only automatic checks: ID_FORMAT, AGE, NAME, DUPLICATE_ID. */
+  issuingCountry?: string | null;
+  registryConsent?: boolean | null;
+  /** Reviewer-only automatic checks: ID_FORMAT, AGE, NAME, DUPLICATE_ID, REGISTRY, DOCUMENT. */
   automatedChecks?: { key: string; label: string; result: "PASS" | "WARN" | "FAIL"; detail: string }[] | null;
 }
 

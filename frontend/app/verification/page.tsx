@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { kyc } from "@/lib/api";
 import {
@@ -26,8 +26,16 @@ const ID_TYPE_LABELS: Record<IdDocumentType, string> = {
 
 type UploadSlot = { type: KycDocumentType; label: string; hint: string; file: File | null };
 
-export default function VerificationPage() {
+const ISSUING_COUNTRIES: [string, string][] = [
+  ["ZW", "Zimbabwe"], ["ZA", "South Africa"], ["BW", "Botswana"], ["ZM", "Zambia"], ["MZ", "Mozambique"],
+  ["MW", "Malawi"], ["NA", "Namibia"], ["KE", "Kenya"], ["NG", "Nigeria"], ["GH", "Ghana"], ["GB", "United Kingdom"],
+  ["IE", "Ireland"], ["US", "United States"], ["CA", "Canada"], ["AU", "Australia"], ["NZ", "New Zealand"],
+  ["AE", "United Arab Emirates"], ["DE", "Germany"], ["FR", "France"], ["PT", "Portugal"], ["CN", "China"], ["IN", "India"],
+];
+
+function VerificationContent() {
   const { user, token, loading } = useAuth();
+  const searchParams = useSearchParams();
   const router = useRouter();
 
   const [submissions, setSubmissions] = useState<KycSubmission[] | null>(null);
@@ -43,7 +51,32 @@ export default function VerificationPage() {
     dateOfBirth: "",
     nationalIdNumber: "",
     idDocumentType: "NATIONAL_ID" as IdDocumentType,
+    issuingCountry: "ZW",
+    registryConsent: false,
   });
+  // Which automatic checks EstateX has switched on (national register, international photo-ID check).
+  const [available, setAvailable] = useState<{ zimbabweRegister: boolean; internationalPhotoId: boolean }>({
+    zimbabweRegister: false,
+    internationalPhotoId: false,
+  });
+  const [startingCheck, setStartingCheck] = useState(false);
+  const registerApplies = available.zimbabweRegister && form.issuingCountry === "ZW" && form.idDocumentType === "NATIONAL_ID";
+  useEffect(() => {
+    if (!token) return;
+    kyc.availableChecks(token).then(setAvailable).catch(() => {});
+  }, [token]);
+  const startPhotoCheck = async () => {
+    if (!token) return;
+    setStartingCheck(true);
+    setError("");
+    try {
+      const { url } = await kyc.startDocumentCheck(token);
+      window.location.href = url;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't start the photo ID check.");
+      setStartingCheck(false);
+    }
+  };
 
   const [idSlots, setIdSlots] = useState<UploadSlot[]>([
     { type: "ID_FRONT", label: "ID / Licence Front", hint: "Clear photo of the front side", file: null },
@@ -95,6 +128,8 @@ export default function VerificationPage() {
       formData.append("dateOfBirth", form.dateOfBirth);
       formData.append("nationalIdNumber", form.nationalIdNumber);
       formData.append("idDocumentType", form.idDocumentType);
+      formData.append("issuingCountry", form.issuingCountry);
+      formData.append("registryConsent", String(registerApplies && form.registryConsent));
       allSlots.forEach((slot) => {
         formData.append("files", slot.file as File);
         formData.append("documentTypes", slot.type);
@@ -127,6 +162,29 @@ export default function VerificationPage() {
           <h1 className="text-2xl font-bold text-gray-900">Identity Verification</h1>
         </div>
 
+        {latest.status === "PENDING" && searchParams?.get("check") === "done" && (
+          <p className="mb-4 text-sm text-brand-800 bg-brand-50 border border-brand-200 rounded-xl p-3 text-center" role="status">
+            Thanks - your photo ID check is done. We&apos;ll add the result to your verification.
+          </p>
+        )}
+        {latest.status === "PENDING" && available.internationalPhotoId
+          && (latest.idDocumentType === "PASSPORT" || latest.issuingCountry !== "ZW") && searchParams?.get("check") !== "done" && (
+          <div className="mb-4 bg-white border border-gray-200 rounded-2xl p-5 text-center">
+            <p className="font-semibold text-gray-900">Speed it up with an instant photo ID check</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Photograph your passport or ID and take a selfie on our partner Didit&apos;s secure page. Works for IDs from
+              220+ countries and takes about 2 minutes.
+            </p>
+            <button
+              type="button"
+              onClick={startPhotoCheck}
+              disabled={startingCheck}
+              className="mt-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-xl"
+            >
+              {startingCheck ? "Opening…" : "Start photo ID check"}
+            </button>
+          </div>
+        )}
         {latest.status === "PENDING" && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
             <Clock className="w-8 h-8 text-amber-600 mx-auto mb-2" />
@@ -244,7 +302,7 @@ export default function VerificationPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
-                National ID Number
+                ID or passport number
               </label>
               <input
                 type="text"
@@ -266,6 +324,21 @@ export default function VerificationPage() {
                   <option key={value} value={value}>
                     {label}
                   </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="issuing-country" className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+                Country that issued it
+              </label>
+              <select
+                id="issuing-country"
+                value={form.issuingCountry}
+                onChange={(e) => setForm((f) => ({ ...f, issuingCountry: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              >
+                {ISSUING_COUNTRIES.map(([code, label]) => (
+                  <option key={code} value={code}>{label}</option>
                 ))}
               </select>
             </div>
@@ -336,6 +409,20 @@ export default function VerificationPage() {
                 </div>
               ))}
             </div>
+            {registerApplies && (
+              <label className="flex items-start gap-2 text-sm text-gray-700 bg-brand-50 border border-brand-100 rounded-xl p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 w-4 h-4"
+                  checked={form.registryConsent}
+                  onChange={(e) => setForm((f) => ({ ...f, registryConsent: e.target.checked }))}
+                />
+                <span>
+                  I agree EstateX may check my ID number with the Zimbabwe national register through its verification
+                  partner (Dojah). <span className="text-gray-500">Optional, but it makes approval much faster.</span>
+                </span>
+              </label>
+            )}
             <p className="text-xs text-gray-500">
               Your documents are reviewed manually by a EstateX administrator and are only accessible to
               authorized reviewers.
@@ -404,5 +491,13 @@ function UploadStep({
         </div>
       ))}
     </div>
+  );
+}
+
+export default function VerificationPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerificationContent />
+    </Suspense>
   );
 }
