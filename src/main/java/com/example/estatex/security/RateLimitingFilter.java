@@ -28,7 +28,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     );
     /** The public "message the owner" form: no login needed, so it's the obvious spam target. */
     private static final java.util.regex.Pattern INQUIRY_PATH =
-            java.util.regex.Pattern.compile("^/api/v1/properties/\\d+/inquiries$");
+            java.util.regex.Pattern.compile("^/api/v1/properties/\\d+/(inquiries|reports)$");
 
     private final ConcurrentHashMap<String, ConcurrentLinkedDeque<Instant>> hits = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;

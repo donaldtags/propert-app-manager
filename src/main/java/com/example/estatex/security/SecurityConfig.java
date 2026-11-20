@@ -61,8 +61,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/property-search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/affordability").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/inquiries").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/reports").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties", "/api/v1/properties/*", "/api/v1/properties/*/passport").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/investments/reits").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/investments/fee-quote").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/stays/search", "/api/v1/stays/{propertyId:\\d+}",
                                 "/api/v1/stays/*/availability", "/api/v1/stays/*/quote").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/featured-listings/settings").permitAll()
@@ -77,6 +79,8 @@ public class SecurityConfig {
                         // Org public profile (brand, contact, EAC registration). /orgs/mine also matches this
                         // pattern; its service rejects anonymous callers with 401 itself.
                         .requestMatchers(HttpMethod.GET, "/api/v1/orgs/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orgs").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orgs/*/public-listings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/neighbourhoods").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/neighbourhoods").hasAuthority("PERM_NEIGHBOURHOOD_MANAGE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/vendors").permitAll()

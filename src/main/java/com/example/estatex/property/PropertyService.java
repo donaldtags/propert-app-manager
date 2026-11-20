@@ -415,6 +415,14 @@ public class PropertyService {
         return result;
     }
 
+    /** A company's live listings, for its public page. */
+    @Transactional(readOnly = true)
+    public List<Property> liveListingsOfOrganisation(Long organisationId) {
+        List<Property> list = properties.findTop100ByOrganisationIdAndStatusOrderByCreatedAtDesc(organisationId, PropertyStatus.AVAILABLE);
+        list.forEach(p -> org.hibernate.Hibernate.initialize(p.getPhotos()));
+        return list;
+    }
+
     public List<Property> forLandlord(Long landlordId) {
         return properties.findByLandlord(users.require(landlordId));
     }

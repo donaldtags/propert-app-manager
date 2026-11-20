@@ -298,6 +298,10 @@ public class OrgListingService {
         if (!PUBLISHABLE_FROM.contains(p.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "A listing marked " + p.getStatus() + " can't be published.");
         }
+        if (!l.ctx().organisation().isApproved()) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Your company is waiting for EstateX approval. Listings can go live once it's approved.");
+        }
         PublicationGuard.Report report = report(p, l.compliance());
         if (!report.publishable()) {
             throw new ApiException(HttpStatus.CONFLICT, "Can't publish yet: " + String.join(" ", report.unmetDetails(true)));

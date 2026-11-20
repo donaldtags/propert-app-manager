@@ -1,5 +1,6 @@
 package com.example.estatex.property;
 
+import org.hibernate.Hibernate;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -163,9 +164,24 @@ public final class PropertyDtos {
             Long organisationId,
             TitleType titleType,
             /** Buyer-facing risk markers, e.g. "CESSION". Empty when none apply. */
-            List<String> riskFlags
+            List<String> riskFlags,
+            /** Who is marketing it: AGENCY (a company on EstateX), AGENT (independent agent) or OWNER. */
+            String listedBy,
+            /** For AGENT/AGENCY listings: is the agent's Estate Agents Council licence approved by EstateX? */
+            Boolean listerLicensed,
+            /** For AGENCY listings (approved companies only): the company. */
+            String organisationName,
+            String organisationSlug,
+            String organisationLogoUrl,
+            String organisationPhone
     ) {
         public static PropertyResponse from(Property property) {
+            com.example.estatex.organisation.Organisation org = property.getOrganisationId() == null ? null
+                    : property.getOrganisation();
+            // Not loaded on this path (no open session): leave the company out rather than fail.
+            if (org != null && !Hibernate.isInitialized(org)) org = null;
+            if (org != null && !org.isApproved()) org = null;
+            Lister lister = Lister.of(property);
             List<String> urls = property.getPhotos().stream()
                     .map(PropertyPhoto::getPhotoUrl)
                     .filter(url -> url != null && !url.isBlank())
@@ -228,11 +244,30 @@ public final class PropertyDtos {
                     photoDetails,
                     property.getOrganisationId(),
                     property.getTitleType(),
-                    property.getTitleType() == TitleType.CESSION ? List.of("CESSION") : List.of()
+                    property.getTitleType() == TitleType.CESSION ? List.of("CESSION") : List.of(),
+                    lister.listedBy(),
+                    lister.licensed(),
+                    org == null ? null : org.getName(),
+                    org == null ? null : org.getSlug(),
+                    org == null ? null : org.getLogoOnLightUrl(),
+                    org == null ? null : (org.getPhone() != null ? org.getPhone() : org.getWhatsappNumber())
             );
         }
     }
 
     public record PhotoResponse(Long id, String url) {
+    }
+
+    /** How a listing's marketer is described to the public. */
+    record Lister(String listedBy, Boolean licensed) {
+        static Lister of(Property p) {
+            if (p.getOrganisationId() != null) {
+                return new Lister("AGENCY", p.getLandlord() == null ? null : p.getLandlord().isLicensedAgent());
+            }
+            com.example.estatex.user.AppUser agent = p.getAgent() != null ? p.getAgent()
+                    : (p.getLandlord() != null && p.getLandlord().getRoles().contains(com.example.estatex.user.UserRole.AGENT)
+                    ? p.getLandlord() : null);
+            return agent != null ? new Lister("AGENT", agent.isLicensedAgent()) : new Lister("OWNER", null);
+        }
     }
 }

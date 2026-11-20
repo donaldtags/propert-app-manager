@@ -93,10 +93,11 @@ class OrganisationWorkspaceTests {
         perform(post("/api/v1/orgs"), platformAdmin, """
                 {"slug": "%s", "name": "Test Agency", "divisions": ["PROPERTIES", "MANAGEMENT"]}
                 """.formatted(slug)).andExpect(status().isOk());
-        // Only platform admins create organisations.
+        // Anyone may register a company, but it needs an EAC registration number and starts PENDING
+        // (see TrustAndAgenciesTests for the approval flow).
         perform(post("/api/v1/orgs"), orgAdmin, """
-                {"slug": "%s-x", "name": "Nope"}
-                """.formatted(slug)).andExpect(status().isForbidden());
+                {"slug": "%s-x", "name": "No number"}
+                """.formatted(slug)).andExpect(status().isBadRequest());
 
         // Platform admin bootstraps the workspace admin.
         long adminMembershipId = addMember(slug, platformAdmin, orgAdmin, "ORG_ADMIN");
