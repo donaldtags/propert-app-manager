@@ -147,6 +147,79 @@ export interface CheckoutResponse {
   redirectUrl: string;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Wallet
+// ---------------------------------------------------------------------------------------------
+
+/** "wallet" pays from the user's EstateX balance; the others go through a gateway checkout. */
+export type CheckoutProvider = "paynow" | "stripe" | "wallet";
+
+export type WalletEntryType =
+  | "TOP_UP"
+  | "PAYMENT"
+  | "PAYOUT"
+  | "WITHDRAWAL"
+  | "WITHDRAWAL_REVERSAL"
+  | "FEE"
+  | "ADJUSTMENT";
+
+export interface WalletEntry {
+  id: number;
+  amount: number;
+  balanceAfter: number | null;
+  currency: string;
+  type: WalletEntryType;
+  description: string;
+  relatedType: string | null;
+  relatedId: number | null;
+  createdAt: string;
+}
+
+export interface WalletSummary {
+  currency: string;
+  balance: number;
+  pendingWithdrawals: number;
+  entries: WalletEntry[];
+  totalEntries: number;
+  page: number;
+  size: number;
+}
+
+export type WithdrawalMethod = "ECOCASH" | "BANK";
+export type WithdrawalStatus = "REQUESTED" | "PAID" | "REJECTED";
+
+export interface WalletWithdrawal {
+  id: number;
+  userId: number;
+  userName: string | null;
+  userEmail: string | null;
+  amount: number;
+  currency: string;
+  method: WithdrawalMethod;
+  ecocashPhone: string | null;
+  bankAccountName: string | null;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  bankBranch: string | null;
+  status: WithdrawalStatus;
+  requestedAt: string;
+  decidedAt: string | null;
+  payoutReference: string | null;
+  rejectReason: string | null;
+}
+
+export interface WithdrawalRequest {
+  amount: number;
+  currency?: string;
+  method: WithdrawalMethod;
+  ecocashPhone?: string;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankName?: string;
+  bankBranch?: string;
+  password: string;
+}
+
 export interface User {
   id: number;
   fullName: string;

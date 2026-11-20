@@ -55,6 +55,7 @@ import {
   Star,
   CreditCard,
   DollarSign,
+  Banknote,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -64,8 +65,9 @@ import StatusBadge from "@/components/StatusBadge";
 import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
 import AlertBanner from "@/components/AlertBanner";
+import AdminWithdrawalsPanel from "@/components/admin/AdminWithdrawalsPanel";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "escrows" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -503,6 +505,7 @@ export default function AdminPortalPage() {
     { key: "kyc", label: "Verification Queue", icon: IdCard, count: pendingKyc.length },
     { key: "properties", label: "Property Verification", icon: Building2, count: unverifiedProperties.length },
     { key: "escrows", label: "Escrows", icon: ScrollText, count: disputedEscrows.length },
+    { key: "withdrawals", label: "Withdrawals", icon: Banknote },
     { key: "messages", label: "Messages", icon: MessageSquare, count: adminConversations.length },
     { key: "fraud", label: "Fraud Signals", icon: ShieldAlert, count: fraudSignals.length },
     { key: "neighbourhoods", label: "Neighbourhoods", icon: MapPin },
@@ -983,6 +986,8 @@ export default function AdminPortalPage() {
           </div>
         </div>
       )}
+
+      {tab === "withdrawals" && <AdminWithdrawalsPanel />}
 
       {tab === "escrows" && (
         <div>

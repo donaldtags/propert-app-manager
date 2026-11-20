@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { investments as investmentsApi, market as marketApi } from "@/lib/api";
-import type { Reit, Investment, MarketSnapshot } from "@/lib/types";
+import type { Reit, Investment, MarketSnapshot, CheckoutProvider } from "@/lib/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
 import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
@@ -261,7 +261,7 @@ export default function InvestmentsPage() {
     setCheckoutReitId(reit.id);
   };
 
-  const handleInvestCheckout = async (reit: Reit, provider: "paynow" | "stripe") => {
+  const handleInvestCheckout = async (reit: Reit, provider: CheckoutProvider) => {
     if (!token) return;
     const n = Number(units[reit.id] || 1);
     setError(""); setSuccess("");
@@ -641,6 +641,7 @@ export default function InvestmentsPage() {
                         <div>
                           <PaymentProviderPicker
                             loadingProvider={checkoutProvider}
+                            walletAmount={Number(units[reit.id] || 1) * reit.unitPrice}
                             onChoose={(provider) => handleInvestCheckout(reit, provider)}
                           />
                           {!checkoutProvider && (
