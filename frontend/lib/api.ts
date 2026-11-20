@@ -273,7 +273,7 @@ export const properties = {
     token: string
   ) => request<Property>("/properties", { method: "POST", body: JSON.stringify(data) }, token),
 
-  verify: (id: number, data: { verifierId: number; note?: string }, token: string) =>
+  verify: (id: number, data: { approved?: boolean; note?: string }, token: string) =>
     request<Property>(`/properties/${id}/verify`, { method: "PATCH", body: JSON.stringify(data) }, token),
 
   update: (

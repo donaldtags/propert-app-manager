@@ -17,7 +17,8 @@ import lombok.Setter;
 @Entity
 @jakarta.persistence.EntityListeners(PropertySearchCache.Invalidator.class)
 @Table(name = "property_photos", indexes = {
-        @Index(name = "idx_property_photos_property", columnList = "property_id")
+        @Index(name = "idx_property_photos_property", columnList = "property_id"),
+        @Index(name = "idx_property_photos_sha256", columnList = "content_sha256")
 })
 @Getter
 @Setter
@@ -39,4 +40,8 @@ public class PropertyPhoto {
     @Column(name = "is_primary")
     private boolean primaryPhoto;
     private Instant createdAt = Instant.now();
+
+    /** SHA-256 of the uploaded bytes: finds the same picture on other owners' listings. Null for linked URLs. */
+    @Column(name = "content_sha256", length = 64)
+    private String contentSha256;
 }

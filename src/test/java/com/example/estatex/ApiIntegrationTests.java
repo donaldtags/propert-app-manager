@@ -739,11 +739,21 @@ class ApiIntegrationTests {
         }
     }
 
+    // Top-level fields only. (A regex over the raw JSON used to pick up the LAST "id" in the
+    // body - e.g. a nested photo's id - and only worked while photo and listing ids happened to match.)
     private long extractLong(String json, String field) {
-        return Long.parseLong(json.replaceAll(".*\"" + field + "\":([0-9]+).*", "$1"));
+        return field(json, field).asLong();
     }
 
     private String extractString(String json, String field) {
-        return json.replaceAll(".*\"" + field + "\":\"([^\"]+)\".*", "$1");
+        return field(json, field).asString();
+    }
+
+    /** The top-level field if there is one, otherwise the first nested one (e.g. user.id). */
+    private tools.jackson.databind.JsonNode field(String json, String field) {
+        tools.jackson.databind.JsonNode root = objectMapper.readTree(json);
+        if (root.has(field)) return root.path(field);
+        tools.jackson.databind.JsonNode nested = root.findValue(field);
+        return nested == null ? root.path(field) : nested;
     }
 }

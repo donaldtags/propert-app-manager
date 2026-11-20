@@ -344,7 +344,11 @@ export default function AdminPortalPage() {
   }, [allUsers, userSearch, roleFilter]);
 
   const pendingRequests = adminRequests.filter((r) => r.status === "PENDING");
-  const unverifiedProperties = allProperties.filter((p) => p.verificationStatus === "UNVERIFIED");
+  // PENDING = flagged for a (re-)check: edited after verification, or a photo also found on another
+  // owner's listing. Those come first.
+  const unverifiedProperties = allProperties
+    .filter((p) => p.verificationStatus === "UNVERIFIED" || p.verificationStatus === "PENDING")
+    .sort((a, b) => (a.verificationStatus === "PENDING" ? 0 : 1) - (b.verificationStatus === "PENDING" ? 0 : 1));
   const disputedEscrows = allEscrows.filter((e) => e.status === "DISPUTED");
   const pendingKyc = kycSubmissions.filter((s) => s.status === "PENDING");
 
@@ -418,11 +422,25 @@ export default function AdminPortalPage() {
     if (!token || !user) return;
     setError(""); setSuccess("");
     try {
-      await propertiesApi.verify(id, { verifierId: user.id }, token);
+      await propertiesApi.verify(id, { approved: true }, token);
       setSuccess("Property verified.");
       loadAll();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to verify property.");
+    }
+  };
+
+  const handleRejectProperty = async (id: number) => {
+    if (!token || !user) return;
+    const note = window.prompt("Why is this listing being rejected? The owner will see this reason.");
+    if (!note || !note.trim()) return;
+    setError(""); setSuccess("");
+    try {
+      await propertiesApi.verify(id, { approved: false, note: note.trim() }, token);
+      setSuccess("Listing rejected.");
+      loadAll();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to reject listing.");
     }
   };
 
@@ -939,12 +957,22 @@ export default function AdminPortalPage() {
               <tbody className="divide-y divide-gray-100">
                 {unverifiedProperties.map((p) => (
                   <tr key={p.id}>
-                    <td className="px-4 py-2.5 font-medium text-gray-900">{p.title}</td>
+                    <td className="px-4 py-2.5 font-medium text-gray-900">
+                      {p.title}
+                      {p.verificationStatus === "PENDING" && (
+                        <span className="ml-2 align-middle text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                          Needs re-check
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-gray-600">{p.suburb}, {p.city}</td>
                     <td className="px-4 py-2.5 text-gray-600">{p.currency} {p.price.toLocaleString()}</td>
                     <td className="px-4 py-2.5 text-right">
-                      <button onClick={() => handleVerifyProperty(p.id)} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                      <button onClick={() => handleVerifyProperty(p.id)} className="text-xs font-medium text-brand-600 hover:text-brand-700 px-2 py-1">
                         Verify
+                      </button>
+                      <button onClick={() => handleRejectProperty(p.id)} className="text-xs font-medium text-red-600 hover:text-red-700 px-2 py-1">
+                        Reject
                       </button>
                     </td>
                   </tr>

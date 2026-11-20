@@ -44,9 +44,16 @@ public class PropertyPhotoRedirectController {
         if (!Files.isRegularFile(file)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Photo not found");
         }
+        // Only ever answer as an image. Older uploads kept the uploader's file name, so a file
+        // called "x.html" must not be served as a web page from the API's own domain.
+        org.springframework.http.MediaType type = MediaTypeFactory.getMediaType(filename)
+                .filter(t -> "image".equals(t.getType()) && !"svg+xml".equals(t.getSubtype()))
+                .orElse(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM);
         try {
             return ResponseEntity.ok()
-                    .contentType(MediaTypeFactory.getMediaType(filename).orElse(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM))
+                    .contentType(type)
+                    .header("X-Content-Type-Options", "nosniff")
+                    .header("Content-Security-Policy", "default-src 'none'; sandbox")
                     .contentLength(Files.size(file))
                     .body(new FileSystemResource(file));
         } catch (IOException ex) {

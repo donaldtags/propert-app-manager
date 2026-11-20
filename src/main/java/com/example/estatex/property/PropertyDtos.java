@@ -45,7 +45,12 @@ public final class PropertyDtos {
     ) {
     }
 
-    public record VerifyPropertyRequest(@NotNull Long verifierId, String note) {
+    /**
+     * approved: true (default) marks the listing VERIFIED, false REJECTED (a note is then required).
+     * verifierId is ignored - the verifier is always the signed-in user - and kept only so older
+     * clients that still send it keep working.
+     */
+    public record VerifyPropertyRequest(Long verifierId, String note, Boolean approved) {
     }
 
     /** All fields optional/nullable: only the ones present in the request body are changed. */

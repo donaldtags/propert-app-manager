@@ -168,7 +168,7 @@ class DemoDataSeeder implements CommandLineRunner {
                 null,
                 null
         ));
-        propertyService.verify(borrowdaleApartment.getId(), new PropertyDtos.VerifyPropertyRequest(3L, "Demo listing verified"));
+        propertyService.markVerifiedBySystem(borrowdaleApartment.getId(), "Demo listing verified");
 
         propertyService.create(new PropertyDtos.CreatePropertyRequest(
                 "Avondale Townhouse",

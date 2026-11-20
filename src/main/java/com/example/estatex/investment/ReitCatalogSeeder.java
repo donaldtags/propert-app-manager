@@ -212,7 +212,7 @@ class ReitCatalogSeeder implements CommandLineRunner {
                 null,
                 null
         ));
-        propertyService.verify(created.getId(), new PropertyDtos.VerifyPropertyRequest(issuer.getId(), "REIT portfolio asset, pre-verified"));
+        propertyService.markVerifiedBySystem(created.getId(), "REIT portfolio asset, pre-verified");
         return created;
     }
 

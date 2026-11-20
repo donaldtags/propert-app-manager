@@ -148,12 +148,20 @@ public class PropertyController {
             @RequestBody PropertyDtos.UpdatePropertyRequest request,
             @AuthenticationPrincipal AppUser currentUser
     ) {
+        // "Deposit protected" is a paid feature: switching it on later is checked the same way as at create.
+        if (Boolean.TRUE.equals(request.escrowRequired())
+                && !currentUser.hasPermission(com.example.estatex.user.Permission.ADMIN_OVERRIDE)
+                && !subscriptions.hasFeature(service.require(id).getLandlord(), SubscriptionFeature.ESCROW)) {
+            throw new com.example.estatex.common.ApiException(org.springframework.http.HttpStatus.PAYMENT_REQUIRED,
+                    "Deposit protection is part of the Growth and Professional plans. Upgrade to turn it on.");
+        }
         return PropertyResponse.from(service.update(id, request, currentUser));
     }
 
     @PatchMapping("/{id}/verify")
-    PropertyResponse verify(@PathVariable Long id, @Valid @RequestBody PropertyDtos.VerifyPropertyRequest request) {
-        return PropertyResponse.from(service.verify(id, request));
+    PropertyResponse verify(@PathVariable Long id, @Valid @RequestBody PropertyDtos.VerifyPropertyRequest request,
+                            @AuthenticationPrincipal AppUser currentUser) {
+        return PropertyResponse.from(service.verify(id, request, currentUser));
     }
 
     @PostMapping("/{id}/inquiries")

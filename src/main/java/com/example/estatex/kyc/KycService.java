@@ -191,13 +191,14 @@ public class KycService {
     }
 
     private KycDocument saveOne(KycSubmission submission, MultipartFile file, KycDocumentType documentType) {
-        validate(file, documentType);
+        String mediaType = validate(file, documentType);
         String originalName = file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()
                 ? "document"
                 : Path.of(file.getOriginalFilename()).getFileName().toString();
+        // Stored under a name we choose from the detected type; the original name is display-only.
         Path target = storageRoot
                 .resolve(String.valueOf(submission.getId()))
-                .resolve(UUID.randomUUID() + "-" + originalName);
+                .resolve(UUID.randomUUID() + com.example.estatex.common.FileSignature.extension(mediaType));
         try {
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
@@ -208,14 +209,16 @@ public class KycService {
         document.setSubmission(submission);
         document.setDocumentType(documentType);
         document.setFileName(originalName);
-        document.setContentType(file.getContentType());
+        document.setContentType(mediaType);
         document.setFileSize(file.getSize());
+        document.setSha256(com.example.estatex.common.FileSignature.sha256(file));
         document.setStoragePath(target.toString());
         document.setStorageKey(target.toString());
         return documents.save(document);
     }
 
-    private void validate(MultipartFile file, KycDocumentType documentType) {
+    /** Returns the file's real type, read from its bytes. */
+    private String validate(MultipartFile file, KycDocumentType documentType) {
         if (file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Uploaded file is empty");
         }
@@ -224,11 +227,9 @@ public class KycService {
         }
         boolean isSelfie = REQUIRED_SELFIES.contains(documentType);
         Set<String> allowed = isSelfie ? SELFIE_CONTENT_TYPES : ID_CONTENT_TYPES;
-        if (!allowed.contains(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, isSelfie
-                    ? "Selfies must be PNG or JPEG images"
-                    : "Only PDF, PNG, and JPEG files are allowed for identity documents");
-        }
+        return com.example.estatex.common.FileSignature.require(file, allowed, isSelfie
+                ? "Selfies must be PNG or JPEG images"
+                : "Only PDF, PNG, and JPEG files are allowed for identity documents");
     }
 
     private boolean isAdmin(AppUser user) {

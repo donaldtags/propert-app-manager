@@ -124,21 +124,21 @@ public class MandateService {
         if (file == null || file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Attach the signed mandate (PDF or photo).");
         }
-        if (!DOCUMENT_TYPES.contains(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "The signed mandate must be a PDF, JPEG, PNG or WebP file.");
-        }
         if (file.getSize() > MAX_DOCUMENT_BYTES) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "The file is larger than 15 MB.");
         }
+        String mediaType = com.example.estatex.common.FileSignature.require(file, DOCUMENT_TYPES,
+                "The signed mandate must be a PDF, JPEG, PNG or WebP file.");
         LocalDate signed = ownerSignedOn == null ? time.today() : ownerSignedOn;
         if (signed.isAfter(time.today())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "The signing date can't be in the future.");
         }
-        String key = "mandates/" + m.getOrganisationId() + "/" + m.getId() + "/" + UUID.randomUUID() + extension(file);
-        store(key, file);
+        String key = "mandates/" + m.getOrganisationId() + "/" + m.getId() + "/" + UUID.randomUUID() + com.example.estatex.common.FileSignature.extension(mediaType);
+        store(key, file, mediaType);
+        m.setDocumentSha256(com.example.estatex.common.FileSignature.sha256(file));
         m.setDocumentStorageKey(key);
         m.setDocumentFileName(safeName(file.getOriginalFilename()));
-        m.setDocumentContentType(file.getContentType());
+        m.setDocumentContentType(mediaType);
         m.setOwnerSignedOn(signed);
         MandateStatus before = m.getStatus();
         m.setStatus(MandateStatus.AWAITING_SIGN_OFF);
@@ -259,9 +259,9 @@ public class MandateService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Mandate not found"));
     }
 
-    private void store(String key, MultipartFile file) {
+    private void store(String key, MultipartFile file, String mediaType) {
         if (objectStorage.isConfigured()) {
-            objectStorage.put(key, file);
+            objectStorage.put(key, file, mediaType);
             return;
         }
         Path target = storageRoot.resolve(key).normalize();
@@ -274,15 +274,6 @@ public class MandateService {
         } catch (IOException e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not store the signed mandate");
         }
-    }
-
-    private static String extension(MultipartFile file) {
-        return switch (String.valueOf(file.getContentType())) {
-            case "application/pdf" -> ".pdf";
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> ".jpg";
-        };
     }
 
     private static String safeName(String name) {
