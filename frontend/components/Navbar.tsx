@@ -58,7 +58,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
+        <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-700">
           {navLinks.map((l) => (
             <Link
               key={l.href}
@@ -150,7 +150,7 @@ export default function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
-            className="md:hidden p-2 text-gray-600"
+            className="lg:hidden p-2 text-gray-600"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
@@ -162,7 +162,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-gray-200 bg-white py-3 px-4">
+        <div className="lg:hidden border-t border-gray-200 bg-white py-3 px-4">
           {navLinks.map((l) => (
             <Link
               key={l.href}
