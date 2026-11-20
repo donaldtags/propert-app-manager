@@ -10,5 +10,7 @@ public enum PaymentPurpose {
     INVESTMENT,
     /** Short-stay booking paid online; metadata "stayBookingId=<id>". */
     STAY_BOOKING,
+    /** Money added to the payer's own EstateX wallet; credited only once a gateway confirms it. */
+    WALLET_TOP_UP,
     OTHER
 }

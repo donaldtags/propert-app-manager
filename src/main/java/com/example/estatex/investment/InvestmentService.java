@@ -52,6 +52,14 @@ public class InvestmentService {
         this.platformAccountService = platformAccountService;
     }
 
+    // Setter-injected so the wallet payout stays a self-contained addition to this service.
+    private com.example.estatex.wallet.WalletService walletService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setWalletService(com.example.estatex.wallet.WalletService walletService) {
+        this.walletService = walletService;
+    }
+
     private InvestmentDtos.ReitResponse toResponse(Reit reit) {
         return InvestmentDtos.ReitResponse.from(reit, scoreService, marketService.quoteFor(reit.getTickerSymbol()));
     }
@@ -240,7 +248,23 @@ public class InvestmentService {
         }
 
         investments.saveAll(touched);
+        creditSaleProceeds(investor, reit, request.units(), lots.isEmpty() ? "USD" : lots.get(0).getCurrency());
         return investments.findByInvestor(investor);
+    }
+
+    /** Selling units pays the investor into their EstateX wallet, from which they can withdraw. */
+    private void creditSaleProceeds(AppUser investor, Reit reit, java.math.BigDecimal units, String currency) {
+        long cents = com.example.estatex.wallet.WalletService.toCents(saleProceeds(reit, units));
+        if (cents <= 0) return;
+        walletService.post(investor.getId(), currency, cents, com.example.estatex.wallet.WalletEntryType.PAYOUT,
+                com.example.estatex.wallet.WalletService.PLATFORM_COLLECTIONS,
+                "Sold " + units.stripTrailingZeros().toPlainString() + " units of " + reit.getName(),
+                "Reit", reit.getId(), "reit-sale:" + java.util.UUID.randomUUID(), investor);
+    }
+
+    /** What the investor receives for selling units at today's unit price (any sale fee is deducted here). */
+    java.math.BigDecimal saleProceeds(Reit reit, java.math.BigDecimal units) {
+        return reit.getUnitPrice().multiply(units);
     }
 
     @Transactional(readOnly = true)
