@@ -80,70 +80,71 @@ function RegisterForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+              <label htmlFor="reg-name" className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
               <input
+                id="reg-name"
                 type="text"
+                autoComplete="name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                 placeholder="Tariro Moyo"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <label htmlFor="reg-email" className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
+                id="reg-email"
                 type="email"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                 placeholder="you@example.com"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
                 <input
+                  id="reg-phone"
                   type="tel"
+                  autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                  placeholder="+263771000001"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  placeholder="+263 77 123 4567"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
+                <label htmlFor="reg-country" className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
                 <input
+                  id="reg-country"
                   type="text"
+                  autoComplete="country-name"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                   placeholder="Zimbabwe"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">I am a…</label>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { value: "TENANT", label: "Tenant" },
-                  { value: "LANDLORD", label: "Landlord" },
-                  { value: "AGENT", label: "Agent" },
-                  { value: "DEVELOPER", label: "Developer" },
-                  { value: "PRIVATE", label: "Private Owner" },
-                  { value: "INVESTOR", label: "Investor" },
-                  { value: "SERVICE_PROVIDER", label: "Service Provider" },
-                ] as const).map(({ value, label }) => (
+              <p id="reg-role-label" className="block text-sm font-medium text-gray-700 mb-1.5">I am a…</p>
+              <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="reg-role-label">
+                {ROLE_CHOICES.map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
+                    aria-pressed={role === value}
                     onClick={() => setRole(value)}
-                    className={`py-2 text-sm font-medium rounded-xl border transition-colors ${
+                    className={`min-h-11 py-2 text-sm font-medium rounded-xl border transition-colors ${
                       role === value
                         ? "bg-brand-600 text-white border-brand-600"
                         : "border-gray-200 text-gray-600 hover:border-gray-400"
@@ -153,29 +154,39 @@ function RegisterForm() {
                   </button>
                 ))}
               </div>
+              <p className="text-sm text-gray-600 mt-2" aria-live="polite">
+                {ROLE_CHOICES.find((r) => r.value === role)?.hint}
+              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <div className="relative">
                 <input
+                  id="reg-password"
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="new-password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-600"
                 >
                   {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
 
+              {password.length === 0 && (
+                <p className="text-xs text-gray-500 mt-1.5">
+                  At least 10 characters, with a capital letter, a number and a symbol (e.g. ! or #).
+                </p>
+              )}
               {password.length > 0 && (
                 <div className="mt-2">
                   <div className="flex gap-1 mb-2">
@@ -207,14 +218,15 @@ function RegisterForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
+              <label htmlFor="reg-confirm" className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
               <input
+                id="reg-confirm"
                 type={showPw ? "text" : "password"}
                 value={confirmPw}
                 onChange={(e) => setConfirmPw(e.target.value)}
                 required
                 autoComplete="new-password"
-                className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition-colors ${
+                className={`w-full border rounded-xl px-4 py-3 text-base sm:text-sm outline-none transition-colors ${
                   confirmPw.length > 0
                     ? pwMatch
                       ? "border-brand-400 focus:ring-2 focus:ring-brand-100"
@@ -245,6 +257,16 @@ function RegisterForm() {
     </div>
   );
 }
+
+const ROLE_CHOICES = [
+  { value: "TENANT", label: "Tenant", hint: "You're looking for a place to rent, buy or stay." },
+  { value: "LANDLORD", label: "Landlord", hint: "You own property and want to rent it out." },
+  { value: "AGENT", label: "Agent", hint: "You're an estate agent listing homes for clients." },
+  { value: "DEVELOPER", label: "Developer", hint: "You build and sell new developments." },
+  { value: "PRIVATE", label: "Private Owner", hint: "You want to sell or rent out your own home, without an agent." },
+  { value: "INVESTOR", label: "Investor", hint: "You want to invest in property and earn returns." },
+  { value: "SERVICE_PROVIDER", label: "Service Provider", hint: "You offer services to homeowners: plumbing, cleaning, legal and more." },
+] as const;
 
 export default function RegisterPage() {
   return (

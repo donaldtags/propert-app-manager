@@ -37,6 +37,23 @@ test.describe("Short stays in the browser", () => {
     await expect(page.getByText("Paid · Cash")).toBeVisible();
   });
 
+  test("a signed-out visitor sees the booking button, never the owner's controls", async ({ page, api }) => {
+    const stay = await api.shortStay({ nightly: 40, cleaningFee: 0, minNights: 1 });
+    await page.goto(`/properties/${stay.id}`);
+    await expect(page.getByText(stay.title).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Select your dates" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Edit Listing" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Manage bookings & calendar" })).toHaveCount(0);
+
+    const calendar = page.getByLabel("Availability calendar");
+    await calendar.getByRole("button", { name: "Next month" }).click();
+    const days = calendar.getByRole("button", { name: /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),? \d+ \w+$/ });
+    await days.nth(4).click();
+    await days.nth(6).click();
+    await page.getByRole("button", { name: "Sign in to book" }).click();
+    await expect(page).toHaveURL(/\/login\?redirect=/);
+  });
+
   test("stays search shows date and guest pickers @smoke", async ({ page }) => {
     await page.goto("/properties?listingType=SHORT_STAY");
     const toggle = page.locator('[aria-controls="search-controls"]');

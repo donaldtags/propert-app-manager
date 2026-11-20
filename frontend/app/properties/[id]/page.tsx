@@ -124,10 +124,13 @@ export default function PropertyDetailPage() {
   };
 
   // Inquiry form state
-  const [inquiryName, setInquiryName] = useState("");
-  const [inquiryEmail, setInquiryEmail] = useState("");
+  // null = untouched: signed-in visitors see their own name and email filled in.
+  const [inquiryNameInput, setInquiryName] = useState<string | null>(null);
+  const [inquiryEmailInput, setInquiryEmail] = useState<string | null>(null);
+  const inquiryName = inquiryNameInput ?? user?.fullName ?? "";
+  const inquiryEmail = inquiryEmailInput ?? user?.email ?? "";
   const [inquiryPhone, setInquiryPhone] = useState("");
-  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("Hi, I'm interested in this property. Is it still available?");
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquirySent, setInquirySent] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
@@ -354,6 +357,12 @@ export default function PropertyDetailPage() {
     setPhotoIndex(index);
     setLightboxOpen(true);
   };
+
+  // Signed-out visitors have no id and most listings have no agent: compare only real ids, or
+  // `undefined === undefined` would treat every visitor as the owner.
+  const isListingOwner =
+    user?.id != null &&
+    (user.id === property.landlordId || (property.agentId != null && user.id === property.agentId));
 
   return (
     <div className="bg-white min-h-screen">
@@ -736,7 +745,7 @@ export default function PropertyDetailPage() {
                 )}
                 {property.escrowRequired && (
                   <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200">
-                    <Shield className="w-3.5 h-3.5" /> Escrow Protected
+                    <Shield className="w-3.5 h-3.5" /> Deposit protected
                   </span>
                 )}
                 {property.diasporaFriendly && (
@@ -1099,7 +1108,7 @@ export default function PropertyDetailPage() {
           <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain">
             {/* Price + actions card */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-              {(user?.id === property.landlordId || user?.id === property.agentId || user?.roles?.includes("ADMIN")) && (
+              {(isListingOwner || user?.roles?.includes("ADMIN")) && (
                 <Link
                   href={`/properties/${property.id}/edit`}
                   className="block w-full text-center border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold py-2 rounded-xl transition-colors mb-4 text-sm"
@@ -1118,7 +1127,7 @@ export default function PropertyDetailPage() {
                 <div className="mb-3">
                   <StayBookingWidget
                     propertyId={property.id}
-                    isHost={user?.id === property.landlordId || user?.id === property.agentId}
+                    isHost={isListingOwner}
                   />
                 </div>
               )}
@@ -1226,7 +1235,7 @@ export default function PropertyDetailPage() {
                   <div className="flex items-start gap-3 text-sm text-gray-600">
                     <Shield className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-gray-900">Deposit Escrow</p>
+                      <p className="font-semibold text-gray-900">Protected deposit</p>
                       <p className="text-xs text-gray-500">Your deposit is held safely until you receive the keys.</p>
                     </div>
                   </div>
@@ -1310,44 +1319,59 @@ export default function PropertyDetailPage() {
                       {inquiryError && (
                         <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{inquiryError}</p>
                       )}
-                      <input
-                        type="text"
-                        required
-                        placeholder="Your name"
-                        value={inquiryName}
-                        onChange={(e) => setInquiryName(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                      />
-                      <input
-                        type="email"
-                        required
-                        placeholder="Your email"
-                        value={inquiryEmail}
-                        onChange={(e) => setInquiryEmail(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                      />
-                      <input
-                        type="tel"
-                        placeholder="Phone (optional)"
-                        value={inquiryPhone}
-                        onChange={(e) => setInquiryPhone(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                      />
-                      <textarea
-                        required
-                        rows={3}
-                        placeholder={`Hi, I'm interested in this property. Is it still available?`}
-                        value={inquiryMessage}
-                        onChange={(e) => setInquiryMessage(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
-                      />
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your name
+                        <input
+                          type="text"
+                          required
+                          autoComplete="name"
+                          placeholder="e.g. Tariro Moyo"
+                          value={inquiryName}
+                          onChange={(e) => setInquiryName(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your email
+                        <input
+                          type="email"
+                          required
+                          autoComplete="email"
+                          inputMode="email"
+                          placeholder="e.g. tariro@gmail.com"
+                          value={inquiryEmail}
+                          onChange={(e) => setInquiryEmail(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Phone or WhatsApp <span className="font-normal text-gray-500">(optional)</span>
+                        <input
+                          type="tel"
+                          autoComplete="tel"
+                          placeholder="e.g. +263 77 123 4567"
+                          value={inquiryPhone}
+                          onChange={(e) => setInquiryPhone(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your message
+                        <textarea
+                          required
+                          rows={3}
+                          value={inquiryMessage}
+                          onChange={(e) => setInquiryMessage(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
+                        />
+                      </label>
                       <button
                         type="submit"
                         disabled={inquiryLoading}
                         className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
                       >
                         <Send className="w-4 h-4" />
-                        {inquiryLoading ? "Sending…" : "Send Inquiry"}
+                        {inquiryLoading ? "Sending…" : "Send message"}
                       </button>
                     </form>
                   )}

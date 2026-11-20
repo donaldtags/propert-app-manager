@@ -594,7 +594,7 @@ export default function NewPropertyPage() {
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.escrowRequired ? "translate-x-7" : "translate-x-1"}`} />
               </div>
-              <span className="text-sm font-medium text-gray-700">Escrow Protected Deposit</span>
+              <span className="text-sm font-medium text-gray-700">Protect the deposit <span className="font-normal text-gray-500">(EstateX holds it until the tenant gets the keys)</span></span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer group">
               <div

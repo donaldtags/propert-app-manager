@@ -143,11 +143,11 @@ export default function PropertyCard({
           type="button"
           onClick={handleToggleCompare}
           title={comparing ? "Remove from comparison" : `Add to comparison (max ${MAX_COMPARE})`}
-          className={`absolute bottom-3 left-3 w-7 h-7 rounded-full flex items-center justify-center shadow transition-colors ${
+          className={`absolute bottom-2 left-2 w-10 h-10 rounded-full flex items-center justify-center shadow transition-colors ${
             comparing ? "bg-brand-600 text-white" : "bg-white/90 text-gray-600 hover:bg-white"
           }`}
         >
-          <Scale className="w-3.5 h-3.5" />
+          <Scale className="w-4 h-4" />
         </button>
       </div>
 
@@ -184,7 +184,7 @@ export default function PropertyCard({
         <div className="flex flex-wrap gap-1.5 mt-2">
           {property.escrowRequired && (
             <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Shield className="w-3 h-3" /> Escrow Protected
+              <Shield className="w-3 h-3" /> Deposit protected
             </span>
           )}
           {property.diasporaFriendly && (

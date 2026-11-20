@@ -76,15 +76,15 @@ function LoginForm() {
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoComplete="username"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                placeholder="you@example.com or +263771000001"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                placeholder="Email or phone, e.g. +263 77 123 4567"
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label htmlFor="login-password" className="text-sm font-medium text-gray-700">Password</label>
-                <Link href="/forgot-password" className="text-xs text-brand-600 hover:underline">
+                <Link href="/forgot-password" className="text-sm text-brand-600 hover:underline py-2 -my-2">
                   Forgot password?
                 </Link>
               </div>
@@ -96,7 +96,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 text-base sm:text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                   placeholder="••••••••"
                 />
                 <button
@@ -104,7 +104,7 @@ function LoginForm() {
                   onClick={() => setShowPw(!showPw)}
                   aria-label={showPw ? "Hide password" : "Show password"}
                   aria-pressed={showPw}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-600"
                 >
                   {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
