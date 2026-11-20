@@ -15,6 +15,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @EntityGraph(attributePaths = {"landlord", "agent", "photos"})
     List<Property> findByLandlord(AppUser landlord);
 
+    /** An individual (non-agency) owner's listings in one status, e.g. drafts waiting on a licence. */
+    List<Property> findByLandlord_IdAndStatusAndOrganisationIdIsNull(Long landlordId, PropertyStatus status);
+
     @EntityGraph(attributePaths = {"landlord", "agent", "photos"})
     List<Property> findByAgent(AppUser agent);
 

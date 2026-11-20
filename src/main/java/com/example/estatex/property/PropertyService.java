@@ -101,7 +101,10 @@ public class PropertyService {
         property.setTitle(request.title());
         property.setDescription(request.description());
         property.setListingType(request.listingType());
-        property.setStatus(organisationListing ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
+        // Agency listings go live via the workspace publish step; an agent's own listings wait as
+        // drafts until EstateX has approved their Estate Agents Council licence.
+        property.setStatus(organisationListing || com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(landlord)
+                ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
         property.setOrganisationId(organisationId);
         property.setTitleType(titleType);
         property.setCity(request.city());
@@ -151,6 +154,12 @@ public class PropertyService {
                 && property.getStatus() != PropertyStatus.AVAILABLE) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Agency listings go live through the workspace publish step, once every compliance check is met.");
+        }
+        if (!property.isOrganisationListing() && request.status() == PropertyStatus.AVAILABLE
+                && property.getStatus() != PropertyStatus.AVAILABLE
+                && com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(property.getLandlord())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Your listings go live once EstateX approves your agent licence. Upload it from your profile.");
         }
         boolean priceChanged = request.price() != null
                 && (property.getPrice() == null || request.price().compareTo(property.getPrice()) != 0);
@@ -304,6 +313,14 @@ public class PropertyService {
     @Transactional(readOnly = true)
     public Property requireVisible(Long id, AppUser viewer) {
         Property property = require(id);
+        if (!property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT) {
+            boolean ownerOrStaff = viewer != null && (viewer.getId().equals(property.getLandlord().getId())
+                    || (property.getAgent() != null && viewer.getId().equals(property.getAgent().getId()))
+                    || viewer.hasPermission(Permission.ADMIN_OVERRIDE));
+            if (!ownerOrStaff) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");
+            }
+        }
         if (property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT
                 && !orgAccess.can(viewer, property.getOrganisationId(), OrgPermission.ORG_VIEW)
                 && (viewer == null || !viewer.hasPermission(Permission.ADMIN_OVERRIDE))) {

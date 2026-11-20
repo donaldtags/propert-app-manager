@@ -52,6 +52,15 @@ public class AppUser {
     private String occupation;
     private String companyName;
     private boolean businessVerified;
+    /**
+     * Set when EstateX staff approve the agent's Estate Agents Council registration (see the agent
+     * package). Nullable so the column can be added to existing tables; null means not licensed.
+     */
+    private Boolean licensedAgent;
+
+    public boolean isLicensedAgent() {
+        return Boolean.TRUE.equals(licensedAgent);
+    }
     private String emergencyContactName;
     private String emergencyContactPhone;
     private boolean emailNotifications = true;
