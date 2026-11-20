@@ -10,5 +10,7 @@ public enum NotificationType {
     /** Short-stay booking requests, decisions, payments and cancellations. */
     STAY_BOOKING,
     /** Agent licence and company (agency) approval decisions. */
-    ACCOUNT_VERIFICATION
+    ACCOUNT_VERIFICATION,
+    /** Wallet withdrawals paid or rejected. */
+    WALLET
 }

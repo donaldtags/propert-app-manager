@@ -23,12 +23,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentService {
+    private static final java.util.Set<PaymentPurpose> WALLET_PAYABLE = java.util.EnumSet.of(
+            PaymentPurpose.RENT, PaymentPurpose.STAY_BOOKING, PaymentPurpose.INVESTMENT,
+            PaymentPurpose.SUBSCRIPTION, PaymentPurpose.FEATURED_LISTING);
+
     private final PaymentRepository payments;
     private final UserService users;
     private final PropertyService properties;
     private final LeaseService leases;
     private final RentInvoiceService rentInvoices;
     private final ApplicationEventPublisher events;
+    private final com.example.estatex.wallet.WalletService wallets;
     private final Map<String, PaymentGateway> gatewaysById;
     private final String frontendBaseUrl;
 
@@ -39,6 +44,7 @@ public class PaymentService {
             LeaseService leases,
             RentInvoiceService rentInvoices,
             ApplicationEventPublisher events,
+            com.example.estatex.wallet.WalletService wallets,
             List<PaymentGateway> gateways,
             @org.springframework.beans.factory.annotation.Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl
     ) {
@@ -48,6 +54,7 @@ public class PaymentService {
         this.leases = leases;
         this.rentInvoices = rentInvoices;
         this.events = events;
+        this.wallets = wallets;
         this.gatewaysById = gateways.stream().collect(Collectors.toMap(PaymentGateway::id, g -> g));
         this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
     }
@@ -113,6 +120,9 @@ public class PaymentService {
         if (payment.getStatus() != PaymentStatus.INITIATED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "This payment has already been processed");
         }
+        if (com.example.estatex.wallet.WalletService.WALLET_PROVIDER.equals(provider)) {
+            return payFromWallet(payment, currentUser);
+        }
         PaymentGateway gateway = gatewaysById.get(provider);
         if (gateway == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown payment provider: " + provider);
@@ -124,6 +134,31 @@ public class PaymentService {
         payment.setCheckoutUrl(session.redirectUrl());
         payment.setPollUrl(session.pollUrl());
         return new PaymentDtos.CheckoutResponse(payment.getId(), session.redirectUrl());
+    }
+
+    /**
+     * "Pay from wallet": debits the payer's EstateX wallet and completes the payment on the spot,
+     * through the same success path as a gateway - so a stay confirms, REIT units are issued and
+     * rent is marked paid exactly as if Paynow had confirmed it. Debit and completion share one
+     * transaction: if either fails, neither happens.
+     */
+    private PaymentDtos.CheckoutResponse payFromWallet(Payment payment, AppUser currentUser) {
+        if (payment.getPurposeType() == PaymentPurpose.WALLET_TOP_UP) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A wallet top-up must be paid with Paynow or a card");
+        }
+        // Only payments whose money has a defined destination: the landlord/host is credited
+        // (rent, stays) or EstateX itself is the payee (REIT units, plans, featured listings).
+        // Escrow deposits stay on the gateway until escrow release can credit wallets.
+        if (!WALLET_PAYABLE.contains(payment.getPurposeType())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This payment can't be paid from a wallet. Use Paynow or a card.");
+        }
+        if (!payment.getPayer().getId().equals(currentUser.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only the payer can pay from their own wallet");
+        }
+        wallets.payForPayment(payment, currentUser);
+        payment.setProvider(com.example.estatex.wallet.WalletService.WALLET_PROVIDER);
+        finalizeSuccess(payment);
+        return new PaymentDtos.CheckoutResponse(payment.getId(), frontendBaseUrl + "/payments/" + payment.getId() + "/return");
     }
 
     /** Actively asks the gateway for the current status - the primary confirmation path, since
@@ -233,6 +268,12 @@ public class PaymentService {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "This payment was started through " + payment.getProvider()
                             + " checkout - it can only be confirmed by the gateway, not self-reported");
+        }
+        // A wallet payment completes only by actually debiting the payer's wallet; letting the payee
+        // "confirm" one would credit their wallet with money that never existed.
+        if (com.example.estatex.wallet.WalletService.WALLET_PROVIDER.equals(payment.getProvider())
+                || payment.getPurposeType() == PaymentPurpose.WALLET_TOP_UP) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This payment can only be completed by paying it, not confirmed by hand");
         }
         finalizeSuccess(payment);
         return payment;

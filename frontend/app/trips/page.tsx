@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CalendarDays, CreditCard, Landmark, Loader2, MapPin, Phone, Mail, Users } from "lucide-react";
+import { CalendarDays, CreditCard, Landmark, Loader2, MapPin, Phone, Mail, Users, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { stays as staysApi, ApiError } from "@/lib/api";
-import type { StayBooking } from "@/lib/types";
+import { stays as staysApi, wallet as walletApi, ApiError } from "@/lib/api";
+import type { CheckoutProvider, StayBooking } from "@/lib/types";
 import { formatStayDate } from "@/lib/stayDates";
 import PageLoader from "@/components/PageLoader";
 import StayStatusBadge, { stayMoney } from "@/components/stays/StayStatusBadge";
@@ -25,9 +25,12 @@ export default function TripsPage() {
     if (!loading && !user) router.push("/login?redirect=/trips");
   }, [user, loading, router]);
 
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
   const load = useCallback(() => {
     if (!token) return;
     staysApi.mine(token).then(setTrips).catch(() => setError("Couldn't load your trips. Check your connection and refresh."));
+    walletApi.get(token, 0, 1).then((w) => setWalletBalance(w.balance)).catch(() => setWalletBalance(null));
   }, [token]);
   useEffect(load, [load]);
 
@@ -44,10 +47,11 @@ export default function TripsPage() {
     }
   };
 
-  const pay = (b: StayBooking, provider: "paynow" | "stripe") =>
+  const pay = (b: StayBooking, provider: CheckoutProvider) =>
     act(b.id, async () => {
       const checkout = await staysApi.pay(b.id, provider, token!);
-      window.location.href = checkout.redirectUrl;
+      // A wallet payment is already done: stay here and let the list refresh to "Confirmed".
+      if (provider !== "wallet") window.location.href = checkout.redirectUrl;
     });
 
   if (loading || !user || trips === null) return error ? <p className="p-6 text-red-600">{error}</p> : <PageLoader />;
@@ -114,6 +118,11 @@ export default function TripsPage() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         {b.status === "AWAITING_PAYMENT" && (
                           <>
+                            {walletBalance !== null && walletBalance >= b.total && (
+                              <button onClick={() => pay(b, "wallet")} disabled={busyId === b.id} className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2 rounded-lg">
+                                {busyId === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />} Pay from wallet (${walletBalance.toFixed(2)})
+                              </button>
+                            )}
                             <button onClick={() => pay(b, "paynow")} disabled={busyId === b.id} className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2 rounded-lg">
                               {busyId === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Landmark className="w-4 h-4" />} Pay with Paynow / EcoCash
                             </button>

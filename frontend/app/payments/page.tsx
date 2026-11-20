@@ -10,6 +10,7 @@ import EntityPicker from "@/components/EntityPicker";
 import PageLoader from "@/components/PageLoader";
 
 const PAYMENT_PROVIDERS = [
+  { value: "wallet", label: "My EstateX wallet (pay from my balance)", icon: DollarSign },
   { value: "paynow", label: "Paynow (EcoCash, OneMoney, bank & card)", icon: Landmark },
   { value: "stripe", label: "Card (Stripe)", icon: CreditCard },
   { value: "manual", label: "Other / Manual - I'll arrange payment myself", icon: DollarSign },

@@ -98,6 +98,11 @@ import type {
   PricingSuggestion,
   SellerReportSummary,
   BuyingTimeline,
+  CheckoutProvider,
+  WalletSummary,
+  WalletWithdrawal,
+  WithdrawalRequest,
+  WithdrawalStatus,
 } from "./types";
 
 export const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -1465,10 +1470,27 @@ export const stays = {
     request<StayBooking>(`/stays/bookings/${id}/cancel`, { method: "POST", body: JSON.stringify({ note }) }, token),
   markPaid: (id: number, method: string, token: string) =>
     request<StayBooking>(`/stays/bookings/${id}/mark-paid`, { method: "POST", body: JSON.stringify({ method }) }, token),
-  pay: (id: number, provider: "paynow" | "stripe", token: string) =>
+  pay: (id: number, provider: CheckoutProvider, token: string) =>
     request<{ paymentId: number; redirectUrl: string }>(`/stays/bookings/${id}/pay`, { method: "POST", body: JSON.stringify({ provider }) }, token),
   block: (propertyId: number, data: { start: string; end: string; note?: string }, token: string) =>
     request<StayBlock>(`/stays/${propertyId}/blocks`, { method: "POST", body: JSON.stringify(data) }, token),
   unblock: (propertyId: number, blockId: number, token: string) =>
     request<void>(`/stays/${propertyId}/blocks/${blockId}`, { method: "DELETE" }, token),
+};
+
+export const wallet = {
+  get: (token: string, page = 0, size = 20, currency = "USD") =>
+    request<WalletSummary>(`/wallet?currency=${currency}&page=${page}&size=${size}`, {}, token),
+  /** Starts a Paynow/card checkout; the balance goes up once the provider confirms it. */
+  topUp: (amount: number, provider: "paynow" | "stripe", token: string, currency = "USD") =>
+    request<CheckoutResponse>("/wallet/top-ups", { method: "POST", body: JSON.stringify({ amount, provider, currency }) }, token),
+  withdraw: (data: WithdrawalRequest, token: string) =>
+    request<WalletWithdrawal>("/wallet/withdrawals", { method: "POST", body: JSON.stringify(data) }, token),
+  withdrawals: (token: string) => request<WalletWithdrawal[]>("/wallet/withdrawals", {}, token),
+  admin: {
+    withdrawals: (token: string, status?: WithdrawalStatus) =>
+      request<WalletWithdrawal[]>(`/admin/wallet/withdrawals${status ? `?status=${status}` : ""}`, {}, token),
+    decide: (id: number, data: { action: "PAID" | "REJECTED"; reference?: string; reason?: string }, token: string) =>
+      request<WalletWithdrawal>(`/admin/wallet/withdrawals/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+  },
 };
