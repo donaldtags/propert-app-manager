@@ -299,8 +299,8 @@ export default function NewPropertyPage() {
           <h2 className="font-bold text-gray-900">Property Details</h2>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Title *</label>
-            <input
+            <label htmlFor="lp-1" className="block text-sm font-medium text-gray-700 mb-1.5">Title *</label>
+            <input id="lp-1"
               type="text"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -311,8 +311,8 @@ export default function NewPropertyPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
-            <textarea
+            <label htmlFor="lp-2" className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+            <textarea id="lp-2"
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={4}
@@ -323,8 +323,8 @@ export default function NewPropertyPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Bedrooms</label>
-              <select
+              <label htmlFor="lp-3" className="block text-sm font-medium text-gray-700 mb-1.5">Bedrooms</label>
+              <select id="lp-3"
                 value={form.bedrooms}
                 onChange={(e) => setForm((f) => ({ ...f, bedrooms: Number(e.target.value) }))}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
@@ -335,8 +335,8 @@ export default function NewPropertyPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Bathrooms</label>
-              <select
+              <label htmlFor="lp-4" className="block text-sm font-medium text-gray-700 mb-1.5">Bathrooms</label>
+              <select id="lp-4"
                 value={form.bathrooms}
                 onChange={(e) => setForm((f) => ({ ...f, bathrooms: Number(e.target.value) }))}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
@@ -348,7 +348,7 @@ export default function NewPropertyPage() {
             </div>
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <label htmlFor="lp-price" className="block text-sm font-medium text-gray-700">
                   Price ({form.listingType === "RENT" ? "/mo" : form.listingType === "SHORT_STAY" ? "/night" : ""}) *
                 </label>
                 <button
@@ -361,7 +361,7 @@ export default function NewPropertyPage() {
                   {suggestionLoading ? "Checking market…" : "Suggest a price"}
                 </button>
               </div>
-              <input
+              <input id="lp-price"
                 type="number"
                 min={0}
                 value={form.price}
@@ -397,8 +397,8 @@ export default function NewPropertyPage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Currency</label>
-              <select
+              <label htmlFor="lp-5" className="block text-sm font-medium text-gray-700 mb-1.5">Currency</label>
+              <select id="lp-5"
                 value={form.currency}
                 onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
@@ -417,8 +417,8 @@ export default function NewPropertyPage() {
           <h2 className="font-bold text-gray-900">Location</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">City *</label>
-              <input
+              <label htmlFor="lp-6" className="block text-sm font-medium text-gray-700 mb-1.5">City *</label>
+              <input id="lp-6"
                 type="text"
                 list="city-options"
                 value={form.city}
@@ -434,8 +434,8 @@ export default function NewPropertyPage() {
               </datalist>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Suburb *</label>
-              <input
+              <label htmlFor="lp-7" className="block text-sm font-medium text-gray-700 mb-1.5">Suburb *</label>
+              <input id="lp-7"
                 type="text"
                 list="suburb-options"
                 value={form.suburb}
@@ -452,8 +452,8 @@ export default function NewPropertyPage() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Street Address</label>
-            <input
+            <label htmlFor="lp-8" className="block text-sm font-medium text-gray-700 mb-1.5">Street Address</label>
+            <input id="lp-8"
               type="text"
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
@@ -462,7 +462,7 @@ export default function NewPropertyPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pin the exact house</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pin the exact house</label>
             <LocationPicker
               value={form.latitude && form.longitude ? { latitude: Number(form.latitude), longitude: Number(form.longitude) } : null}
               onChange={(loc) =>
@@ -671,8 +671,8 @@ export default function NewPropertyPage() {
           </div>
 
           <div className="mt-4">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Water Source</label>
-            <select
+            <label htmlFor="lp-9" className="block text-sm font-medium text-gray-700 mb-1.5">Water Source</label>
+            <select id="lp-9"
               value={form.waterSource}
               onChange={(e) => setForm((f) => ({ ...f, waterSource: e.target.value as typeof f.waterSource }))}
               className="w-full sm:w-64 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 bg-white"
@@ -687,8 +687,8 @@ export default function NewPropertyPage() {
           </div>
 
           <div className="mt-4">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Virtual Tour URL (optional)</label>
-            <input
+            <label htmlFor="lp-10" className="block text-sm font-medium text-gray-700 mb-1.5">Virtual Tour URL (optional)</label>
+            <input id="lp-10"
               type="url"
               value={form.virtualTourUrl}
               onChange={(e) => setForm((f) => ({ ...f, virtualTourUrl: e.target.value }))}
