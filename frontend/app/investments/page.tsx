@@ -1,5 +1,6 @@
 "use client";
 
+import { reitFees } from "@/lib/trust";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -210,6 +211,8 @@ export default function InvestmentsPage() {
   const [checkoutReitId, setCheckoutReitId] = useState<number | null>(null);
   const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [units, setUnits] = useState<Record<number, string>>({});
+  // EstateX's REIT transaction fee (%), read from the server so the screen always matches the charge.
+  const [feePercent, setFeePercent] = useState(1.5);
   const [selling, setSelling] = useState<number | null>(null);
   const [sellUnits, setSellUnits] = useState<Record<number, string>>({});
   const [success, setSuccess] = useState("");
@@ -238,6 +241,13 @@ export default function InvestmentsPage() {
     const unique = Array.from(new Set(reits.map((r) => r.market)));
     return ["All", ...unique];
   }, [reits]);
+
+  useEffect(() => {
+    if (reits.length === 0) return;
+    reitFees.quote(reits[0].id, 1, "BUY").then((q) => setFeePercent(Number(q.feePercent))).catch(() => {});
+  }, [reits]);
+  const money = (n: number) => `$${n.toFixed(2)}`;
+  const feeOf = (gross: number) => Math.round(gross * feePercent) / 100;
 
   const visibleReits = useMemo(
     () => (countryFilter === "All" ? reits : reits.filter((r) => r.market === countryFilter)),
@@ -673,9 +683,16 @@ export default function InvestmentsPage() {
                               <span className="truncate">{`Buy ${reit.name} Units`}</span>
                             </button>
                           </div>
-                          <p className="text-xs text-gray-400 mt-2">
-                            Total: ${(Number(units[reit.id] || 1) * reit.unitPrice).toFixed(2)} USD
-                          </p>
+                          {(() => {
+                            const gross = Number(units[reit.id] || 1) * reit.unitPrice;
+                            const fee = feeOf(gross);
+                            return (
+                              <p className="text-xs text-gray-600 mt-2">
+                                {money(gross)} + {feePercent}% EstateX fee ({money(fee)}) ={" "}
+                                <strong className="text-gray-900">{money(gross + fee)} total</strong>
+                              </p>
+                            );
+                          })()}
                         </>
                       )}
                     </div>
@@ -706,7 +723,10 @@ export default function InvestmentsPage() {
                       </div>
                       <p className="text-xs text-gray-400 mt-2">
                         {totalUnitsOwned > 0
-                          ? `You can sell up to ${totalUnitsOwned} unit${totalUnitsOwned > 1 ? "s" : ""}`
+                          ? (() => {
+                              const gross = Number(sellUnits[reit.id] || 1) * reit.unitPrice;
+                              return `You can sell up to ${totalUnitsOwned} unit${totalUnitsOwned > 1 ? "s" : ""}. You receive ${money(gross - feeOf(gross))} after the ${feePercent}% EstateX fee.`;
+                            })()
                           : "You don't own any units to sell yet"}
                       </p>
                     </div>

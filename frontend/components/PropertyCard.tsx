@@ -47,9 +47,13 @@ export default function PropertyCard({
   const photo = photos[0] ?? null;
   const isVerified = property.verificationStatus === "VERIFIED";
   const isFeatured = property.featured && (!property.featuredUntil || new Date(property.featuredUntil).getTime() > Date.now());
-  const companyName = property.agentName
-    ? property.agentCompanyName
-    : property.landlordCompanyName;
+  // Only companies EstateX has approved are named; free-text company names aren't checked.
+  const companyName =
+    property.listedBy === "AGENCY" && property.organisationName
+      ? property.organisationName
+      : property.listedBy === "AGENT"
+        ? "Independent agent"
+        : null;
 
   const [comparing, setComparing] = useState(false);
   useEffect(() => {
@@ -116,13 +120,15 @@ export default function PropertyCard({
         </div>
 
         {/* Verified / risk badges */}
-        {(isVerified || property.riskFlags?.includes("CESSION")) && (
+        {(
           <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
-            {isVerified && (
+            {isVerified ? (
               <span className="bg-white text-brand-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
                 <CheckCircle className="w-3 h-3" />
                 Verified
               </span>
+            ) : (
+              <span className="bg-white/90 text-gray-600 text-xs font-semibold px-2 py-1 rounded shadow">Not yet verified</span>
             )}
             {property.riskFlags?.includes("CESSION") && <CessionBadge className="shadow" />}
           </div>

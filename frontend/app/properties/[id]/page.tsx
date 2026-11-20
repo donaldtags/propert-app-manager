@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import ReportListing from "@/components/ReportListing";
 import dynamic from "next/dynamic";
 import {
   Bed,
@@ -738,9 +739,16 @@ export default function PropertyDetailPage() {
                     <p className="basis-full order-last text-xs text-amber-800">{CESSION_EXPLANATION}</p>
                   </>
                 )}
-                {property.verificationStatus === "VERIFIED" && (
+                {property.verificationStatus === "VERIFIED" ? (
                   <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200">
                     <CheckCircle className="w-3.5 h-3.5" /> Verified
+                  </span>
+                ) : (
+                  <span
+                    className="flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full border border-gray-200"
+                    title="EstateX hasn't checked this listing yet. Never pay before you've viewed the property."
+                  >
+                    Not yet verified
                   </span>
                 )}
                 {property.escrowRequired && (
@@ -1245,7 +1253,7 @@ export default function PropertyDetailPage() {
                     <CheckCircle className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-gray-900">Verified Property</p>
-                      <p className="text-xs text-gray-500">Inspected and verified by a certified agent.</p>
+                      <p className="text-xs text-gray-500">Checked by the EstateX verification team.</p>
                     </div>
                   </div>
                 )}
@@ -1266,7 +1274,11 @@ export default function PropertyDetailPage() {
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-5 h-5 text-brand-600" />
                 <h3 className="font-semibold text-gray-900 text-sm">
-                  {property.agentName ? "Listed by Agent" : "Listed by Owner"}
+                  {property.listedBy === "AGENCY"
+                    ? "Listed by an estate agency"
+                    : property.listedBy === "AGENT"
+                      ? "Listed by an independent agent"
+                      : "Listed by the owner"}
                 </h3>
               </div>
 
@@ -1287,20 +1299,44 @@ export default function PropertyDetailPage() {
                 );
               })()}
 
-              {(property.agentName ? property.agentCompanyName : property.landlordCompanyName) && (
-                <div className="flex items-center gap-1.5 text-sm text-brand-700 font-medium mb-1">
-                  <Building2 className="w-4 h-4" />
-                  {property.agentName ? property.agentCompanyName : property.landlordCompanyName}
+              {property.listedBy === "AGENCY" && property.organisationName && (
+                <Link
+                  href={`/agencies/${property.organisationSlug}`}
+                  className="flex items-center gap-2 text-sm text-brand-700 font-semibold mb-2 hover:underline"
+                >
+                  {property.organisationLogoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- company logo from their profile
+                    <img src={property.organisationLogoUrl} alt="" className="h-6 w-auto max-w-20 object-contain" />
+                  ) : (
+                    <Building2 className="w-4 h-4" />
+                  )}
+                  Agent at {property.organisationName}
+                </Link>
+              )}
+              {property.listedBy === "AGENT" && (
+                <p className="text-sm text-gray-600 mb-2">Independent agent (not part of a company on EstateX)</p>
+              )}
+              {property.listedBy === "OWNER" && (
+                <p className="text-sm text-gray-600 mb-2">Private owner, no agent involved</p>
+              )}
+              {property.listedBy !== "OWNER" && property.listerLicensed != null && (
+                <div
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full mb-3 ${
+                    property.listerLicensed ? "text-brand-700 bg-brand-50" : "text-gray-600 bg-gray-100"
+                  }`}
+                >
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  {property.listerLicensed ? "Licensed agent (checked by EstateX)" : "Agent licence not checked yet"}
                 </div>
               )}
 
-              {property.agentPhone && (
+              {(property.organisationPhone ?? property.agentPhone) && (
                 <a
-                  href={`tel:${property.agentPhone}`}
-                  className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium mb-4"
+                  href={`tel:${property.organisationPhone ?? property.agentPhone}`}
+                  className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium mb-4 py-1"
                 >
                   <Phone className="w-4 h-4" />
-                  {property.agentPhone}
+                  {property.organisationPhone ?? property.agentPhone}
                 </a>
               )}
 
@@ -1390,6 +1426,8 @@ export default function PropertyDetailPage() {
                 </button>
               )}
             </div>
+
+            {!isListingOwner && <ReportListing propertyId={property.id} token={token} />}
 
             {/* Legal document templates — sale transactions only */}
             {property.listingType === "SALE" && (

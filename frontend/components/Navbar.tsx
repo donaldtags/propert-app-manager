@@ -44,6 +44,7 @@ export default function Navbar() {
     { href: "/properties?listingType=RENT", label: "Rent" },
     { href: "/properties?listingType=SHORT_STAY", label: "Stays" },
     { href: "/investments", label: "Invest" },
+    { href: "/agencies", label: "Agencies" },
     { href: "/services", label: "Services" },
     { href: "/ai", label: "AI Search" },
   ];

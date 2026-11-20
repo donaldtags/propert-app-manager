@@ -1,5 +1,6 @@
 "use client";
 
+import { AgentLicenceQueue, CompanyQueue, ReportQueue } from "@/components/admin/TrustQueues";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -65,7 +66,7 @@ import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
 import AlertBanner from "@/components/AlertBanner";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "escrows" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -502,6 +503,9 @@ export default function AdminPortalPage() {
     { key: "requests", label: "Admin Requests", icon: UserCog, count: pendingRequests.length },
     { key: "kyc", label: "Verification Queue", icon: IdCard, count: pendingKyc.length },
     { key: "properties", label: "Property Verification", icon: Building2, count: unverifiedProperties.length },
+    { key: "reports", label: "Reported Listings", icon: ShieldAlert },
+    { key: "agents", label: "Agent Licences", icon: IdCard },
+    { key: "companies", label: "Companies", icon: Building2 },
     { key: "escrows", label: "Escrows", icon: ScrollText, count: disputedEscrows.length },
     { key: "messages", label: "Messages", icon: MessageSquare, count: adminConversations.length },
     { key: "fraud", label: "Fraud Signals", icon: ShieldAlert, count: fraudSignals.length },
@@ -1057,6 +1061,10 @@ export default function AdminPortalPage() {
           onRefresh={loadAll}
         />
       )}
+
+      {tab === "agents" && token && <AgentLicenceQueue token={token} />}
+      {tab === "companies" && token && <CompanyQueue token={token} />}
+      {tab === "reports" && token && <ReportQueue token={token} />}
 
       {tab === "fraud" && (
         <div>

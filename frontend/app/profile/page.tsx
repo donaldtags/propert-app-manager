@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { users } from "@/lib/api";
 import Link from "next/link";
+import AgentLicenceCard from "@/components/AgentLicenceCard";
 import {
   User,
   Shield,
@@ -192,6 +193,8 @@ export default function ProfilePage() {
           </Link>
         )}
       </div>
+
+      {user.roles?.includes("AGENT") && token && <AgentLicenceCard token={token} />}
 
       {/* Tenant Passport */}
       {tenantPassport && (

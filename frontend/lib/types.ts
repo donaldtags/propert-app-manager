@@ -92,6 +92,14 @@ export interface Property {
   titleType?: TitleType;
   /** Buyer-facing risk markers, e.g. "CESSION". */
   riskFlags?: string[];
+  /** Who markets it: a company on EstateX, an independent agent, or the owner. */
+  listedBy?: "AGENCY" | "AGENT" | "OWNER";
+  /** Agent's Estate Agents Council licence approved by EstateX. */
+  listerLicensed?: boolean | null;
+  organisationName?: string | null;
+  organisationSlug?: string | null;
+  organisationLogoUrl?: string | null;
+  organisationPhone?: string | null;
 }
 
 export interface FeaturedListingSettings {
