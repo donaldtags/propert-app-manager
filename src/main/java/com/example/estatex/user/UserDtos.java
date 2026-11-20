@@ -11,7 +11,8 @@ public final class UserDtos {
 
     public record CreateUserRequest(
             @NotBlank String fullName,
-            @Email @NotBlank String email,
+            /** Optional when a phone number is given (at least one of the two is required). */
+            @Email String email,
             String phone,
             @NotBlank String password,
             String country,

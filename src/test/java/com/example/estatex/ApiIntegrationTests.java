@@ -183,7 +183,8 @@ class ApiIntegrationTests {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.city").value("Harare"))
-                .andExpect(jsonPath("$.twoFactorEnabled").value(true));
+                // Two-step sign-in can only be switched on via /auth/2fa (proving the app or phone works).
+                .andExpect(jsonPath("$.twoFactorEnabled").value(false));
 
         mvc.perform(post("/api/v1/auth/logout")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))

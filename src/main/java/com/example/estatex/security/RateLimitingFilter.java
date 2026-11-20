@@ -24,7 +24,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
     private static final Set<String> LIMITED_PATHS = Set.of(
-            "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/forgot-password"
+            "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/forgot-password",
+            "/api/v1/auth/reset-password", "/api/v1/auth/2fa/verify", "/api/v1/auth/2fa/sms/send"
     );
     /** The public "message the owner" form: no login needed, so it's the obvious spam target. */
     private static final java.util.regex.Pattern INQUIRY_PATH =

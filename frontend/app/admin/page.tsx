@@ -342,7 +342,9 @@ export default function AdminPortalPage() {
     return allUsers.filter((u) => {
       if (roleFilter !== "ALL" && !u.roles?.includes(roleFilter as never)) return false;
       if (!needle) return true;
-      return u.fullName.toLowerCase().includes(needle) || u.email.toLowerCase().includes(needle);
+      return u.fullName.toLowerCase().includes(needle)
+        || (u.email ?? "").toLowerCase().includes(needle)
+        || (u.phone ?? "").includes(needle);
     });
   }, [allUsers, userSearch, roleFilter]);
 

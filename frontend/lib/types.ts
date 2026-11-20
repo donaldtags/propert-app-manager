@@ -231,7 +231,8 @@ export interface WithdrawalRequest {
 export interface User {
   id: number;
   fullName: string;
-  email: string;
+  /** Absent for accounts that signed up with only a phone number. */
+  email?: string | null;
   phone?: string;
   country?: string;
   city?: string;
@@ -260,6 +261,40 @@ export interface User {
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+export type TwoFactorMethod = "TOTP" | "SMS" | "BACKUP";
+
+/** Password accepted, but the account has two-step sign-in on: answer with a code. */
+export interface TwoFactorChallenge {
+  twoFactorRequired: true;
+  challengeToken: string;
+  /** Methods this account can use (BACKUP codes always work too). */
+  methods: TwoFactorMethod[];
+  maskedPhone?: string;
+  /** True when a text was sent automatically (accounts using text messages only). */
+  codeSent?: boolean;
+}
+
+export type LoginResponse = AuthResponse | TwoFactorChallenge;
+
+export function isTwoFactorChallenge(r: LoginResponse): r is TwoFactorChallenge {
+  return (r as TwoFactorChallenge).twoFactorRequired === true;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  authenticatorApp: boolean;
+  sms: boolean;
+  smsAvailable: boolean;
+  maskedPhone?: string;
+  backupCodesRemaining: number;
+}
+
+export interface TotpSetup {
+  secret: string;
+  otpauthUri: string;
+  qrDataUrl: string;
 }
 
 export interface Lease {

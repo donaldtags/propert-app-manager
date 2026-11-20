@@ -127,7 +127,7 @@ export default function ProfilePage() {
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-bold break-words">{user.fullName}</h1>
-              <p className="text-brand-100 text-sm break-all">{user.email}</p>
+              <p className="text-brand-100 text-sm break-all">{user.email || user.phone}</p>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {user.roles?.map((role) => (
                   <span key={role} className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">

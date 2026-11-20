@@ -9,8 +9,12 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { User } from "./types";
+import { isTwoFactorChallenge, type TwoFactorChallenge, type TwoFactorMethod, type User } from "./types";
 import { ApiError, auth } from "./api";
+import { getDeviceId } from "./device";
+
+/** What the password step produced: signed in, or a code is needed first. */
+export type LoginResult = { user: User; challenge?: undefined } | { user?: undefined; challenge: TwoFactorChallenge };
 
 interface AuthState {
   user: User | null;
@@ -19,10 +23,12 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (identifier: string, password: string) => Promise<User>;
+  login: (identifier: string, password: string) => Promise<LoginResult>;
+  /** Second sign-in step for accounts with two-step sign-in on. */
+  completeTwoFactor: (challengeToken: string, code: string, method: TwoFactorMethod) => Promise<User>;
   register: (data: {
     fullName: string;
-    email: string;
+    email?: string;
     phone?: string;
     password: string;
     country?: string;
@@ -94,24 +100,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadUser]);
 
-  const login = useCallback(async (identifier: string, password: string) => {
-    const { token, user } = await auth.login({ identifier, password });
+  const signedIn = useCallback((token: string, user: User) => {
     localStorage.setItem(TOKEN_KEY, token);
     cacheUser(user);
     setState({ user, token, loading: false });
-    return user;
   }, []);
+
+  const login = useCallback(async (identifier: string, password: string): Promise<LoginResult> => {
+    const response = await auth.login({ identifier, password, deviceId: getDeviceId() });
+    if (isTwoFactorChallenge(response)) return { challenge: response };
+    signedIn(response.token, response.user);
+    return { user: response.user };
+  }, [signedIn]);
+
+  const completeTwoFactor = useCallback(async (challengeToken: string, code: string, method: TwoFactorMethod) => {
+    const { token, user } = await auth.verifyTwoFactor({ challengeToken, code, method, deviceId: getDeviceId() });
+    signedIn(token, user);
+    return user;
+  }, [signedIn]);
 
   const register = useCallback(
     async (data: {
       fullName: string;
-      email: string;
+      email?: string;
       phone?: string;
       password: string;
       country?: string;
       roles?: string[];
     }) => {
-      const { token, user } = await auth.register(data);
+      const { token, user } = await auth.register({ ...data, deviceId: getDeviceId() });
       localStorage.setItem(TOKEN_KEY, token);
       cacheUser(user);
       setState({ user, token, loading: false });
@@ -144,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, register, logout, refresh, setUser }}
+      value={{ ...state, login, completeTwoFactor, register, logout, refresh, setUser }}
     >
       {children}
     </AuthContext.Provider>

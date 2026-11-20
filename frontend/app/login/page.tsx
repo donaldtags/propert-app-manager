@@ -8,6 +8,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
 import PageLoader from "@/components/PageLoader";
+import TwoFactorStep from "@/components/auth/TwoFactorStep";
+import type { TwoFactorChallenge, User } from "@/lib/types";
 
 function LoginForm() {
   const { user, loading: authLoading, login } = useAuth();
@@ -21,22 +23,30 @@ function LoginForm() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
+
+  const goOn = (signedIn: User) => router.push(redirectParam ?? dashboardPathFor(signedIn.roles));
 
   // Someone already signed in (e.g. a token left over from a previous session) has no
   // business seeing the login form - it just looks broken. Bounce them straight through.
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !challenge) {
       router.replace(redirectParam ?? dashboardPathFor(user.roles));
     }
-  }, [authLoading, user, redirectParam, router]);
+  }, [authLoading, user, redirectParam, router, challenge]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const loggedInUser = await login(identifier, password);
-      router.push(redirectParam ?? dashboardPathFor(loggedInUser.roles));
+      const result = await login(identifier, password);
+      if (result.challenge) {
+        setChallenge(result.challenge);
+        setPassword("");
+      } else {
+        goOn(result.user);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed. Check your credentials.");
     } finally {
@@ -44,8 +54,25 @@ function LoginForm() {
     }
   };
 
-  if (authLoading || user) {
+  if (authLoading || (user && !challenge)) {
     return <PageLoader />;
+  }
+
+  if (challenge) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          <TwoFactorStep
+            challenge={challenge}
+            onDone={goOn}
+            onCancel={() => {
+              setChallenge(null);
+              setError("");
+            }}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
