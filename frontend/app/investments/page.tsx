@@ -230,16 +230,16 @@ export default function InvestmentsPage() {
       .finally(() => setReitsLoading(false));
   }, []);
 
+  // Only investors have a portfolio to fetch, so only they ever see its skeleton.
+  const isInvestor = !!user?.roles?.includes("INVESTOR");
   useEffect(() => {
-    if (user && token && user.roles?.includes("INVESTOR")) {
+    if (user && token && isInvestor) {
       investmentsApi.listByInvestor(user.id, token)
         .then(setMyInvestments)
         .catch(() => {})
         .finally(() => setPortfolioLoading(false));
-    } else {
-      setPortfolioLoading(false);
     }
-  }, [user, token]);
+  }, [user, token, isInvestor]);
 
   const countries = useMemo(() => {
     const unique = Array.from(new Set(reits.map((r) => r.market)));
@@ -282,7 +282,7 @@ export default function InvestmentsPage() {
     setCheckoutProvider(provider);
     try {
       const checkout = await investmentsApi.checkout({ reitId: reit.id, units: n, currency: "USD", provider }, token);
-      window.location.href = checkout.redirectUrl;
+      window.location.assign(checkout.redirectUrl);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not start checkout.");
       setCheckoutProvider(null);
@@ -384,7 +384,7 @@ export default function InvestmentsPage() {
       <ZseReitMarketTable />
 
       {/* My portfolio dashboard */}
-      {portfolioLoading ? (
+      {isInvestor && portfolioLoading ? (
         <div className="mb-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
             {Array.from({ length: 6 }).map((_, i) => (

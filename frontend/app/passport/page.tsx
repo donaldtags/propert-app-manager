@@ -217,7 +217,7 @@ export default function TenantPassportPage() {
             </h2>
             {passport && passport.ratingsGivenCount > 0 ? (
               <p className="text-sm text-gray-700">
-                You've submitted {passport.ratingsGivenCount} review{passport.ratingsGivenCount === 1 ? "" : "s"}
+                You&apos;ve submitted {passport.ratingsGivenCount} review{passport.ratingsGivenCount === 1 ? "" : "s"}
                 {passport.averageLandlordRatingGiven != null && ` averaging ${passport.averageLandlordRatingGiven.toFixed(1)}/5`}.
               </p>
             ) : (

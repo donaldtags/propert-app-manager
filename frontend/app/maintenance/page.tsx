@@ -53,7 +53,6 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     if (!user || !token) return;
-    setPickerLoading(true);
     propertiesApi.list()
       .then(async (all) => {
         if (user.roles?.includes("LANDLORD")) {
@@ -71,14 +70,13 @@ export default function MaintenancePage() {
     }
   }, [user, token]);
 
+  // The picker turns the spinner on when a property is chosen; refreshes keep the list on screen.
   const loadForProperty = async (propertyId: number) => {
     if (!token) return;
-    setReqLoading(true);
-    try {
-      const list = await maintenanceApi.list(propertyId, token);
-      setRequests(list);
-    } catch {}
-    setReqLoading(false);
+    return maintenanceApi.list(propertyId, token)
+      .then(setRequests)
+      .catch(() => {})
+      .finally(() => setReqLoading(false));
   };
 
   useEffect(() => {
@@ -174,7 +172,10 @@ export default function MaintenancePage() {
               loading={pickerLoading}
               options={myProperties.map((p) => ({ id: p.id, label: p.title, sublabel: `${p.suburb}, ${p.city}` }))}
               value={form.propertyId}
-              onChange={(id) => setForm((f) => ({ ...f, propertyId: id }))}
+              onChange={(id) => {
+                setForm((f) => ({ ...f, propertyId: id }));
+                if (id && id !== form.propertyId) setReqLoading(true);
+              }}
               placeholder="Choose a property"
               emptyMessage="No properties found"
               required

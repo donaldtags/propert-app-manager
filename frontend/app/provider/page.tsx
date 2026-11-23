@@ -37,6 +37,8 @@ export default function ProviderPage() {
 
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [checking, setChecking] = useState(true);
+  // Only service providers have a profile to look up.
+  const isProvider = !!user?.roles?.includes("SERVICE_PROVIDER");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
@@ -55,11 +57,7 @@ export default function ProviderPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (!user || !token) return;
-    if (!user.roles?.includes("SERVICE_PROVIDER")) {
-      setChecking(false);
-      return;
-    }
+    if (!user || !token || !isProvider) return;
     vendorsApi
       .mine(token)
       .then((v) => {
@@ -77,7 +75,7 @@ export default function ProviderPage() {
         if (!message.includes(NOT_REGISTERED_MESSAGE)) setError(message || "Failed to load your service provider profile.");
       })
       .finally(() => setChecking(false));
-  }, [user, token]);
+  }, [user, token, isProvider]);
 
   const handleRegister = async () => {
     if (!token) return;
@@ -127,7 +125,7 @@ export default function ProviderPage() {
     }
   };
 
-  if (authLoading || checking || !user) return <PageLoader />;
+  if (authLoading || !user || (isProvider && checking)) return <PageLoader />;
 
   const hasRole = user.roles?.includes("SERVICE_PROVIDER");
 

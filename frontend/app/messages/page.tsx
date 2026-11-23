@@ -27,12 +27,6 @@ function MessagesContent() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user && token) {
-      messagesApi.listConversations(user.id, token).then(setConversations).catch(() => {});
-    }
-  }, [user, token]);
-
-  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [threadMessages]);
 
@@ -47,11 +41,18 @@ function MessagesContent() {
   };
 
   useEffect(() => {
-    if (!conversationId || !conversations.length || activeConv) return;
-    const match = conversations.find((c) => c.id === Number(conversationId));
-    if (match) openConversation(match);
+    if (user && token) {
+      messagesApi.listConversations(user.id, token)
+        .then((list) => {
+          setConversations(list);
+          // A link straight to one conversation (?conversationId=) opens it once the list is in.
+          const match = conversationId ? list.find((c) => c.id === Number(conversationId)) : undefined;
+          if (match) openConversation(match);
+        })
+        .catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, conversations]);
+  }, [user, token, conversationId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -205,7 +205,7 @@ function TopUpForm({ token, onError }: { token: string; onError: (m: string) => 
     setBusy(provider);
     try {
       const checkout = await walletApi.topUp(n, provider, token);
-      window.location.href = checkout.redirectUrl;
+      window.location.assign(checkout.redirectUrl);
     } catch (e) {
       onError(e instanceof Error ? e.message : "Couldn't start the top-up.");
       setBusy(null);

@@ -26,6 +26,17 @@ const ID_TYPE_LABELS: Record<IdDocumentType, string> = {
 
 type UploadSlot = { type: KycDocumentType; label: string; hint: string; file: File | null };
 
+/** The photos each ID type needs: a passport has one page, cards and licences have two sides. */
+function idSlotsFor(type: IdDocumentType): UploadSlot[] {
+  if (type === "PASSPORT") {
+    return [{ type: "PASSPORT", label: "Passport Photo Page", hint: "Clear photo of the main passport page", file: null }];
+  }
+  return [
+    { type: "ID_FRONT", label: "ID / Licence Front", hint: "Clear photo of the front side", file: null },
+    { type: "ID_BACK", label: "ID / Licence Back", hint: "Clear photo of the back side", file: null },
+  ];
+}
+
 const ISSUING_COUNTRIES: [string, string][] = [
   ["ZW", "Zimbabwe"], ["ZA", "South Africa"], ["BW", "Botswana"], ["ZM", "Zambia"], ["MZ", "Mozambique"],
   ["MW", "Malawi"], ["NA", "Namibia"], ["KE", "Kenya"], ["NG", "Nigeria"], ["GH", "Ghana"], ["GB", "United Kingdom"],
@@ -71,17 +82,14 @@ function VerificationContent() {
     setError("");
     try {
       const { url } = await kyc.startDocumentCheck(token);
-      window.location.href = url;
+      window.location.assign(url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start the photo ID check.");
       setStartingCheck(false);
     }
   };
 
-  const [idSlots, setIdSlots] = useState<UploadSlot[]>([
-    { type: "ID_FRONT", label: "ID / Licence Front", hint: "Clear photo of the front side", file: null },
-    { type: "ID_BACK", label: "ID / Licence Back", hint: "Clear photo of the back side", file: null },
-  ]);
+  const [idSlots, setIdSlots] = useState<UploadSlot[]>(() => idSlotsFor(form.idDocumentType));
   const [selfieSlots, setSelfieSlots] = useState<UploadSlot[]>([
     { type: "SELFIE", label: "Live Selfie", hint: "A clear photo of your face, no sunglasses or masks", file: null },
     { type: "SELFIE_WITH_ID", label: "Selfie Holding Your ID", hint: "Hold your ID document next to your face", file: null },
@@ -99,17 +107,6 @@ function VerificationContent() {
       .catch(() => setSubmissions([]))
       .finally(() => setLoadingSubmissions(false));
   }, [user, token]);
-
-  useEffect(() => {
-    if (form.idDocumentType === "PASSPORT") {
-      setIdSlots([{ type: "PASSPORT", label: "Passport Photo Page", hint: "Clear photo of the main passport page", file: null }]);
-    } else {
-      setIdSlots([
-        { type: "ID_FRONT", label: "ID / Licence Front", hint: "Clear photo of the front side", file: null },
-        { type: "ID_BACK", label: "ID / Licence Back", hint: "Clear photo of the back side", file: null },
-      ]);
-    }
-  }, [form.idDocumentType]);
 
   const latest = submissions && submissions.length > 0 ? submissions[0] : null;
 
@@ -317,7 +314,11 @@ function VerificationContent() {
               </label>
               <select
                 value={form.idDocumentType}
-                onChange={(e) => setForm((f) => ({ ...f, idDocumentType: e.target.value as IdDocumentType }))}
+                onChange={(e) => {
+                  const type = e.target.value as IdDocumentType;
+                  setForm((f) => ({ ...f, idDocumentType: type }));
+                  setIdSlots(idSlotsFor(type));
+                }}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               >
                 {Object.entries(ID_TYPE_LABELS).map(([value, label]) => (

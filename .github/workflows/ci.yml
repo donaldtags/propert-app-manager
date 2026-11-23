@@ -74,10 +74,8 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
-      # Not blocking yet: main already has lint errors (mostly react-hooks/set-state-in-effect).
-      # Make this blocking once they're cleared.
-      - name: Lint (advisory)
-        continue-on-error: true
+      # Errors fail the build; warnings are reported but don't.
+      - name: Lint
         run: npm run lint
 
   qa-suite:

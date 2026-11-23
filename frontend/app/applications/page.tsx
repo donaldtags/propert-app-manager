@@ -69,7 +69,6 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     if (!user || !token) return;
-    setDataLoading(true);
     Promise.allSettled([
       isTenant ? applicationsApi.mine(token) : Promise.resolve([] as RentalApplication[]),
       isBusiness ? applicationsApi.received(token) : Promise.resolve([] as RentalApplication[]),

@@ -1,7 +1,7 @@
 "use client";
 
 import CessionBadge, { CESSION_EXPLANATION } from "@/components/CessionBadge";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -85,7 +85,6 @@ export default function PropertyDetailPage() {
 
   const [property, setProperty] = useState<Property | null>(null);
   const [ratings, setRatings] = useState<Rating[]>([]);
-  const [loading, setLoading] = useState(true);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [shareNote, setShareNote] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -133,30 +132,25 @@ export default function PropertyDetailPage() {
   const inquiryEmail = inquiryEmailInput ?? user?.email ?? "";
   const [inquiryPhone, setInquiryPhone] = useState("");
   const [inquiryMessage, setInquiryMessage] = useState("Hi, I'm interested in this property. Is it still available?");
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const loading = loadedId !== id;
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquirySent, setInquirySent] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const prop = await propertiesApi.get(Number(id), token);
-      setProperty(prop);
-      setSaved(isSaved(prop.id));
-      const r = await ratingsApi.listByLandlord(prop.landlordId);
-      setRatings(r);
-      logEvent("info", "property_viewed", `/properties/${id}`, "User opened property details", user?.id, { propertyId: Number(id) });
-    } catch {
-      // handled by empty state
-    } finally {
-      setLoading(false);
-    }
-  }, [id, user?.id, token]);
-
+  // Re-fetched when the visitor signs in (owners see more), but only a new listing id shows the loader again.
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!id) return;
+    propertiesApi.get(Number(id), token)
+      .then(async (prop) => {
+        setProperty(prop);
+        setSaved(isSaved(prop.id));
+        setRatings(await ratingsApi.listByLandlord(prop.landlordId));
+        logEvent("info", "property_viewed", `/properties/${id}`, "User opened property details", user?.id, { propertyId: Number(id) });
+      })
+      .catch(() => { /* handled by the empty state */ })
+      .finally(() => setLoadedId(id));
+  }, [id, user?.id, token]);
 
   const handleInquiry = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -319,9 +313,12 @@ export default function PropertyDetailPage() {
     params.delete("action");
     const query = params.toString();
     router.replace(`/properties/${id}${query ? `?${query}` : ""}`, { scroll: false });
+    // Replaying a click the visitor made before signing in; the handlers open dialogs, which is the point.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (action === "apply") handleApply();
     else if (action === "book-viewing") handleBookViewing();
     else if (action === "message-agent") handleMessageAgent();
+    /* eslint-enable react-hooks/set-state-in-effect */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, property, user]);
 

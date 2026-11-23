@@ -1,12 +1,12 @@
 "use client";
 
 import CessionBadge from "./CessionBadge";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Bed, Bath, MapPin, Shield, Globe, CheckCircle, Building2, Camera, Scale, Star } from "lucide-react";
 import type { Property } from "@/lib/types";
-import { isComparing, toggleCompare, MAX_COMPARE } from "@/lib/compareListings";
+import { toggleCompare, useIsComparing, MAX_COMPARE } from "@/lib/compareListings";
 
 interface Props {
   property: Property;
@@ -46,7 +46,8 @@ export default function PropertyCard({
   const photos = getPhotos(property);
   const photo = photos[0] ?? null;
   const isVerified = property.verificationStatus === "VERIFIED";
-  const isFeatured = property.featured && (!property.featuredUntil || new Date(property.featuredUntil).getTime() > Date.now());
+  const [now] = useState(Date.now);
+  const isFeatured = property.featured && (!property.featuredUntil || new Date(property.featuredUntil).getTime() > now);
   // Only companies EstateX has approved are named; free-text company names aren't checked.
   const companyName =
     property.listedBy === "AGENCY" && property.organisationName
@@ -55,15 +56,12 @@ export default function PropertyCard({
         ? "Independent agent"
         : null;
 
-  const [comparing, setComparing] = useState(false);
-  useEffect(() => {
-    setComparing(isComparing(property.id));
-  }, [property.id]);
+  const comparing = useIsComparing(property.id);
 
   const handleToggleCompare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setComparing(toggleCompare(property.id));
+    toggleCompare(property.id);
   };
 
   return (

@@ -94,17 +94,7 @@ function PropertiesContent() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [loading, setLoading] = useState(true);
   // The free-plan API sleeps when idle and takes up to a minute to wake: say so instead of a bare spinner.
-  const [slowLoad, setSlowLoad] = useState(false);
-  useEffect(() => {
-    if (!loading) return;
-    const t = setTimeout(() => setSlowLoad(true), 6000);
-    return () => {
-      clearTimeout(t);
-      setSlowLoad(false);
-    };
-  }, [loading]);
   const [error, setError] = useState("");
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
@@ -262,14 +252,28 @@ function PropertiesContent() {
 
   const PAGE_SIZE = 20;
 
-  const fetchPage = useCallback(async (pageToLoad: number, append: boolean) => {
-    if (append) setLoadingMore(true);
-    else setLoading(true);
-    setError("");
-    try {
-      const datesValid = checkIn && checkOut && checkOut > checkIn;
-      const { items, totalCount: count } = isStay && (datesValid || guests)
-        ? await staysApi.search({
+  // Identifies the active filters; the first page is "loading" until results for this exact search arrive.
+  const searchKey = JSON.stringify([
+    listingType, city, suburb, bedrooms, bathrooms, minPrice, maxPrice, diasporaFriendly,
+    solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
+    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, isStay, checkIn, checkOut, guests,
+  ]);
+  const [loadedSearch, setLoadedSearch] = useState<string | null>(null);
+  const loading = loadedSearch !== searchKey;
+  const [slowLoad, setSlowLoad] = useState(false);
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setSlowLoad(true), 6000);
+    return () => {
+      clearTimeout(t);
+      setSlowLoad(false);
+    };
+  }, [loading]);
+
+  const fetchPage = useCallback((pageToLoad: number, append: boolean) => {
+    const datesValid = checkIn && checkOut && checkOut > checkIn;
+    const request = isStay && (datesValid || guests)
+        ? staysApi.search({
             city: city || undefined,
             suburb: suburb || undefined,
             checkIn: datesValid ? checkIn : undefined,
@@ -281,7 +285,7 @@ function PropertiesContent() {
             page: pageToLoad,
             size: PAGE_SIZE,
           })
-        : await propertiesApi.searchPaged({
+        : propertiesApi.searchPaged({
         listingType,
         city: city || undefined,
         suburb: suburb || undefined,
@@ -303,19 +307,24 @@ function PropertiesContent() {
         page: pageToLoad,
         size: PAGE_SIZE,
       });
-      setResults((prev) => (append ? [...prev, ...items] : items));
-      setTotalCount(count);
-      setPage(pageToLoad);
-    } catch {
-      setError("Failed to load properties. Is the backend running?");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
+    return request
+      .then(({ items, totalCount: count }) => {
+        setResults((prev) => (append ? [...prev, ...items] : items));
+        setTotalCount(count);
+        setPage(pageToLoad);
+        setError("");
+      })
+      .catch(() => setError("Failed to load properties. Is the backend running?"))
+      .finally(() => {
+        setLoadedSearch(searchKey);
+        setLoadingMore(false);
+      });
   }, [
     listingType, city, suburb, bedrooms, bathrooms, minPrice, maxPrice, diasporaFriendly,
     solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
-    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, isStay, checkIn, checkOut, guests,
+    parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, isStay, checkIn, checkOut, guests, searchKey,
+    // State setters never change; listed because the compiler infers them from the promise callbacks.
+    setError, setLoadedSearch,
   ]);
 
   // Any filter change starts a fresh search from page 0.
@@ -323,7 +332,10 @@ function PropertiesContent() {
     fetchPage(0, false);
   }, [fetchPage]);
 
-  const handleLoadMore = () => fetchPage(page + 1, true);
+  const handleLoadMore = () => {
+    setLoadingMore(true);
+    fetchPage(page + 1, true);
+  };
 
   // Keep the URL in sync with the active search so results are shareable and the
   // browser back/forward buttons move between prior searches.

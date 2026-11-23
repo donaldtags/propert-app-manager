@@ -119,7 +119,7 @@ export default function SubscriptionPage() {
     setCheckoutProvider(provider);
     try {
       const checkout = await subscriptionsApi.checkout(plan, provider, token);
-      window.location.href = checkout.redirectUrl;
+      window.location.assign(checkout.redirectUrl);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not start checkout.");
       setCheckoutProvider(null);

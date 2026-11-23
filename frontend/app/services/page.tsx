@@ -60,8 +60,14 @@ function ServicesMarketplaceContent() {
 
   const [myBookings, setMyBookings] = useState<ServiceBooking[]>([]);
 
-  useEffect(() => {
+  // Changing the category is what starts a new load, so the spinner is turned on there.
+  const chooseCategory = (next: VendorCategory | "") => {
+    if (next === category) return;
+    setCategory(next);
     setLoading(true);
+  };
+
+  useEffect(() => {
     vendorsApi.list(category ? { category } : {})
       .then(setVendorList)
       .catch(() => setError("Failed to load service providers."))
@@ -126,7 +132,7 @@ function ServicesMarketplaceContent() {
       {/* Category filter */}
       <div className="flex flex-wrap gap-2 mb-6">
         <button
-          onClick={() => setCategory("")}
+          onClick={() => chooseCategory("")}
           className={`text-sm font-medium px-3 py-1.5 rounded-full border transition-colors ${
             category === "" ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
           }`}
@@ -139,7 +145,7 @@ function ServicesMarketplaceContent() {
           return (
             <button
               key={c}
-              onClick={() => setCategory(c)}
+              onClick={() => chooseCategory(c)}
               className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-colors ${
                 category === c ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 hover:border-gray-400"
               }`}

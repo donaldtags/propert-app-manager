@@ -17,11 +17,13 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Close the profile menu whenever the route changes, so it never lingers open on a new page.
-  useEffect(() => {
+  // Close both menus whenever the route changes, so neither lingers open on a new page.
+  const [menusPath, setMenusPath] = useState(pathname);
+  if (menusPath !== pathname) {
+    setMenusPath(pathname);
     setProfileOpen(false);
     setMenuOpen(false);
-  }, [pathname]);
+  }
 
   // Escape closes either menu and hands focus back to what opened it.
   useEffect(() => {

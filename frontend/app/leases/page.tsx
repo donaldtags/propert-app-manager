@@ -93,7 +93,6 @@ export default function LeasesPage() {
 
   useEffect(() => {
     if (!canManageLeases || !user || !token) return;
-    setPickersLoading(true);
     Promise.allSettled([propertiesApi.list(), usersApi.search({ role: "TENANT" }, token)])
       .then(([propertiesResult, tenantsResult]) => {
         if (propertiesResult.status === "fulfilled") {
@@ -108,24 +107,23 @@ export default function LeasesPage() {
       .finally(() => setPickersLoading(false));
   }, [user, canManageLeases]);
 
+  // leasesLoading starts true for the first fetch; refreshes keep the current list until the new one lands.
   const loadLeases = async () => {
     if (!user || !token) return;
-    setLeasesLoading(true);
-    try {
-      const isTenant = user.roles?.includes("TENANT");
-      const isLandlord = user.roles?.includes("LANDLORD");
-      const isAgent = user.roles?.includes("AGENT");
-      const results = await Promise.allSettled([
-        isTenant ? leasesApi.listByTenant(user.id, token) : Promise.resolve([] as Lease[]),
-        isLandlord ? leasesApi.listByLandlord(user.id, token) : Promise.resolve([] as Lease[]),
-        isAgent ? leasesApi.listByAgent(user.id, token) : Promise.resolve([] as Lease[]),
-      ]);
-      const all: Lease[] = [];
-      results.forEach((r) => { if (r.status === "fulfilled") all.push(...r.value); });
-      const unique = all.filter((l, i, arr) => arr.findIndex((x) => x.id === l.id) === i);
-      setLeaseList(unique);
-    } catch {}
-    setLeasesLoading(false);
+    const isTenant = user.roles?.includes("TENANT");
+    const isLandlord = user.roles?.includes("LANDLORD");
+    const isAgent = user.roles?.includes("AGENT");
+    return Promise.allSettled([
+      isTenant ? leasesApi.listByTenant(user.id, token) : Promise.resolve([] as Lease[]),
+      isLandlord ? leasesApi.listByLandlord(user.id, token) : Promise.resolve([] as Lease[]),
+      isAgent ? leasesApi.listByAgent(user.id, token) : Promise.resolve([] as Lease[]),
+    ])
+      .then((results) => {
+        const all: Lease[] = [];
+        results.forEach((r) => { if (r.status === "fulfilled") all.push(...r.value); });
+        setLeaseList(all.filter((l, i, arr) => arr.findIndex((x) => x.id === l.id) === i));
+      })
+      .finally(() => setLeasesLoading(false));
   };
 
   useEffect(() => { loadLeases(); }, [user, token]);
@@ -306,7 +304,7 @@ export default function LeasesPage() {
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900">Auto-fill from an existing lease document</p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Upload a signed lease (PDF, scan, or Word doc) and EstateX's AI will read the dates, rent, and
+                  Upload a signed lease (PDF, scan, or Word doc) and EstateX&apos;s AI will read the dates, rent, and
                   deposit into the form below.
                 </p>
                 <input

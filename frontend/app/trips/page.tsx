@@ -51,7 +51,7 @@ export default function TripsPage() {
     act(b.id, async () => {
       const checkout = await staysApi.pay(b.id, provider, token!);
       // A wallet payment is already done: stay here and let the list refresh to "Confirmed".
-      if (provider !== "wallet") window.location.href = checkout.redirectUrl;
+      if (provider !== "wallet") window.location.assign(checkout.redirectUrl);
     });
 
   if (loading || !user || trips === null) return error ? <p className="p-6 text-red-600">{error}</p> : <PageLoader />;

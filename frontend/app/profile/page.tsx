@@ -73,24 +73,26 @@ export default function ProfilePage() {
     }
   }, [user, token]);
 
-  useEffect(() => {
-    if (user) {
-      setForm({
-        fullName: user.fullName ?? "",
-        phone: user.phone ?? "",
-        city: user.city ?? "",
-        country: user.country ?? "",
-        bio: user.bio ?? "",
-        occupation: user.occupation ?? "",
-        diasporaLocation: user.diasporaLocation ?? "",
-        preferredCurrency: user.preferredCurrency ?? "USD",
-        emergencyContactName: user.emergencyContactName ?? "",
-        emergencyContactPhone: user.emergencyContactPhone ?? "",
-        emailNotifications: user.emailNotifications ?? true,
-        smsNotifications: user.smsNotifications ?? true,
-      });
-    }
-  }, [user]);
+  // Refill the form whenever the signed-in user loads or is updated (React's "adjust state when a
+  // prop changes" pattern, which avoids an extra render pass through an effect).
+  const [formUser, setFormUser] = useState<typeof user>(null);
+  if (user && user !== formUser) {
+    setFormUser(user);
+    setForm({
+      fullName: user.fullName ?? "",
+      phone: user.phone ?? "",
+      city: user.city ?? "",
+      country: user.country ?? "",
+      bio: user.bio ?? "",
+      occupation: user.occupation ?? "",
+      diasporaLocation: user.diasporaLocation ?? "",
+      preferredCurrency: user.preferredCurrency ?? "USD",
+      emergencyContactName: user.emergencyContactName ?? "",
+      emergencyContactPhone: user.emergencyContactPhone ?? "",
+      emailNotifications: user.emailNotifications ?? true,
+      smsNotifications: user.smsNotifications ?? true,
+    });
+  }
 
   const handleSave = async () => {
     if (!user || !token) return;
