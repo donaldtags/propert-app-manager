@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
@@ -51,6 +51,18 @@ function ReturnContent() {
     if (user && token) check();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, token]);
+
+  // Paynow often sends people back before EcoCash/OneMoney has confirmed, so keep asking on our
+  // own for a couple of minutes instead of waiting for a "Check again" tap.
+  const autoChecks = useRef(0);
+  useEffect(() => {
+    if (payment?.status !== "INITIATED" || checking || error || autoChecks.current >= 24) return;
+    const t = setTimeout(() => {
+      autoChecks.current += 1;
+      check();
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [payment?.status, checking, error, check]);
 
   if (authLoading || (checking && !payment)) return <PageLoader />;
 
@@ -112,6 +124,7 @@ function ReturnContent() {
             {payment.provider === "paynow"
               ? "Mobile money confirmations can take a minute or two. If you've completed the payment, check again shortly."
               : "We haven't heard back from the payment provider yet. If you completed the payment, check again shortly."}
+            {" "}This page checks again on its own every few seconds.
           </p>
           <button
             onClick={check}

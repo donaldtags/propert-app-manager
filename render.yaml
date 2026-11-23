@@ -61,6 +61,20 @@ services:
         sync: false
       - key: S3_REGION
         sync: false
+      # Payments: Paynow (EcoCash, OneMoney, Zimswitch, cards) and Stripe (international cards).
+      # Without them, checkout answers "not configured yet"; pay-from-wallet still works.
+      - key: PAYNOW_INTEGRATION_ID
+        sync: false
+      - key: PAYNOW_INTEGRATION_KEY
+        sync: false
+      - key: PAYNOW_AUTH_EMAIL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: APP_2FA_ENCRYPTION_KEY
+        sync: false
 
   - type: web
     name: primenest-frontend
