@@ -26,14 +26,17 @@ public class PaynowGateway implements PaymentGateway {
     private final String integrationId;
     private final String integrationKey;
     private final String backendBaseUrl;
+    private final String authEmail;
 
     public PaynowGateway(
             @Value("${app.payments.paynow.integration-id:}") String integrationId,
             @Value("${app.payments.paynow.integration-key:}") String integrationKey,
-            @Value("${app.public-base-url:http://localhost:8081}") String backendBaseUrl
+            @Value("${app.public-base-url:http://localhost:8081}") String backendBaseUrl,
+            @Value("${app.payments.paynow.auth-email:}") String authEmail
     ) {
         this.integrationId = integrationId;
         this.integrationKey = integrationKey;
+        this.authEmail = authEmail == null ? "" : authEmail.trim();
         this.backendBaseUrl = backendBaseUrl.replaceAll("/+$", "");
     }
 
@@ -56,7 +59,10 @@ public class PaynowGateway implements PaymentGateway {
         Paynow paynow = client();
         paynow.setReturnUrl(returnUrl);
         try {
-            zw.co.paynow.core.Payment paynowPayment = paynow.createPayment(payment.getReference());
+            String email = authEmailFor(payment);
+            zw.co.paynow.core.Payment paynowPayment = email == null
+                    ? paynow.createPayment(payment.getReference())
+                    : paynow.createPayment(payment.getReference(), email);
             String label = payment.getPurpose() == null || payment.getPurpose().isBlank() ? "EstateX payment" : payment.getPurpose();
             paynowPayment.add(label, payment.getAmount().doubleValue());
             WebInitResponse response = paynow.send(paynowPayment);
@@ -69,6 +75,17 @@ public class PaynowGateway implements PaymentGateway {
         } catch (Exception e) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Could not reach Paynow: " + e.getMessage());
         }
+    }
+
+    /**
+     * Paynow's "authemail". While an integration is in test mode Paynow only accepts the merchant
+     * account's own email, so PAYNOW_AUTH_EMAIL (when set) is always used. In live mode it can be
+     * left unset and the payer's email is sent, so Paynow can send them its receipt.
+     */
+    private String authEmailFor(Payment payment) {
+        if (!authEmail.isBlank()) return authEmail;
+        String payerEmail = payment.getPayer() == null ? null : payment.getPayer().getEmail();
+        return payerEmail == null || payerEmail.isBlank() ? null : payerEmail;
     }
 
     @Override

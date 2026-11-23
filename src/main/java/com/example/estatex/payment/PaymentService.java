@@ -113,7 +113,8 @@ public class PaymentService {
         // this call often runs moments after create() in the same transaction as another
         // service's pessimistic-locked read (e.g. investment checkout locks a Reit row) - an
         // entity-graph query here on top of that has triggered a Hibernate NPE in practice.
-        Payment payment = payments.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Payment not found"));
+        // The row lock also stops a double-clicked "Pay from wallet" from completing twice.
+        Payment payment = lockForUpdate(id);
         if (!payment.getPayer().getId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the payer can start checkout for this payment");
         }
@@ -165,6 +166,7 @@ public class PaymentService {
      * it works without a publicly reachable webhook URL (fine for local/dev). */
     @Transactional
     public PaymentDtos.PaymentResponse confirmCheckout(Long id, AppUser currentUser) {
+        lockForUpdate(id);
         Payment payment = requireVisible(id, currentUser);
         if (payment.getStatus() != PaymentStatus.SUCCESSFUL) {
             PaymentGateway gateway = gatewaysById.get(payment.getProvider());
@@ -193,7 +195,7 @@ public class PaymentService {
         if (outcome == null) {
             return;
         }
-        payments.findByProviderReference(outcome.providerReference()).ifPresent(payment -> {
+        payments.findIdByProviderReference(outcome.providerReference()).map(this::lockForUpdate).ifPresent(payment -> {
             if (payment.getStatus() == PaymentStatus.SUCCESSFUL) {
                 return;
             }
@@ -204,6 +206,10 @@ public class PaymentService {
                 payment.setStatus(PaymentStatus.FAILED);
             }
         });
+    }
+
+    private Payment lockForUpdate(Long id) {
+        return payments.findByIdForUpdate(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Payment not found"));
     }
 
     @Transactional(readOnly = true)
@@ -260,6 +266,7 @@ public class PaymentService {
 
     @Transactional
     public Payment markSuccessful(Long id, AppUser currentUser) {
+        lockForUpdate(id);
         Payment payment = require(id);
         if (!payment.getPayee().getId().equals(currentUser.getId()) && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the payee can confirm this payment as successful");

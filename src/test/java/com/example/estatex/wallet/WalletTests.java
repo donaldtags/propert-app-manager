@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.estatex.common.ApiException;
+import com.example.estatex.investment.InvestmentRepository;
 import com.example.estatex.investment.InvestmentService;
 import com.example.estatex.investment.Reit;
 import com.example.estatex.investment.ReitRepository;
@@ -65,6 +66,7 @@ class WalletTests {
     @Autowired private PaymentService paymentService;
     @Autowired private InvestmentService investmentService;
     @Autowired private ReitRepository reits;
+    @Autowired private InvestmentRepository investments;
 
     private TestAccounts accounts;
 
@@ -182,6 +184,39 @@ class WalletTests {
         assertEquals(3, succeeded, "only three $30 spends fit in $100");
         assertBalance(user, "10.00");
         assertTrue(walletService.balanceMatchesLedger(walletService.find(user.id(), "USD").orElseThrow().getId()));
+    }
+
+    // --- confirming a gateway payment ---------------------------------------------------------
+
+    @Test
+    void simultaneousConfirmationsCompleteAPaymentOnlyOnce() throws Exception {
+        // Paynow's callback and the browser's return-page poll routinely land together. Each must
+        // see the other's result, or the REIT units would be issued twice for one payment.
+        Account investor = accounts.register("Buyer " + System.nanoTime(), UserRole.INVESTOR);
+        Reit reit = reits.findByActiveTrue().get(0);
+        BigDecimal soldBefore = reits.findById(reit.getId()).orElseThrow().getUnitsSold();
+        long paymentId = json(call(post("/api/v1/investments/checkout"), investor,
+                "{\"reitId\": %d, \"units\": 3, \"provider\": \"testpay\"}".formatted(reit.getId()))
+                .andExpect(status().isOk())).path("paymentId").asLong();
+        FakeGateway.STATUS.put("tp-" + paymentId, GatewayStatus.PAID);
+
+        var payer = userService.require(investor.id());
+        ExecutorService pool = Executors.newFixedThreadPool(6);
+        List<Callable<Void>> confirmations = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            boolean viaWebhook = i % 2 == 0;
+            confirmations.add(() -> {
+                if (viaWebhook) paymentService.handleWebhook("testpay", "tp-" + paymentId, Map.of());
+                else paymentService.confirmCheckout(paymentId, payer);
+                return null;
+            });
+        }
+        for (Future<Void> f : pool.invokeAll(confirmations)) f.get();
+        pool.shutdown();
+
+        assertEquals(1, investments.findByInvestor(payer).size(), "one purchase, one holding");
+        assertEquals(0, soldBefore.add(new BigDecimal("3"))
+                .compareTo(reits.findById(reit.getId()).orElseThrow().getUnitsSold()), "units sold rises by 3, not 6+");
     }
 
     // --- payouts -------------------------------------------------------------------------------
