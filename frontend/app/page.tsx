@@ -50,7 +50,7 @@ export default function HomePage() {
             { href: "/properties?listingType=SALE", icon: Home, title: "Buy a home", desc: "Houses, flats and land" },
             { href: "/properties?listingType=SHORT_STAY", icon: BedDouble, title: "Book a stay", desc: "Nightly BnB stays" },
             { href: "/properties/new", icon: Building2, title: "List my property", desc: "Rent, sell or host" },
-            { href: "/investments", icon: TrendingUp, title: "Invest", desc: "REIT units from $10" },
+            { href: "/investments", icon: TrendingUp, title: "Invest", desc: "Property shares from $10" },
           ].map(({ href, icon: Icon, title, desc }, i) => (
             <Link
               key={href}
@@ -74,7 +74,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
           {[
             { icon: CheckCircle, color: "text-brand-600", label: "Verified Listings", desc: "Every property vetted by certified agents" },
-            { icon: Shield, color: "text-brand-600", label: "Escrow Protected", desc: "Deposits held safely until keys are received" },
+            { icon: Shield, color: "text-brand-600", label: "Deposit Protected", desc: "We hold your deposit safely until you get the keys" },
             { icon: Globe, color: "text-amber-600", label: "Diaspora Friendly", desc: "Manage property remotely from abroad" },
             { icon: Zap, color: "text-purple-600", label: "Digital Leases", desc: "Sign legally-binding leases online" },
           ].map(({ icon: Icon, color, label, desc }) => (
@@ -140,8 +140,8 @@ export default function HomePage() {
         <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-80" />
         <h2 className="text-3xl font-bold mb-3">Invest in African Real Estate</h2>
         <p className="text-brand-100 max-w-xl mx-auto mb-6">
-          Buy REIT units starting from $10. Earn projected yields and grow your
-          portfolio across Zimbabwe and beyond.
+          Own a share of income-earning buildings from just $10 and earn from the rent they
+          collect. (These are REIT units: shares in a professionally managed property fund.)
         </p>
         <Link
           href="/investments"

@@ -122,14 +122,14 @@ export default function HeroSearch() {
       </div>
 
       {/* Quick city links */}
-      <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-2 mt-4">
+      <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-0 mt-3">
         <span className="text-white/70 text-sm">Popular:</span>
         {HERO_CITIES.map((city) => (
           <button
             key={city}
             type="button"
             onClick={() => go(city)}
-            className="text-white/90 hover:text-white text-sm underline underline-offset-2 transition-colors"
+            className="text-white/90 hover:text-white text-sm underline underline-offset-2 transition-colors py-2"
           >
             {city}
           </button>

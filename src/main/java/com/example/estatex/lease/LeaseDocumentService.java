@@ -102,13 +102,13 @@ public class LeaseDocumentService {
     }
 
     private LeaseDocument saveOne(Lease lease, AppUser currentUser, MultipartFile file, LeaseDocumentType documentType) {
-        validate(file);
+        String mediaType = validate(file);
         String originalName = file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()
                 ? "document"
                 : Path.of(file.getOriginalFilename()).getFileName().toString();
         Path target = storageRoot
                 .resolve(String.valueOf(lease.getId()))
-                .resolve(UUID.randomUUID() + "-" + originalName);
+                .resolve(UUID.randomUUID() + com.example.estatex.common.FileSignature.extension(mediaType));
         try {
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
@@ -120,8 +120,9 @@ public class LeaseDocumentService {
         document.setUser(currentUser);
         document.setDocumentType(documentType);
         document.setFileName(originalName);
-        document.setContentType(file.getContentType());
+        document.setContentType(mediaType);
         document.setFileSize(file.getSize());
+        document.setSha256(com.example.estatex.common.FileSignature.sha256(file));
         document.setStoragePath(target.toString());
         document.setStorageKey(target.toString());
         return documents.save(document);
@@ -132,16 +133,16 @@ public class LeaseDocumentService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lease document not found"));
     }
 
-    private void validate(MultipartFile file) {
+    /** Returns the file's real type, read from its bytes. */
+    private String validate(MultipartFile file) {
         if (file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Uploaded file is empty");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "File size must be 8MB or less");
         }
-        if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only PDF, Word (.doc/.docx), PNG, and JPEG files are allowed");
-        }
+        return com.example.estatex.common.FileSignature.require(file, ALLOWED_CONTENT_TYPES,
+                "Only PDF, Word (.doc/.docx), PNG, and JPEG files are allowed");
     }
 
     private void assertLeasePartyOrAdmin(Lease lease, AppUser user) {

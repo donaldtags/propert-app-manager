@@ -45,6 +45,14 @@ public class InvestmentController {
         return service.updateReitProperties(id, request, currentUser);
     }
 
+    /** Price breakdown shown before confirming: units x price, EstateX fee, and the total / net. */
+    @GetMapping("/fee-quote")
+    ReitFees.Quote feeQuote(@org.springframework.web.bind.annotation.RequestParam Long reitId,
+                            @org.springframework.web.bind.annotation.RequestParam java.math.BigDecimal units,
+                            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "BUY") String side) {
+        return service.quote(reitId, units, !"SELL".equalsIgnoreCase(side));
+    }
+
     @PostMapping("/checkout")
     PaymentDtos.CheckoutResponse checkout(@Valid @RequestBody InvestmentDtos.CreateInvestmentRequest request, @AuthenticationPrincipal AppUser currentUser) {
         return service.initiateInvestmentCheckout(request, currentUser, request.provider());

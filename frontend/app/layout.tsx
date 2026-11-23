@@ -33,7 +33,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "EstateX – More Than Property. Building Possibilities.",
+  // Pages set a short title of their own ("Sign in", a property's name); the template adds the brand.
+  title: { default: "EstateX – More Than Property. Building Possibilities.", template: "%s · EstateX" },
   description:
     "Verified property listings, escrow-protected deposits, digital leases and agency tools for Zimbabwe and the diaspora.",
   applicationName: "EstateX",

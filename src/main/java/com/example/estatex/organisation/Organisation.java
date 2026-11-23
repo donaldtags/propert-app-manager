@@ -81,6 +81,22 @@ public class Organisation {
     private int lettingFeeMonthsX100 = 100;
 
     private boolean active = true;
+
+    /**
+     * EstateX's review of a self-registered company: PENDING until staff approve it, then APPROVED
+     * (or REJECTED). Null on rows created before self sign-up existed - those were set up by staff
+     * and count as approved. While not approved the workspace works, but nothing is public.
+     */
+    @Column(length = 20) private String approvalStatus;
+    @Column(length = 1000) private String approvalNote;
+    private Instant approvalDecidedAt;
+    private Long approvalDecidedByUserId;
+    private Long createdByUserId;
+
+    public boolean isApproved() {
+        return approvalStatus == null || "APPROVED".equals(approvalStatus);
+    }
+
     private Instant createdAt = Instant.now();
     private Instant updatedAt;
 

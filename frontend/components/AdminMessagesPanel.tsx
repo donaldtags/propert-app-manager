@@ -97,7 +97,7 @@ export default function AdminMessagesPanel({
     }
   };
 
-  const userOptions = allUsers.map((u) => ({ id: u.id, label: u.fullName, sublabel: u.email }));
+  const userOptions = allUsers.map((u) => ({ id: u.id, label: u.fullName, sublabel: u.email ?? u.phone ?? undefined }));
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex h-[70vh]">

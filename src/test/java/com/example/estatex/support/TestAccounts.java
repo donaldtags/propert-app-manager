@@ -75,6 +75,40 @@ public final class TestAccounts {
         return prefix + "-" + SEQUENCE.incrementAndGet();
     }
 
+    /** Tiny valid PNG (signature + IHDR) - enough for the upload's file-type check. */
+    private static final byte[] PNG = {
+            (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R', 0, 0, 0, 1, 0, 0, 0, 1
+    };
+    private static final AtomicInteger ID_SEQUENCE = new AtomicInteger(1_000_000);
+
+    /**
+     * Puts {@code who} through the real ID check: uploads ID front/back and selfies, then an admin
+     * approves it after confirming every manual check. Afterwards who.identityVerified is true.
+     */
+    public void verifyIdentity(Account who, String fullName, Account admin) throws Exception {
+        String idNumber = "63-" + ID_SEQUENCE.incrementAndGet() + " F 42";
+        var request = org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/v1/kyc/submissions")
+                .file(new org.springframework.mock.web.MockMultipartFile("files", "front.png", "image/png", PNG))
+                .file(new org.springframework.mock.web.MockMultipartFile("files", "back.png", "image/png", PNG))
+                .file(new org.springframework.mock.web.MockMultipartFile("files", "selfie.png", "image/png", PNG))
+                .file(new org.springframework.mock.web.MockMultipartFile("files", "selfie-id.png", "image/png", PNG))
+                .param("legalFullName", fullName)
+                .param("dateOfBirth", "1990-05-17")
+                .param("nationalIdNumber", idNumber)
+                .param("idDocumentType", "NATIONAL_ID")
+                .param("documentTypes", "ID_FRONT", "ID_BACK", "SELFIE", "SELFIE_WITH_ID")
+                .header("Authorization", who.bearer());
+        long submissionId = json(mvc.perform(request).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).path("id").asLong();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/v1/kyc/submissions/" + submissionId + "/review")
+                        .header("Authorization", admin.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\": \"APPROVED\", \"confirmedChecks\": "
+                                + "[\"NAME_MATCHES\", \"NUMBER_MATCHES\", \"FACE_MATCHES\", \"DOCUMENT_GENUINE\"]}"))
+                .andExpect(status().isOk());
+    }
+
     private static String phone() {
         return "+26371" + String.format("%07d", SEQUENCE.incrementAndGet());
     }

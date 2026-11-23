@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { dashboards, properties as propertiesApi, featuredListings } from "@/lib/api";
-import type { LandlordDashboard, FeaturedListingSettings } from "@/lib/types";
+import type { LandlordDashboard, FeaturedListingSettings, CheckoutProvider } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 import {
@@ -66,7 +66,7 @@ export default function FeaturedListingsPage() {
 
   const ownProperties = dashboard?.properties ?? [];
 
-  const handleFeatureCheckout = async (propertyId: number, provider: "paynow" | "stripe") => {
+  const handleFeatureCheckout = async (propertyId: number, provider: CheckoutProvider) => {
     if (!token) return;
     setError(""); setSuccess("");
     setCheckoutProvider(provider);
@@ -155,6 +155,7 @@ export default function FeaturedListingsPage() {
                   <div className="w-64 shrink-0">
                     <PaymentProviderPicker
                       loadingProvider={checkoutProvider}
+                      walletAmount={settings?.price}
                       onChoose={(provider) => handleFeatureCheckout(prop.id, provider)}
                     />
                     {!checkoutProvider && (

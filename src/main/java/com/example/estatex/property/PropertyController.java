@@ -37,8 +37,16 @@ public class PropertyController {
     private final PropertyService service;
     private final PropertyPassportService passportService;
     private final SubscriptionService subscriptions;
+    private final com.example.estatex.stay.StayBookingRepository stayBookings;
 
-    public PropertyController(PropertyService service, PropertyPassportService passportService, SubscriptionService subscriptions) {
+    /** Bookings that have been paid for: the guest needs the address to arrive. */
+    private static final List<String> GUEST_ADDRESS_STATUSES = List.of(
+            com.example.estatex.stay.StayBookingStatus.CONFIRMED.name(),
+            com.example.estatex.stay.StayBookingStatus.COMPLETED.name());
+
+    public PropertyController(PropertyService service, PropertyPassportService passportService, SubscriptionService subscriptions,
+                              com.example.estatex.stay.StayBookingRepository stayBookings) {
+        this.stayBookings = stayBookings;
         this.service = service;
         this.passportService = passportService;
         this.subscriptions = subscriptions;
@@ -109,7 +117,7 @@ public class PropertyController {
                     diasporaFriendly, solarInstalled, backupPower, waterSource, furnished, internetAvailable, securityFeatures,
                     parkingAvailable, petsAllowed, verifiedOnly, escrowAvailable, resolvedPage, resolvedSize);
             return new PropertySearchCache.CachedPage(
-                    results.getContent().stream().map(PropertyResponse::from).toList(), results.getTotalElements());
+                    results.getContent().stream().map(PropertyResponse::publicView).toList(), results.getTotalElements());
         });
         return ResponseEntity.ok()
                 .header("X-Total-Count", String.valueOf(cached.total()))
@@ -118,7 +126,17 @@ public class PropertyController {
 
     @GetMapping("/{id}")
     PropertyResponse get(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
-        return PropertyResponse.from(service.requireVisible(id, currentUser));
+        Property property = service.requireVisible(id, currentUser);
+        return PropertyResponse.from(property, canSeeAddress(property, currentUser));
+    }
+
+    private boolean canSeeAddress(Property property, AppUser viewer) {
+        if (property.getListingType() != ListingType.SHORT_STAY) return true;
+        if (viewer == null) return false;
+        if (viewer.hasPermission(Permission.ADMIN_OVERRIDE)) return true;
+        if (property.getLandlord() != null && viewer.getId().equals(property.getLandlord().getId())) return true;
+        if (property.getAgent() != null && viewer.getId().equals(property.getAgent().getId())) return true;
+        return stayBookings.existsByPropertyIdAndGuestIdAndStatusCodeIn(property.getId(), viewer.getId(), GUEST_ADDRESS_STATUSES);
     }
 
     @GetMapping("/{id}/passport")
@@ -148,12 +166,20 @@ public class PropertyController {
             @RequestBody PropertyDtos.UpdatePropertyRequest request,
             @AuthenticationPrincipal AppUser currentUser
     ) {
+        // "Deposit protected" is a paid feature: switching it on later is checked the same way as at create.
+        if (Boolean.TRUE.equals(request.escrowRequired())
+                && !currentUser.hasPermission(com.example.estatex.user.Permission.ADMIN_OVERRIDE)
+                && !subscriptions.hasFeature(service.require(id).getLandlord(), SubscriptionFeature.ESCROW)) {
+            throw new com.example.estatex.common.ApiException(org.springframework.http.HttpStatus.PAYMENT_REQUIRED,
+                    "Deposit protection is part of the Growth and Professional plans. Upgrade to turn it on.");
+        }
         return PropertyResponse.from(service.update(id, request, currentUser));
     }
 
     @PatchMapping("/{id}/verify")
-    PropertyResponse verify(@PathVariable Long id, @Valid @RequestBody PropertyDtos.VerifyPropertyRequest request) {
-        return PropertyResponse.from(service.verify(id, request));
+    PropertyResponse verify(@PathVariable Long id, @Valid @RequestBody PropertyDtos.VerifyPropertyRequest request,
+                            @AuthenticationPrincipal AppUser currentUser) {
+        return PropertyResponse.from(service.verify(id, request, currentUser));
     }
 
     @PostMapping("/{id}/inquiries")

@@ -307,6 +307,8 @@ function EscrowContent() {
                 <PaymentProviderPicker
                   loadingProvider={funding ? fundingChannel || null : null}
                   onChoose={(provider) => {
+                    // Escrow deposits go through a gateway; the wallet option isn't offered here.
+                    if (provider === "wallet") return;
                     setFundingChannel(provider);
                     handleGatewayCheckout(e.id, provider);
                   }}

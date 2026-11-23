@@ -50,6 +50,10 @@ public class LeaseDocument {
     @Column(nullable = false)
     private Long fileSize;
 
+    /** SHA-256 of the file as uploaded: proves later that the stored file hasn't been swapped. */
+    @Column(length = 64)
+    private String sha256;
+
     @Column(nullable = false, length = 1000)
     private String storagePath;
 

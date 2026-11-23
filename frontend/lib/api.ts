@@ -9,6 +9,10 @@ import type {
   PropertySearchParams,
   User,
   AuthResponse,
+  LoginResponse,
+  TwoFactorMethod,
+  TwoFactorStatus,
+  TotpSetup,
   Lease,
   Escrow,
   Payment,
@@ -98,6 +102,11 @@ import type {
   PricingSuggestion,
   SellerReportSummary,
   BuyingTimeline,
+  CheckoutProvider,
+  WalletSummary,
+  WalletWithdrawal,
+  WithdrawalRequest,
+  WithdrawalStatus,
 } from "./types";
 
 export const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -115,7 +124,7 @@ export function isNetworkError(e: unknown): boolean {
   return e instanceof TypeError || (e instanceof Error && /Failed to fetch|NetworkError|Load failed|fetch failed/i.test(e.message));
 }
 
-async function request<T>(
+export async function request<T>(
   path: string,
   options: RequestInit = {},
   token?: string
@@ -147,29 +156,62 @@ async function request<T>(
 export const auth = {
   register: (data: {
     fullName: string;
-    email: string;
+    /** Optional when a phone number is given. */
+    email?: string;
     phone?: string;
     password: string;
     country?: string;
     roles?: string[];
+    deviceId?: string;
   }) => request<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(data) }),
 
-  login: (data: { identifier: string; password: string }) =>
-    request<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+  /** A session, or a two-step challenge to answer with verifyTwoFactor. */
+  login: (data: { identifier: string; password: string; deviceId?: string }) =>
+    request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+
+  verifyTwoFactor: (data: { challengeToken: string; code: string; method: TwoFactorMethod; deviceId?: string }) =>
+    request<AuthResponse>("/auth/2fa/verify", { method: "POST", body: JSON.stringify(data) }),
+
+  /** "Text me a code instead" while signing in. */
+  sendLoginCode: (challengeToken: string) =>
+    request<{ message: string }>("/auth/2fa/sms/send", { method: "POST", body: JSON.stringify({ challengeToken }) }),
 
   logout: (token: string) =>
     request<void>("/auth/logout", { method: "POST" }, token),
 
+  /** Signs out every device, this one included. */
+  logoutAll: (token: string) =>
+    request<{ message: string }>("/auth/logout-all", { method: "POST" }, token),
+
   me: (token: string) => request<User>("/auth/me", {}, token),
 
-  forgotPassword: (email: string) =>
-    request<void>("/auth/forgot-password", {
+  /** Email -> a reset link; phone number -> a texted code. */
+  forgotPassword: (identifier: string) =>
+    request<{ message: string }>("/auth/forgot-password", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ identifier }),
     }),
 
-  resetPassword: (data: { token: string; password: string }) =>
-    request<void>("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
+  /** With the emailed link's token, or with the phone number and texted code. */
+  resetPassword: (data: { token?: string; identifier?: string; code?: string; password: string }) =>
+    request<{ message: string }>("/auth/reset-password", { method: "POST", body: JSON.stringify(data) }),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }, token: string) =>
+    request<{ message: string }>("/auth/change-password", { method: "POST", body: JSON.stringify(data) }, token),
+
+  twoFactor: {
+    status: (token: string) => request<TwoFactorStatus>("/auth/2fa", {}, token),
+    startApp: (token: string) => request<TotpSetup>("/auth/2fa/totp/start", { method: "POST" }, token),
+    confirmApp: (code: string, token: string) =>
+      request<{ backupCodes: string[] }>("/auth/2fa/totp/confirm", { method: "POST", body: JSON.stringify({ code }) }, token),
+    startSms: (token: string) => request<{ message: string }>("/auth/2fa/sms/start", { method: "POST" }, token),
+    confirmSms: (code: string, token: string) =>
+      request<{ backupCodes: string[] }>("/auth/2fa/sms/confirm", { method: "POST", body: JSON.stringify({ code }) }, token),
+    sendDisableCode: (token: string) =>
+      request<{ message: string }>("/auth/2fa/disable/code", { method: "POST" }, token),
+    disable: (data: { password: string; code: string; method: TwoFactorMethod }, token: string) =>
+      request<{ message: string }>("/auth/2fa/disable", { method: "POST", body: JSON.stringify(data) }, token),
+  },
 };
 
 // Properties
@@ -230,7 +272,8 @@ export const properties = {
     return { items, totalCount };
   },
 
-  get: (id: number) => request<Property>(`/properties/${id}`),
+  /** Pass the token when signed in: owners, agents and booked guests get details others don't (a short stay's address). */
+  get: (id: number, token?: string | null) => request<Property>(`/properties/${id}`, {}, token ?? undefined),
 
   geocode: (params: { address?: string; suburb?: string; city?: string; country?: string }, token: string) => {
     const q = new URLSearchParams();
@@ -273,7 +316,7 @@ export const properties = {
     token: string
   ) => request<Property>("/properties", { method: "POST", body: JSON.stringify(data) }, token),
 
-  verify: (id: number, data: { verifierId: number; note?: string }, token: string) =>
+  verify: (id: number, data: { approved?: boolean; note?: string }, token: string) =>
     request<Property>(`/properties/${id}/verify`, { method: "PATCH", body: JSON.stringify(data) }, token),
 
   update: (
@@ -405,8 +448,9 @@ export const users = {
   landlordProfile: (id: number, token: string) =>
     request<LandlordProfile>(`/users/${id}/landlord-profile`, {}, token),
 
-  landlordPassport: (id: number) =>
-    request<LandlordPassport>(`/users/${id}/landlord-passport`),
+  /** Public only for people with listings; send the token to see your own before your first listing. */
+  landlordPassport: (id: number, token?: string) =>
+    request<LandlordPassport>(`/users/${id}/landlord-passport`, {}, token),
 
   tenantPassport: (id: number, token: string) =>
     request<TenantPassport>(`/users/${id}/tenant-passport`, {}, token),
@@ -545,7 +589,16 @@ export const kyc = {
     return res.blob();
   },
 
-  review: (id: number, data: { status: string; reviewNote?: string }, token: string) =>
+  availableChecks: (token: string) =>
+    request<{ zimbabweRegister: boolean; internationalPhotoId: boolean }>("/kyc/checks/available", {}, token),
+
+  startDocumentCheck: (token: string) =>
+    request<{ url: string; checkId: number }>("/kyc/document-check", { method: "POST" }, token),
+
+  recheckRegistry: (id: number, token: string) =>
+    request<KycSubmission>(`/kyc/submissions/${id}/registry-check`, { method: "POST" }, token),
+
+  review: (id: number, data: { status: string; reviewNote?: string; confirmedChecks?: string[] }, token: string) =>
     request<KycSubmission>(`/kyc/submissions/${id}/review`, { method: "PATCH", body: JSON.stringify(data) }, token),
 };
 
@@ -1465,10 +1518,27 @@ export const stays = {
     request<StayBooking>(`/stays/bookings/${id}/cancel`, { method: "POST", body: JSON.stringify({ note }) }, token),
   markPaid: (id: number, method: string, token: string) =>
     request<StayBooking>(`/stays/bookings/${id}/mark-paid`, { method: "POST", body: JSON.stringify({ method }) }, token),
-  pay: (id: number, provider: "paynow" | "stripe", token: string) =>
+  pay: (id: number, provider: CheckoutProvider, token: string) =>
     request<{ paymentId: number; redirectUrl: string }>(`/stays/bookings/${id}/pay`, { method: "POST", body: JSON.stringify({ provider }) }, token),
   block: (propertyId: number, data: { start: string; end: string; note?: string }, token: string) =>
     request<StayBlock>(`/stays/${propertyId}/blocks`, { method: "POST", body: JSON.stringify(data) }, token),
   unblock: (propertyId: number, blockId: number, token: string) =>
     request<void>(`/stays/${propertyId}/blocks/${blockId}`, { method: "DELETE" }, token),
+};
+
+export const wallet = {
+  get: (token: string, page = 0, size = 20, currency = "USD") =>
+    request<WalletSummary>(`/wallet?currency=${currency}&page=${page}&size=${size}`, {}, token),
+  /** Starts a Paynow/card checkout; the balance goes up once the provider confirms it. */
+  topUp: (amount: number, provider: "paynow" | "stripe", token: string, currency = "USD") =>
+    request<CheckoutResponse>("/wallet/top-ups", { method: "POST", body: JSON.stringify({ amount, provider, currency }) }, token),
+  withdraw: (data: WithdrawalRequest, token: string) =>
+    request<WalletWithdrawal>("/wallet/withdrawals", { method: "POST", body: JSON.stringify(data) }, token),
+  withdrawals: (token: string) => request<WalletWithdrawal[]>("/wallet/withdrawals", {}, token),
+  admin: {
+    withdrawals: (token: string, status?: WithdrawalStatus) =>
+      request<WalletWithdrawal[]>(`/admin/wallet/withdrawals${status ? `?status=${status}` : ""}`, {}, token),
+    decide: (id: number, data: { action: "PAID" | "REJECTED"; reference?: string; reason?: string }, token: string) =>
+      request<WalletWithdrawal>(`/admin/wallet/withdrawals/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
+  },
 };

@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrganisationService {
     /** Fonts the frontend bundles; anything else would silently fall back, so reject it up front. */
     static final Set<String> SUPPORTED_FONTS = Set.of("Montserrat", "Inter", "Geist");
-    private static final Set<String> RESERVED_SLUGS = Set.of("mine", "new", "admin", "api");
+    private static final Set<String> RESERVED_SLUGS = Set.of("mine", "new", "admin", "api", "pending-review");
 
     private final OrganisationRepository organisations;
     private final OrganisationMembershipRepository memberships;
@@ -50,6 +50,10 @@ public class OrganisationService {
         if (currentUser != null) {
             internal = access.context(currentUser, slug).can(OrgPermission.ORG_SETTINGS_EDIT)
                     || isStaffMember(organisation, currentUser);
+        }
+        boolean platformAdmin = currentUser != null && currentUser.hasPermission(Permission.ORGANISATION_MANAGE);
+        if (!organisation.isApproved() && !internal && !platformAdmin) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Organisation not found");
         }
         return OrganisationDtos.OrganisationResponse.from(organisation, internal);
     }
@@ -88,8 +92,20 @@ public class OrganisationService {
 
     @Transactional
     public Organisation create(OrganisationDtos.CreateOrganisationRequest request, AppUser currentUser) {
-        if (currentUser == null || !currentUser.hasPermission(Permission.ORGANISATION_MANAGE)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only platform admins can create organisations");
+        if (currentUser == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Sign in to register a company");
+        }
+        boolean platformAdmin = currentUser.hasPermission(Permission.ORGANISATION_MANAGE);
+        if (!platformAdmin) {
+            // Self sign-up: the company is reviewed by EstateX before anything of it is public.
+            if (request.eacRegistrationNumber() == null || request.eacRegistrationNumber().isBlank()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Enter the company's Estate Agents Council registration number");
+            }
+            if (organisations.countByCreatedByUserIdAndApprovalStatus(currentUser.getId(), "PENDING") > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "You already have a company waiting for approval. We'll let you know as soon as it's reviewed.");
+            }
         }
         String slug = request.slug().toLowerCase();
         if (RESERVED_SLUGS.contains(slug)) {
@@ -103,7 +119,23 @@ public class OrganisationService {
         organisation.setName(request.name().trim());
         organisation.setDivisions(request.divisions() == null || request.divisions().isEmpty()
                 ? EnumSet.of(Division.PROPERTIES) : EnumSet.copyOf(request.divisions()));
+        organisation.setEacRegistrationNumber(blankToNull(request.eacRegistrationNumber()));
+        organisation.setPhone(blankToNull(request.phone()));
+        organisation.setEmail(blankToNull(request.email()));
+        organisation.setAddress(blankToNull(request.address()));
+        organisation.setCreatedByUserId(currentUser.getId());
+        organisation.setApprovalStatus(platformAdmin ? "APPROVED" : "PENDING");
         organisations.save(organisation);
+        if (!platformAdmin) {
+            // The person who registered the company runs its workspace.
+            OrganisationMembership founder = new OrganisationMembership();
+            founder.setOrganisation(organisation);
+            founder.setUser(currentUser);
+            founder.setRoles(EnumSet.of(OrgRole.ORG_ADMIN));
+            founder.setDivisions(EnumSet.copyOf(organisation.getDivisions()));
+            founder.setInvitedByUserId(currentUser.getId());
+            memberships.save(founder);
+        }
         audit.record(currentUser, entry("ORG_CREATED", "Organisation", organisation.getId())
                 .organisation(organisation.getId())
                 .metadata(Map.of("slug", slug, "name", organisation.getName())));
@@ -338,5 +370,55 @@ public class OrganisationService {
             return List.of();
         }
         return List.of(apply.apply(incoming));
+    }
+
+    /** Approved companies, for the public "Agencies" directory. */
+    @Transactional(readOnly = true)
+    public List<Organisation> directory() {
+        return organisations.findPublicDirectory();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Organisation> awaitingApproval(AppUser currentUser) {
+        requirePlatformAdmin(currentUser);
+        return organisations.findByApprovalStatusOrderByCreatedAtAsc("PENDING");
+    }
+
+    /** EstateX staff decide on a self-registered company. Rejections need a reason for the company. */
+    @Transactional
+    public Organisation decideApproval(String slug, boolean approved, String note, AppUser currentUser,
+                                       com.example.estatex.notification.NotificationService notifications) {
+        requirePlatformAdmin(currentUser);
+        Organisation o = access.requireOrganisation(slug);
+        if (!approved && (note == null || note.isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Give the company a reason when rejecting it");
+        }
+        String from = o.isApproved() ? "APPROVED" : o.getApprovalStatus();
+        o.setApprovalStatus(approved ? "APPROVED" : "REJECTED");
+        o.setApprovalNote(note == null || note.isBlank() ? null : note.trim());
+        o.setApprovalDecidedAt(java.time.Instant.now());
+        o.setApprovalDecidedByUserId(currentUser.getId());
+        audit.record(currentUser, entry(approved ? "ORG_APPROVED" : "ORG_REJECTED", "Organisation", o.getId())
+                .organisation(o.getId())
+                .transition(from, o.getApprovalStatus())
+                .metadata(Map.of("note", o.getApprovalNote() == null ? "" : o.getApprovalNote())));
+        if (o.getCreatedByUserId() != null) {
+            users.findById(o.getCreatedByUserId()).ifPresent(founder -> notifications.notify(founder,
+                    com.example.estatex.notification.NotificationType.ACCOUNT_VERIFICATION, o.getId(),
+                    approved ? o.getName() + " is approved" : o.getName() + " needs attention",
+                    approved ? "Your company is now public on EstateX. Listings approved by your PREA can go live."
+                            : "We couldn't approve your company yet: " + o.getApprovalNote()));
+        }
+        return o;
+    }
+
+    private void requirePlatformAdmin(AppUser user) {
+        if (user == null || !user.hasPermission(Permission.ORGANISATION_MANAGE)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only EstateX staff review companies");
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

@@ -86,6 +86,8 @@ public class Mandate {
     @Column(length = 500) private String documentStorageKey;
     @Column(length = 255) private String documentFileName;
     @Column(length = 120) private String documentContentType;
+    /** SHA-256 of the signed mandate as uploaded (tamper evidence). */
+    @Column(length = 64) private String documentSha256;
     private LocalDate ownerSignedOn;
 
     private Long preaSignedOffByUserId;

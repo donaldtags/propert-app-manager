@@ -57,7 +57,7 @@ export default function OrgWorkspaceLayout({ children }: { children: React.React
   useEffect(() => {
     if (loading) return;
     if (!user || !token) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
     startSync(user.id, token);

@@ -153,11 +153,11 @@ export default function StayBookingWidget({ propertyId, isHost }: { propertyId: 
 
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-lg border border-gray-200 px-3 py-2">
-          <p className="text-[11px] font-semibold uppercase text-gray-500">Check-in</p>
+          <p className="text-xs font-semibold text-gray-500">Check-in</p>
           <p className="text-gray-900">{checkIn ? formatStayDate(checkIn, { weekday: "short", day: "numeric", month: "short" }) : "Add date"}</p>
         </div>
         <div className="rounded-lg border border-gray-200 px-3 py-2">
-          <p className="text-[11px] font-semibold uppercase text-gray-500">Check-out</p>
+          <p className="text-xs font-semibold text-gray-500">Check-out</p>
           <p className="text-gray-900">{checkOut ? formatStayDate(checkOut, { weekday: "short", day: "numeric", month: "short" }) : "Add date"}</p>
         </div>
       </div>
@@ -249,7 +249,7 @@ export default function StayBookingWidget({ propertyId, isHost }: { propertyId: 
                 : "Request to book"}
         </button>
       )}
-      <p className="text-[11px] text-gray-500 flex items-start gap-1.5">
+      <p className="text-xs text-gray-500 flex items-start gap-1.5">
         <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px" />
         {settings.instantBook
           ? "You won't be charged until you pay in My trips. Host contact details are shared once paid."

@@ -8,5 +8,9 @@ public enum NotificationType {
     /** Agency listing compliance: mandate expired, listing unpublished, approval needed. */
     LISTING_COMPLIANCE,
     /** Short-stay booking requests, decisions, payments and cancellations. */
-    STAY_BOOKING
+    STAY_BOOKING,
+    /** Agent licence and company (agency) approval decisions. */
+    ACCOUNT_VERIFICATION,
+    /** Wallet withdrawals paid or rejected. */
+    WALLET
 }

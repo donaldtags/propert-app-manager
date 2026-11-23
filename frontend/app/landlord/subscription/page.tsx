@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { subscriptions as subscriptionsApi } from "@/lib/api";
-import type { PlanSettings, SubscriptionInfo, SubscriptionFeature, SubscriptionPlan } from "@/lib/types";
+import type { PlanSettings, SubscriptionInfo, SubscriptionFeature, SubscriptionPlan, CheckoutProvider } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import PaymentProviderPicker from "@/components/PaymentProviderPicker";
 import {
@@ -113,7 +113,7 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleUpgradeCheckout = async (plan: SubscriptionPlan, provider: "paynow" | "stripe") => {
+  const handleUpgradeCheckout = async (plan: SubscriptionPlan, provider: CheckoutProvider) => {
     if (!token) return;
     setError(""); setSuccess("");
     setCheckoutProvider(provider);
@@ -219,6 +219,7 @@ export default function SubscriptionPage() {
                 <div className="mt-5">
                   <PaymentProviderPicker
                     loadingProvider={checkoutProvider}
+                    walletAmount={plan.monthlyPrice}
                     onChoose={(provider) => handleUpgradeCheckout(plan.plan, provider)}
                   />
                   {!checkoutProvider && (

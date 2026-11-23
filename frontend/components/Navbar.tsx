@@ -13,6 +13,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -21,6 +22,21 @@ export default function Navbar() {
     setProfileOpen(false);
     setMenuOpen(false);
   }, [pathname]);
+
+  // Escape closes either menu and hands focus back to what opened it.
+  useEffect(() => {
+    if (!menuOpen && !profileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (menuOpen) {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+      setProfileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen, profileOpen]);
 
   // Close the profile menu on outside clicks.
   useEffect(() => {
@@ -44,6 +60,7 @@ export default function Navbar() {
     { href: "/properties?listingType=RENT", label: "Rent" },
     { href: "/properties?listingType=SHORT_STAY", label: "Stays" },
     { href: "/investments", label: "Invest" },
+    { href: "/agencies", label: "Agencies" },
     { href: "/services", label: "Services" },
     { href: "/ai", label: "AI Search" },
   ];
@@ -57,7 +74,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
+        <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-700">
           {navLinks.map((l) => (
             <Link
               key={l.href}
@@ -117,6 +134,7 @@ export default function Navbar() {
                   {user.roles?.includes("SERVICE_PROVIDER") && (
                     <Link href="/provider" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Service Provider Profile</Link>
                   )}
+                  <Link href="/wallet" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Wallet</Link>
                   <Link href="/trips" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Trips</Link>
                   {(user.roles?.includes("LANDLORD") || user.roles?.includes("PRIVATE") || user.roles?.includes("AGENT")) && (
                     <Link href="/hosting" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Hosting (BnB)</Link>
@@ -148,7 +166,8 @@ export default function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
-            className="md:hidden p-2 text-gray-600"
+            ref={menuButtonRef}
+            className="lg:hidden p-2 text-gray-600"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
@@ -160,7 +179,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-gray-200 bg-white py-3 px-4">
+        <div className="lg:hidden border-t border-gray-200 bg-white py-3 px-4">
           {navLinks.map((l) => (
             <Link
               key={l.href}

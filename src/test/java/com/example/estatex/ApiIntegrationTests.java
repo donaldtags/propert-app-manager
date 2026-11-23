@@ -74,6 +74,9 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.verified").value(true));
 
         long propertyId = createProperty(landlord.id(), agent.id(), "Borrowdale API Apartment", landlord.token());
+        new com.example.estatex.support.TestAccounts(mvc, userService, objectMapper).verifyIdentity(
+                new com.example.estatex.support.TestAccounts.Account(agent.id(), "", agent.token()), "Agent ID",
+                new com.example.estatex.support.TestAccounts.Account(0L, "", admin.token()));
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -183,7 +186,8 @@ class ApiIntegrationTests {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.city").value("Harare"))
-                .andExpect(jsonPath("$.twoFactorEnabled").value(true));
+                // Two-step sign-in can only be switched on via /auth/2fa (proving the app or phone works).
+                .andExpect(jsonPath("$.twoFactorEnabled").value(false));
 
         mvc.perform(post("/api/v1/auth/logout")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -199,6 +203,12 @@ class ApiIntegrationTests {
         Registered tenant = registerUser("Mutation Tenant", tenantEmail, "TENANT");
         Registered agent = registerUser("Mutation Agent", "AGENT");
         long propertyId = createProperty(landlord.id(), agent.id(), "Mount Pleasant API Studio", landlord.token());
+
+        new com.example.estatex.support.TestAccounts(mvc, userService, objectMapper).verifyIdentity(
+
+                new com.example.estatex.support.TestAccounts.Account(agent.id(), "", agent.token()), "Agent ID",
+
+                new com.example.estatex.support.TestAccounts.Account(0L, "", admin.token()));
 
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
@@ -430,6 +440,9 @@ class ApiIntegrationTests {
         Registered stranger = registerUser("Unrelated Tenant", "TENANT");
 
         long propertyId = createProperty(landlord.id(), agent.id(), "Passport Test Villa", landlord.token());
+        new com.example.estatex.support.TestAccounts(mvc, userService, objectMapper).verifyIdentity(
+                new com.example.estatex.support.TestAccounts.Account(agent.id(), "", agent.token()), "Agent ID",
+                new com.example.estatex.support.TestAccounts.Account(0L, "", admin.token()));
         mvc.perform(patch("/api/v1/properties/{id}/verify", propertyId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -739,11 +752,21 @@ class ApiIntegrationTests {
         }
     }
 
+    // Top-level fields only. (A regex over the raw JSON used to pick up the LAST "id" in the
+    // body - e.g. a nested photo's id - and only worked while photo and listing ids happened to match.)
     private long extractLong(String json, String field) {
-        return Long.parseLong(json.replaceAll(".*\"" + field + "\":([0-9]+).*", "$1"));
+        return field(json, field).asLong();
     }
 
     private String extractString(String json, String field) {
-        return json.replaceAll(".*\"" + field + "\":\"([^\"]+)\".*", "$1");
+        return field(json, field).asString();
+    }
+
+    /** The top-level field if there is one, otherwise the first nested one (e.g. user.id). */
+    private tools.jackson.databind.JsonNode field(String json, String field) {
+        tools.jackson.databind.JsonNode root = objectMapper.readTree(json);
+        if (root.has(field)) return root.path(field);
+        tools.jackson.databind.JsonNode nested = root.findValue(field);
+        return nested == null ? root.path(field) : nested;
     }
 }

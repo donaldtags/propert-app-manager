@@ -46,6 +46,7 @@ public class PropertyService {
     private final GeocodingService geocoding;
     private final OrgAccessService orgAccess;
     private final ApplicationEventPublisher events;
+    private final com.example.estatex.common.AuditService audit;
     private final Path photoStorageRoot;
     private final String publicBaseUrl;
 
@@ -59,6 +60,7 @@ public class PropertyService {
             GeocodingService geocoding,
             OrgAccessService orgAccess,
             ApplicationEventPublisher events,
+            com.example.estatex.common.AuditService audit,
             @Value("${app.storage.property-photos:storage/property-photos}") String photoStorageRoot,
             @Value("${app.public-base-url:http://localhost:8081}") String publicBaseUrl
     ) {
@@ -71,6 +73,7 @@ public class PropertyService {
         this.geocoding = geocoding;
         this.orgAccess = orgAccess;
         this.events = events;
+        this.audit = audit;
         this.photoStorageRoot = Path.of(photoStorageRoot);
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }
@@ -98,7 +101,10 @@ public class PropertyService {
         property.setTitle(request.title());
         property.setDescription(request.description());
         property.setListingType(request.listingType());
-        property.setStatus(organisationListing ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
+        // Agency listings go live via the workspace publish step; an agent's own listings wait as
+        // drafts until EstateX has approved their Estate Agents Council licence.
+        property.setStatus(organisationListing || com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(landlord)
+                ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
         property.setOrganisationId(organisationId);
         property.setTitleType(titleType);
         property.setCity(request.city());
@@ -149,8 +155,18 @@ public class PropertyService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Agency listings go live through the workspace publish step, once every compliance check is met.");
         }
+        if (!property.isOrganisationListing() && request.status() == PropertyStatus.AVAILABLE
+                && property.getStatus() != PropertyStatus.AVAILABLE
+                && com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(property.getLandlord())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Your listings go live once EstateX approves your agent licence. Upload it from your profile.");
+        }
         boolean priceChanged = request.price() != null
                 && (property.getPrice() == null || request.price().compareTo(property.getPrice()) != 0);
+        boolean identityChanged = changed(request.title(), property.getTitle())
+                || (request.listingType() != null && request.listingType() != property.getListingType())
+                || (request.latitude() != null && !request.latitude().equals(property.getLatitude()))
+                || (request.longitude() != null && !request.longitude().equals(property.getLongitude()));
         if (request.title() != null) property.setTitle(request.title());
         if (request.description() != null) property.setDescription(request.description());
         if (request.listingType() != null) property.setListingType(request.listingType());
@@ -187,6 +203,9 @@ public class PropertyService {
         if (request.petsAllowed() != null) property.setPetsAllowed(request.petsAllowed());
         if (request.virtualTourUrl() != null) property.setVirtualTourUrl(request.virtualTourUrl());
         if (request.status() != null) property.setStatus(request.status());
+        if (identityChanged || locationTextChanged) {
+            requireRecheck(property, currentUser, "Title, type or location changed after verification");
+        }
         if (property.isOrganisationListing() && (priceChanged || locationTextChanged)) {
             List<String> fields = new java.util.ArrayList<>();
             if (priceChanged) fields.add("price");
@@ -294,6 +313,14 @@ public class PropertyService {
     @Transactional(readOnly = true)
     public Property requireVisible(Long id, AppUser viewer) {
         Property property = require(id);
+        if (!property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT) {
+            boolean ownerOrStaff = viewer != null && (viewer.getId().equals(property.getLandlord().getId())
+                    || (property.getAgent() != null && viewer.getId().equals(property.getAgent().getId()))
+                    || viewer.hasPermission(Permission.ADMIN_OVERRIDE));
+            if (!ownerOrStaff) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");
+            }
+        }
         if (property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT
                 && !orgAccess.can(viewer, property.getOrganisationId(), OrgPermission.ORG_VIEW)
                 && (viewer == null || !viewer.hasPermission(Permission.ADMIN_OVERRIDE))) {
@@ -388,6 +415,14 @@ public class PropertyService {
         return result;
     }
 
+    /** A company's live listings, for its public page. */
+    @Transactional(readOnly = true)
+    public List<Property> liveListingsOfOrganisation(Long organisationId) {
+        List<Property> list = properties.findTop100ByOrganisationIdAndStatusOrderByCreatedAtDesc(organisationId, PropertyStatus.AVAILABLE);
+        list.forEach(p -> org.hibernate.Hibernate.initialize(p.getPhotos()));
+        return list;
+    }
+
     public List<Property> forLandlord(Long landlordId) {
         return properties.findByLandlord(users.require(landlordId));
     }
@@ -451,16 +486,17 @@ public class PropertyService {
         }
 
         int nextSortOrder = property.getPhotos().size();
+        java.util.Set<Long> reusedFrom = new java.util.TreeSet<>();
         for (MultipartFile file : files) {
-            validatePhoto(file);
-            String originalName = file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()
-                    ? "photo"
-                    : Path.of(file.getOriginalFilename()).getFileName().toString();
-            String storageName = UUID.randomUUID() + "-" + originalName;
+            String mediaType = validatePhoto(file);
+            String sha256 = com.example.estatex.common.FileSignature.sha256(file);
+            reusedFrom.addAll(photos.listingsOfOtherOwnersWithPhoto(sha256, property.getLandlord().getId()));
+            // Named by us from the detected type: the uploader's file name never reaches storage or URLs.
+            String storageName = UUID.randomUUID() + com.example.estatex.common.FileSignature.extension(mediaType);
             String storageKey;
             if (objectStorage.isConfigured()) {
                 storageKey = id + "/" + storageName;
-                objectStorage.put(storageKey, file);
+                objectStorage.put(storageKey, file, mediaType);
             } else {
                 Path target = photoStorageRoot.resolve(String.valueOf(id)).resolve(storageName);
                 try {
@@ -474,24 +510,102 @@ public class PropertyService {
             photo.setProperty(property);
             photo.setStorageKey(storageKey);
             photo.setPhotoUrl(publicBaseUrl + "/uploads/property-photos/" + id + "/" + storageName);
+            photo.setContentSha256(sha256);
             photo.setSortOrder(nextSortOrder++);
             photo.setPrimaryPhoto(property.getPhotos().isEmpty() && nextSortOrder == 1);
             photos.save(photo);
             property.getPhotos().add(photo);
         }
+        requireRecheck(property, currentUser, "New photos added after verification");
+        reusedFrom.remove(property.getId());
+        if (!reusedFrom.isEmpty()) {
+            // The same picture is on someone else's listing: a classic sign of a fake listing built
+            // from stolen photos. Don't block (an owner and their agent may share photos) but take
+            // the badge away and put it in front of the verification team.
+            if (property.getVerificationStatus() == VerificationStatus.VERIFIED
+                    || property.getVerificationStatus() == VerificationStatus.UNVERIFIED) {
+                property.setVerificationStatus(VerificationStatus.PENDING);
+                property.setVerifiedAt(null);
+            }
+            audit.record(currentUser, com.example.estatex.common.AuditService
+                    .entry("fraud.duplicate_photo", "Property", property.getId())
+                    .metadata(java.util.Map.of("alsoOnListings", List.copyOf(reusedFrom))));
+            log.warn("Listing {} uploaded photos already used on other owners' listings {}", property.getId(), reusedFrom);
+        }
         return property;
     }
 
+    /**
+     * Platform verification of an individual listing. The verifier is always the signed-in user
+     * (never an id from the request body), can't be the listing's own landlord or agent, and every
+     * decision is written to the audit log with the reviewer's note.
+     */
     @Transactional
-    public Property verify(Long id, PropertyDtos.VerifyPropertyRequest request) {
-        AppUser verifier = users.require(request.verifierId());
-        if (!verifier.hasPermission(Permission.PROPERTY_VERIFY)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only agents or admins can verify properties");
+    public Property verify(Long id, PropertyDtos.VerifyPropertyRequest request, AppUser verifier) {
+        if (verifier == null || !verifier.hasPermission(Permission.PROPERTY_VERIFY)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only EstateX verification staff can verify listings");
         }
         Property property = require(id);
+        if (property.isOrganisationListing()) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Agency listings are verified through their title check in the agency workspace.");
+        }
+        boolean ownListing = verifier.getId().equals(property.getLandlord().getId())
+                || (property.getAgent() != null && verifier.getId().equals(property.getAgent().getId()));
+        if (ownListing) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can't verify a listing you own or represent");
+        }
+        boolean approved = request.approved() == null || request.approved();
+        AppUser lister = property.getAgent() != null ? property.getAgent() : property.getLandlord();
+        if (approved && !lister.isIdentityVerified()) {
+            throw new ApiException(HttpStatus.CONFLICT, lister.getFullName()
+                    + "'s ID hasn't been verified yet. Check their ID in the Verification Queue first.");
+        }
+        if (!approved && (request.note() == null || request.note().isBlank())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Give the owner a reason when rejecting a listing");
+        }
+        VerificationStatus from = property.getVerificationStatus();
+        VerificationStatus to = approved ? VerificationStatus.VERIFIED : VerificationStatus.REJECTED;
+        property.setVerificationStatus(to);
+        property.setVerifiedAt(approved ? Instant.now() : null);
+        audit.record(verifier, com.example.estatex.common.AuditService
+                .entry(approved ? "property.verified" : "property.verification_rejected", "Property", property.getId())
+                .transition(from, to)
+                .metadata(request.note() == null ? java.util.Map.of() : java.util.Map.of("note", request.note())));
+        return property;
+    }
+
+    /**
+     * For platform-owned data created at startup (demo data, REIT portfolio assets) - never reachable
+     * from a web request. Audited with no actor so it is clearly a system action.
+     */
+    @Transactional
+    public Property markVerifiedBySystem(Long id, String note) {
+        Property property = require(id);
+        VerificationStatus from = property.getVerificationStatus();
         property.setVerificationStatus(VerificationStatus.VERIFIED);
         property.setVerifiedAt(Instant.now());
+        audit.record(null, com.example.estatex.common.AuditService
+                .entry("property.verified_by_system", "Property", property.getId())
+                .transition(from, VerificationStatus.VERIFIED)
+                .metadata(java.util.Map.of("note", note)));
         return property;
+    }
+
+    /**
+     * A verified individual listing whose identity changes (new photos, title, type or address)
+     * goes back to PENDING: the badge vouched for the home that was checked, not whatever the
+     * listing shows now. Admin edits don't reset it. Agency listings have their own re-approval.
+     */
+    private void requireRecheck(Property property, AppUser actor, String reason) {
+        if (property.isOrganisationListing() || property.getVerificationStatus() != VerificationStatus.VERIFIED) return;
+        if (actor != null && actor.hasPermission(Permission.ADMIN_OVERRIDE)) return;
+        property.setVerificationStatus(VerificationStatus.PENDING);
+        property.setVerifiedAt(null);
+        audit.record(actor, com.example.estatex.common.AuditService
+                .entry("property.verification_reset", "Property", property.getId())
+                .transition(VerificationStatus.VERIFIED, VerificationStatus.PENDING)
+                .metadata(java.util.Map.of("reason", reason)));
     }
 
     private String blankToNull(String value) {
@@ -530,16 +644,16 @@ public class PropertyService {
         }
     }
 
-    private void validatePhoto(MultipartFile file) {
+    /** Returns the photo's real type, read from its bytes. */
+    private String validatePhoto(MultipartFile file) {
         if (file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Uploaded photo is empty");
         }
         if (file.getSize() > MAX_PHOTO_SIZE) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Photo size must be 8MB or less");
         }
-        if (!ALLOWED_PHOTO_TYPES.contains(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only PNG, JPEG, and WebP photos are allowed");
-        }
+        return com.example.estatex.common.FileSignature.require(file, ALLOWED_PHOTO_TYPES,
+                "Only PNG, JPEG, and WebP photos are allowed");
     }
 
     public List<GeocodingService.GeocodeResult> geocode(String address, String suburb, String city, String country) {

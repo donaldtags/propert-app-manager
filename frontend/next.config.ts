@@ -9,6 +9,23 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  // Hosting already sends HSTS, nosniff and X-Frame-Options. These add what was missing; the CSP
+  // only covers directives that can't break scripts or styles (framing, plugins, <base>, forms).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self), payment=(self)" },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+          },
+        ],
+      },
+    ];
+  },
   images: {
     // Resizing is delegated to the image CDN (see lib/imageLoader.ts) rather than done on our server.
     loader: "custom",

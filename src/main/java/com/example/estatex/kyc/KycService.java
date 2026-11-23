@@ -40,6 +40,16 @@ public class KycService {
     private final AuditLogRepository auditLogs;
     private final ObjectMapper objectMapper;
     private final Path storageRoot;
+    // Setter-injected so the constructor stays as it was.
+    private org.springframework.context.ApplicationEventPublisher events;
+    private com.example.estatex.kyc.check.IdentityCheckService identityChecks;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setIdentityCheckSupport(org.springframework.context.ApplicationEventPublisher events,
+                                 com.example.estatex.kyc.check.IdentityCheckService identityChecks) {
+        this.events = events;
+        this.identityChecks = identityChecks;
+    }
 
     public KycService(
             KycSubmissionRepository submissions,
@@ -67,6 +77,26 @@ public class KycService {
             List<MultipartFile> files,
             List<KycDocumentType> documentTypes
     ) {
+        return submit(currentUser, legalFullName, dateOfBirth, nationalIdNumber, idDocumentType, files, documentTypes,
+                null, false);
+    }
+
+    /**
+     * @param issuingCountry ISO code of the country that issued the ID (default ZW)
+     * @param registryConsent the person agreed to a national-register lookup of their ID number
+     */
+    @Transactional
+    public KycSubmission submit(
+            AppUser currentUser,
+            String legalFullName,
+            LocalDate dateOfBirth,
+            String nationalIdNumber,
+            IdDocumentType idDocumentType,
+            List<MultipartFile> files,
+            List<KycDocumentType> documentTypes,
+            String issuingCountry,
+            boolean registryConsent
+    ) {
         if (currentUser.isIdentityVerified()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Your identity is already verified");
         }
@@ -92,6 +122,9 @@ public class KycService {
         submission.setDateOfBirth(dateOfBirth);
         submission.setNationalIdNumber(nationalIdNumber);
         submission.setIdDocumentType(idDocumentType);
+        submission.setIssuingCountry(issuingCountry == null || issuingCountry.isBlank() ? null
+                : issuingCountry.trim().toUpperCase(java.util.Locale.ROOT).substring(0, Math.min(2, issuingCountry.trim().length())));
+        submission.setRegistryConsent(registryConsent);
         submission = submissions.save(submission);
 
         try {
@@ -105,6 +138,8 @@ public class KycService {
                 .mapToObj(index -> saveOne(finalSubmission, files.get(index), documentTypes.get(index)))
                 .toList();
         submission.getDocuments().addAll(saved);
+        // The register lookup runs once this transaction has committed (see IdentityCheckService).
+        events.publishEvent(new com.example.estatex.kyc.check.KycSubmittedEvent(submission.getId()));
         return submission;
     }
 
@@ -145,6 +180,16 @@ public class KycService {
         return new Download(document, resource);
     }
 
+    /** Automatic checks for the reviewer's screen. */
+    @Transactional(readOnly = true)
+    public List<IdChecks.Check> checksFor(KycSubmission submission) {
+        List<String> others = submissions.findSameIdOnOtherAccounts(IdChecks.normalise(submission.getNationalIdNumber()),
+                        submission.getUser().getId(), List.of(KycStatus.PENDING, KycStatus.APPROVED)).stream()
+                .map(o -> o.getUser().getFullName() + " (" + o.getStatus().name().toLowerCase() + ")")
+                .distinct().toList();
+        return IdChecks.run(submission, java.time.LocalDate.now(), others, identityChecks.forSubmission(submission));
+    }
+
     @Transactional
     public KycSubmission review(Long submissionId, AppUser currentAdmin, KycDtos.ReviewKycRequest request) {
         if (!isAdmin(currentAdmin)) {
@@ -156,6 +201,35 @@ public class KycService {
         KycSubmission submission = require(submissionId);
         if (submission.getStatus() != KycStatus.PENDING) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "This request has already been reviewed");
+        }
+        if (submission.getUser().getId().equals(currentAdmin.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can't review your own identity check");
+        }
+        if (request.status() == KycStatus.APPROVED) {
+            java.util.Set<String> confirmed = request.confirmedChecks() == null ? java.util.Set.of()
+                    : new java.util.HashSet<>(request.confirmedChecks());
+            List<String> missing = IdChecks.MANUAL_CHECKS.stream().filter(c -> !confirmed.contains(c)).toList();
+            if (!missing.isEmpty()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Confirm every check against the ID photos before approving: " + String.join(", ", missing));
+            }
+            List<IdChecks.Check> automatic = checksFor(submission);
+            automatic.stream()
+                    .filter(c -> c.key().equals("REGISTRY") && c.result() == IdChecks.Result.FAIL && c.blocking())
+                    .findFirst()
+                    .ifPresent(c -> {
+                        throw new ApiException(HttpStatus.CONFLICT, "The national register says: " + c.detail()
+                                + " This ID can't be approved.");
+                    });
+            boolean duplicate = automatic.stream()
+                    .anyMatch(c -> c.key().equals("DUPLICATE_ID") && c.result() == IdChecks.Result.FAIL);
+            if (duplicate && submissions.findSameIdOnOtherAccounts(IdChecks.normalise(submission.getNationalIdNumber()),
+                    submission.getUser().getId(), List.of(KycStatus.APPROVED)).size() > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "This ID number is already verified on another account. One person, one verified account.");
+            }
+        } else if (request.reviewNote() == null || request.reviewNote().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Tell the person why their ID wasn't accepted");
         }
         submission.setStatus(request.status());
         submission.setReviewNote(request.reviewNote());
@@ -182,7 +256,10 @@ public class KycService {
         try {
             log.setMetadataJson(objectMapper.writeValueAsString(Map.of(
                     "userId", submission.getUser().getId(),
-                    "reviewNote", request.reviewNote() == null ? "" : request.reviewNote()
+                    "reviewNote", request.reviewNote() == null ? "" : request.reviewNote(),
+                    "confirmedChecks", request.confirmedChecks() == null ? List.of() : request.confirmedChecks(),
+                    "automatedChecks", checksFor(submission).stream()
+                            .map(c -> c.key() + "=" + c.result()).toList()
             )));
         } catch (Exception ex) {
             log.setMetadataJson("{}");
@@ -191,13 +268,14 @@ public class KycService {
     }
 
     private KycDocument saveOne(KycSubmission submission, MultipartFile file, KycDocumentType documentType) {
-        validate(file, documentType);
+        String mediaType = validate(file, documentType);
         String originalName = file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()
                 ? "document"
                 : Path.of(file.getOriginalFilename()).getFileName().toString();
+        // Stored under a name we choose from the detected type; the original name is display-only.
         Path target = storageRoot
                 .resolve(String.valueOf(submission.getId()))
-                .resolve(UUID.randomUUID() + "-" + originalName);
+                .resolve(UUID.randomUUID() + com.example.estatex.common.FileSignature.extension(mediaType));
         try {
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
@@ -208,14 +286,16 @@ public class KycService {
         document.setSubmission(submission);
         document.setDocumentType(documentType);
         document.setFileName(originalName);
-        document.setContentType(file.getContentType());
+        document.setContentType(mediaType);
         document.setFileSize(file.getSize());
+        document.setSha256(com.example.estatex.common.FileSignature.sha256(file));
         document.setStoragePath(target.toString());
         document.setStorageKey(target.toString());
         return documents.save(document);
     }
 
-    private void validate(MultipartFile file, KycDocumentType documentType) {
+    /** Returns the file's real type, read from its bytes. */
+    private String validate(MultipartFile file, KycDocumentType documentType) {
         if (file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Uploaded file is empty");
         }
@@ -224,11 +304,9 @@ public class KycService {
         }
         boolean isSelfie = REQUIRED_SELFIES.contains(documentType);
         Set<String> allowed = isSelfie ? SELFIE_CONTENT_TYPES : ID_CONTENT_TYPES;
-        if (!allowed.contains(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, isSelfie
-                    ? "Selfies must be PNG or JPEG images"
-                    : "Only PDF, PNG, and JPEG files are allowed for identity documents");
-        }
+        return com.example.estatex.common.FileSignature.require(file, allowed, isSelfie
+                ? "Selfies must be PNG or JPEG images"
+                : "Only PDF, PNG, and JPEG files are allowed for identity documents");
     }
 
     private boolean isAdmin(AppUser user) {

@@ -20,6 +20,23 @@ public class EmailService {
         this.fromAddress = fromAddress;
     }
 
+    /** Plain-text account/security email; failures are logged, never thrown at the user. */
+    public void send(String toEmail, String subject, String text) {
+        if (toEmail == null || toEmail.isBlank()) {
+            return;
+        }
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject(subject);
+        message.setText(text);
+        try {
+            mailSender.send(message);
+        } catch (MailException ex) {
+            log.warn("Failed to send \"{}\" email: {}", subject, ex.getMessage());
+        }
+    }
+
     public void sendPasswordReset(String toEmail, String resetLink) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);

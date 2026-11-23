@@ -33,7 +33,8 @@ public class AppUser {
     @Column(nullable = false)
     private String fullName;
 
-    @Column(nullable = false, unique = true)
+    /** Optional when the account has a phone number (phone-only sign-up). */
+    @Column(unique = true)
     private String email;
 
     @Column(unique = true)
@@ -52,11 +53,34 @@ public class AppUser {
     private String occupation;
     private String companyName;
     private boolean businessVerified;
+    /**
+     * Set when EstateX staff approve the agent's Estate Agents Council registration (see the agent
+     * package). Nullable so the column can be added to existing tables; null means not licensed.
+     */
+    private Boolean licensedAgent;
+
+    public boolean isLicensedAgent() {
+        return Boolean.TRUE.equals(licensedAgent);
+    }
     private String emergencyContactName;
     private String emergencyContactPhone;
     private boolean emailNotifications = true;
     private boolean smsNotifications = true;
     private boolean twoFactorEnabled;
+
+    // Two-step sign-in and lockout state. All nullable so the columns can be added to existing rows.
+    /** Authenticator-app secret, AES-GCM encrypted (see SecretCipher). Null = no authenticator app. */
+    @Column(length = 255)
+    private String totpSecretEncrypted;
+    /** Secret shown during setup, kept until the user proves their app works with a first code. */
+    @Column(length = 255)
+    private String totpPendingSecretEncrypted;
+    /** Last authenticator time-step accepted: the same code can't be used twice. */
+    private Long totpLastStep;
+    private Integer failedLoginAttempts;
+    private Instant failedLoginWindowStart;
+    /** Wrong passwords/codes too many times: no sign-in until this time. */
+    private Instant lockedUntil;
     private boolean identityVerified;
     private boolean faceVerified;
     private boolean verified;

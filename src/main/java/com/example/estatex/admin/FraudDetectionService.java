@@ -49,8 +49,12 @@ public class FraudDetectionService {
         Map<String, List<Property>> byPhotoUrl = new java.util.HashMap<>();
         for (Property property : all) {
             for (PropertyPhoto photo : property.getPhotos()) {
-                if (photo.getPhotoUrl() == null || photo.getPhotoUrl().isBlank()) continue;
-                byPhotoUrl.computeIfAbsent(photo.getPhotoUrl(), k -> new ArrayList<>()).add(property);
+                // Uploaded photos are matched on their content fingerprint, so a stolen picture
+                // re-uploaded under another name is still caught; linked photos on their URL.
+                String key = photo.getContentSha256() != null ? "sha256:" + photo.getContentSha256()
+                        : (photo.getPhotoUrl() == null || photo.getPhotoUrl().isBlank()) ? null : "url:" + photo.getPhotoUrl();
+                if (key == null) continue;
+                byPhotoUrl.computeIfAbsent(key, k -> new ArrayList<>()).add(property);
             }
         }
 

@@ -37,6 +37,27 @@ public final class PhoneNumbers {
         return "+" + digits;
     }
 
+    /**
+     * Strict form for account phone numbers (sign-in, SMS codes): the normalised E.164 number, or
+     * empty if the text isn't a plausible phone number (8-15 digits, no letters or "@").
+     */
+    public static java.util.Optional<String> forAccount(String raw) {
+        if (raw == null || raw.isBlank() || !raw.trim().matches("^[+\\d\\s().-]+$")) {
+            return java.util.Optional.empty();
+        }
+        String e164 = normalise(raw);
+        return e164 != null && e164.matches("^\\+[1-9]\\d{7,14}$") ? java.util.Optional.of(e164) : java.util.Optional.empty();
+    }
+
+    /** "+263••••••4567": enough for someone to recognise their own number, not to learn it. */
+    public static String mask(String e164) {
+        if (e164 == null || e164.length() < 8) {
+            return null;
+        }
+        String start = e164.startsWith("+263") ? "+263" : e164.substring(0, 3);
+        return start + "•".repeat(Math.max(2, e164.length() - start.length() - 4)) + e164.substring(e164.length() - 4);
+    }
+
     /** Digits for wa.me links ("263772123456"). */
     public static String whatsappDigits(String raw) {
         String e164 = normalise(raw);

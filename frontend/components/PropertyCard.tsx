@@ -47,9 +47,13 @@ export default function PropertyCard({
   const photo = photos[0] ?? null;
   const isVerified = property.verificationStatus === "VERIFIED";
   const isFeatured = property.featured && (!property.featuredUntil || new Date(property.featuredUntil).getTime() > Date.now());
-  const companyName = property.agentName
-    ? property.agentCompanyName
-    : property.landlordCompanyName;
+  // Only companies EstateX has approved are named; free-text company names aren't checked.
+  const companyName =
+    property.listedBy === "AGENCY" && property.organisationName
+      ? property.organisationName
+      : property.listedBy === "AGENT"
+        ? "Independent agent"
+        : null;
 
   const [comparing, setComparing] = useState(false);
   useEffect(() => {
@@ -116,13 +120,15 @@ export default function PropertyCard({
         </div>
 
         {/* Verified / risk badges */}
-        {(isVerified || property.riskFlags?.includes("CESSION")) && (
+        {(
           <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
-            {isVerified && (
+            {isVerified ? (
               <span className="bg-white text-brand-600 text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow">
                 <CheckCircle className="w-3 h-3" />
                 Verified
               </span>
+            ) : (
+              <span className="bg-white/90 text-gray-600 text-xs font-semibold px-2 py-1 rounded shadow">Not yet verified</span>
             )}
             {property.riskFlags?.includes("CESSION") && <CessionBadge className="shadow" />}
           </div>
@@ -143,11 +149,11 @@ export default function PropertyCard({
           type="button"
           onClick={handleToggleCompare}
           title={comparing ? "Remove from comparison" : `Add to comparison (max ${MAX_COMPARE})`}
-          className={`absolute bottom-3 left-3 w-7 h-7 rounded-full flex items-center justify-center shadow transition-colors ${
+          className={`absolute bottom-2 left-2 w-10 h-10 rounded-full flex items-center justify-center shadow transition-colors ${
             comparing ? "bg-brand-600 text-white" : "bg-white/90 text-gray-600 hover:bg-white"
           }`}
         >
-          <Scale className="w-3.5 h-3.5" />
+          <Scale className="w-4 h-4" />
         </button>
       </div>
 
@@ -184,7 +190,7 @@ export default function PropertyCard({
         <div className="flex flex-wrap gap-1.5 mt-2">
           {property.escrowRequired && (
             <span className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Shield className="w-3 h-3" /> Escrow Protected
+              <Shield className="w-3 h-3" /> Deposit protected
             </span>
           )}
           {property.diasporaFriendly && (

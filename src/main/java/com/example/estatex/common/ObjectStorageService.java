@@ -69,6 +69,18 @@ public class ObjectStorageService {
         }
     }
 
+    /** Stores the file under a content type the server detected, never the one the uploader claimed. */
+    public void put(String key, MultipartFile file, String contentType) {
+        try {
+            client.putObject(
+                    PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
+        } catch (IOException ex) {
+            throw new ApiException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Could not store uploaded file");
+        }
+    }
+
     public void putBytes(String key, byte[] bytes, String contentType) {
         client.putObject(
                 PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build(),

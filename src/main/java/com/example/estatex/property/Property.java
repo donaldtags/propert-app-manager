@@ -92,6 +92,13 @@ public class Property {
     @Column(name = "organisation_id")
     private Long organisationId;
 
+    /** Read-only view of the same column, so listings can show the company's name and logo. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "organisation_id", insertable = false, updatable = false)
+    @Getter(AccessLevel.PUBLIC)
+    @Setter(AccessLevel.NONE)
+    private com.example.estatex.organisation.Organisation organisation;
+
     // String-backed enum: see Location.typeCode for why (no CHECK constraint drift).
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)

@@ -12,6 +12,7 @@ import PageLoader from "@/components/PageLoader";
 function destinationFor(payment: Payment): { label: string; href: string } {
   const purpose = (payment.purpose ?? "").toLowerCase();
   if (purpose.startsWith("stay ")) return { label: "Go to my trips", href: "/trips" };
+  if (purpose.startsWith("wallet top-up")) return { label: "Go to my wallet", href: "/wallet" };
   if (purpose.includes("escrow")) return { label: "Go to escrow", href: "/escrow" };
   if (purpose.includes("subscription")) return { label: "Go to subscription", href: "/landlord/subscription" };
   if (purpose.includes("featured listing")) return { label: "Go to featured listings", href: "/landlord/featured-listings" };

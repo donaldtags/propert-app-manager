@@ -7,13 +7,16 @@ import EstateXLogo from "@/components/EstateXLogo";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
+import { safeRedirect } from "@/lib/safeRedirect";
 import PageLoader from "@/components/PageLoader";
+import TwoFactorStep from "@/components/auth/TwoFactorStep";
+import type { TwoFactorChallenge, User } from "@/lib/types";
 
 function LoginForm() {
   const { user, loading: authLoading, login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectParam = searchParams.get("redirect");
+  const redirectParam = safeRedirect(searchParams);
   const redirect = redirectParam ?? "/";
 
   const [identifier, setIdentifier] = useState("");
@@ -21,22 +24,30 @@ function LoginForm() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
+
+  const goOn = (signedIn: User) => router.push(redirectParam ?? dashboardPathFor(signedIn.roles));
 
   // Someone already signed in (e.g. a token left over from a previous session) has no
   // business seeing the login form - it just looks broken. Bounce them straight through.
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !challenge) {
       router.replace(redirectParam ?? dashboardPathFor(user.roles));
     }
-  }, [authLoading, user, redirectParam, router]);
+  }, [authLoading, user, redirectParam, router, challenge]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const loggedInUser = await login(identifier, password);
-      router.push(redirectParam ?? dashboardPathFor(loggedInUser.roles));
+      const result = await login(identifier, password);
+      if (result.challenge) {
+        setChallenge(result.challenge);
+        setPassword("");
+      } else {
+        goOn(result.user);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed. Check your credentials.");
     } finally {
@@ -44,8 +55,25 @@ function LoginForm() {
     }
   };
 
-  if (authLoading || user) {
+  if (authLoading || (user && !challenge)) {
     return <PageLoader />;
+  }
+
+  if (challenge) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          <TwoFactorStep
+            challenge={challenge}
+            onDone={goOn}
+            onCancel={() => {
+              setChallenge(null);
+              setError("");
+            }}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -76,15 +104,15 @@ function LoginForm() {
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoComplete="username"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                placeholder="you@example.com or +263771000001"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base sm:text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                placeholder="Email or phone, e.g. +263 77 123 4567"
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label htmlFor="login-password" className="text-sm font-medium text-gray-700">Password</label>
-                <Link href="/forgot-password" className="text-xs text-brand-600 hover:underline">
+                <Link href="/forgot-password" className="text-sm text-brand-600 hover:underline py-2 -my-2">
                   Forgot password?
                 </Link>
               </div>
@@ -96,7 +124,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 text-base sm:text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
                   placeholder="••••••••"
                 />
                 <button
@@ -104,7 +132,7 @@ function LoginForm() {
                   onClick={() => setShowPw(!showPw)}
                   aria-label={showPw ? "Hide password" : "Show password"}
                   aria-pressed={showPw}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-600"
                 >
                   {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

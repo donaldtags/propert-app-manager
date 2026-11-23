@@ -92,6 +92,16 @@ export interface Property {
   titleType?: TitleType;
   /** Buyer-facing risk markers, e.g. "CESSION". */
   riskFlags?: string[];
+  /** Who markets it: a company on EstateX, an independent agent, or the owner. */
+  listedBy?: "AGENCY" | "AGENT" | "OWNER";
+  /** Agent's Estate Agents Council licence approved by EstateX. */
+  listerLicensed?: boolean | null;
+  organisationName?: string | null;
+  organisationSlug?: string | null;
+  organisationLogoUrl?: string | null;
+  organisationPhone?: string | null;
+  /** The person marketing it has had their ID document checked by EstateX. */
+  listerIdVerified?: boolean | null;
 }
 
 export interface FeaturedListingSettings {
@@ -147,10 +157,84 @@ export interface CheckoutResponse {
   redirectUrl: string;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Wallet
+// ---------------------------------------------------------------------------------------------
+
+/** "wallet" pays from the user's EstateX balance; the others go through a gateway checkout. */
+export type CheckoutProvider = "paynow" | "stripe" | "wallet";
+
+export type WalletEntryType =
+  | "TOP_UP"
+  | "PAYMENT"
+  | "PAYOUT"
+  | "WITHDRAWAL"
+  | "WITHDRAWAL_REVERSAL"
+  | "FEE"
+  | "ADJUSTMENT";
+
+export interface WalletEntry {
+  id: number;
+  amount: number;
+  balanceAfter: number | null;
+  currency: string;
+  type: WalletEntryType;
+  description: string;
+  relatedType: string | null;
+  relatedId: number | null;
+  createdAt: string;
+}
+
+export interface WalletSummary {
+  currency: string;
+  balance: number;
+  pendingWithdrawals: number;
+  entries: WalletEntry[];
+  totalEntries: number;
+  page: number;
+  size: number;
+}
+
+export type WithdrawalMethod = "ECOCASH" | "BANK";
+export type WithdrawalStatus = "REQUESTED" | "PAID" | "REJECTED";
+
+export interface WalletWithdrawal {
+  id: number;
+  userId: number;
+  userName: string | null;
+  userEmail: string | null;
+  amount: number;
+  currency: string;
+  method: WithdrawalMethod;
+  ecocashPhone: string | null;
+  bankAccountName: string | null;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  bankBranch: string | null;
+  status: WithdrawalStatus;
+  requestedAt: string;
+  decidedAt: string | null;
+  payoutReference: string | null;
+  rejectReason: string | null;
+}
+
+export interface WithdrawalRequest {
+  amount: number;
+  currency?: string;
+  method: WithdrawalMethod;
+  ecocashPhone?: string;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankName?: string;
+  bankBranch?: string;
+  password: string;
+}
+
 export interface User {
   id: number;
   fullName: string;
-  email: string;
+  /** Absent for accounts that signed up with only a phone number. */
+  email?: string | null;
   phone?: string;
   country?: string;
   city?: string;
@@ -179,6 +263,40 @@ export interface User {
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+export type TwoFactorMethod = "TOTP" | "SMS" | "BACKUP";
+
+/** Password accepted, but the account has two-step sign-in on: answer with a code. */
+export interface TwoFactorChallenge {
+  twoFactorRequired: true;
+  challengeToken: string;
+  /** Methods this account can use (BACKUP codes always work too). */
+  methods: TwoFactorMethod[];
+  maskedPhone?: string;
+  /** True when a text was sent automatically (accounts using text messages only). */
+  codeSent?: boolean;
+}
+
+export type LoginResponse = AuthResponse | TwoFactorChallenge;
+
+export function isTwoFactorChallenge(r: LoginResponse): r is TwoFactorChallenge {
+  return (r as TwoFactorChallenge).twoFactorRequired === true;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  authenticatorApp: boolean;
+  sms: boolean;
+  smsAvailable: boolean;
+  maskedPhone?: string;
+  backupCodesRemaining: number;
+}
+
+export interface TotpSetup {
+  secret: string;
+  otpauthUri: string;
+  qrDataUrl: string;
 }
 
 export interface Lease {
@@ -577,6 +695,10 @@ export interface KycSubmission {
   reviewedBy?: number;
   reviewNote?: string;
   documents: KycDocument[];
+  issuingCountry?: string | null;
+  registryConsent?: boolean | null;
+  /** Reviewer-only automatic checks: ID_FORMAT, AGE, NAME, DUPLICATE_ID, REGISTRY, DOCUMENT. */
+  automatedChecks?: { key: string; label: string; result: "PASS" | "WARN" | "FAIL"; detail: string }[] | null;
 }
 
 export interface VerificationLevel {

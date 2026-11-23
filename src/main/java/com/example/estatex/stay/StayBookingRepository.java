@@ -21,6 +21,8 @@ public interface StayBookingRepository extends JpaRepository<StayBooking, Long> 
     List<StayBooking> overlapping(@Param("propertyIds") Collection<Long> propertyIds, @Param("from") LocalDate from,
                                   @Param("to") LocalDate to, @Param("statuses") Collection<String> statuses);
 
+    boolean existsByPropertyIdAndGuestIdAndStatusCodeIn(Long propertyId, Long guestId, Collection<String> statuses);
+
     @EntityGraph(attributePaths = {"property", "host"})
     List<StayBooking> findByGuestIdOrderByCheckInDesc(Long guestId);
 

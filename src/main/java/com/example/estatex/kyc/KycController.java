@@ -27,10 +27,19 @@ import org.springframework.web.multipart.MultipartFile;
 public class KycController {
     private final KycService service;
     private final AuthService authService;
+    private final List<com.example.estatex.kyc.check.RegistryProvider> registryProviders;
+    private final com.example.estatex.kyc.check.DiditDocumentCheck documentCheck;
+    private final com.example.estatex.kyc.check.IdentityCheckService identityChecks;
 
-    public KycController(KycService service, AuthService authService) {
+    public KycController(KycService service, AuthService authService,
+                         List<com.example.estatex.kyc.check.RegistryProvider> registryProviders,
+                         com.example.estatex.kyc.check.DiditDocumentCheck documentCheck,
+                         com.example.estatex.kyc.check.IdentityCheckService identityChecks) {
         this.service = service;
         this.authService = authService;
+        this.registryProviders = registryProviders;
+        this.documentCheck = documentCheck;
+        this.identityChecks = identityChecks;
     }
 
     @PostMapping(value = "/submissions", consumes = "multipart/form-data")
@@ -41,11 +50,57 @@ public class KycController {
             @RequestParam String nationalIdNumber,
             @RequestParam IdDocumentType idDocumentType,
             @RequestPart("files") List<MultipartFile> files,
-            @RequestParam("documentTypes") List<KycDocumentType> documentTypes
+            @RequestParam("documentTypes") List<KycDocumentType> documentTypes,
+            @RequestParam(required = false) String issuingCountry,
+            @RequestParam(defaultValue = "false") boolean registryConsent
     ) {
         AppUser currentUser = authService.currentUser(authorization);
-        return KycSubmissionResponse.from(service.submit(
-                currentUser, legalFullName, dateOfBirth, nationalIdNumber, idDocumentType, files, documentTypes));
+        return KycSubmissionResponse.from(service.submit(currentUser, legalFullName, dateOfBirth, nationalIdNumber,
+                idDocumentType, files, documentTypes, issuingCountry, registryConsent));
+    }
+
+    /** Which automatic checks are switched on, so the form can offer them. */
+    @GetMapping("/checks/available")
+    java.util.Map<String, Object> availableChecks() {
+        return java.util.Map.of(
+                "zimbabweRegister", registryProviders.stream()
+                        .anyMatch(p -> p.supports("ZW", com.example.estatex.kyc.IdDocumentType.NATIONAL_ID)),
+                "internationalPhotoId", documentCheck.isConfigured());
+    }
+
+    /** Starts the international photo-ID + selfie check; returns the hosted page to open. */
+    @PostMapping("/document-check")
+    com.example.estatex.kyc.check.DiditDocumentCheck.Session startDocumentCheck(
+            @RequestHeader(name = "Authorization", required = false) String authorization) {
+        AppUser currentUser = authService.currentUser(authorization);
+        Long pendingId = service.myList(currentUser).stream()
+                .filter(s -> s.getStatus() == KycStatus.PENDING).map(com.example.estatex.kyc.KycSubmission::getId)
+                .findFirst().orElse(null);
+        return documentCheck.start(currentUser, pendingId);
+    }
+
+    /** Didit calls this with the result; trusted only with a valid signature (see DiditDocumentCheck). */
+    @PostMapping("/webhooks/didit")
+    ResponseEntity<Void> diditWebhook(@RequestBody byte[] body,
+                                      @RequestHeader(name = "X-Signature", required = false) String signature,
+                                      @RequestHeader(name = "X-Signature-Previous", required = false) String previous,
+                                      @RequestHeader(name = "X-Timestamp", required = false) String timestamp) {
+        documentCheck.handleWebhook(body, signature, previous, timestamp);
+        return ResponseEntity.ok().build();
+    }
+
+    /** Reviewer: look the ID number up in the register again. */
+    @PostMapping("/submissions/{id}/registry-check")
+    KycSubmissionResponse recheckRegistry(@PathVariable Long id,
+                                          @RequestHeader(name = "Authorization", required = false) String authorization) {
+        AppUser reviewer = authService.currentUser(authorization);
+        if (!reviewer.hasPermission(com.example.estatex.user.Permission.KYC_REVIEW)) {
+            throw new com.example.estatex.common.ApiException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Only ID reviewers can run register checks");
+        }
+        identityChecks.recheck(id);
+        com.example.estatex.kyc.KycSubmission s = service.require(id);
+        return KycSubmissionResponse.from(s, service.checksFor(s));
     }
 
     @GetMapping("/submissions/me")
@@ -65,7 +120,8 @@ public class KycController {
 
     @GetMapping("/submissions")
     List<KycSubmissionResponse> listForAdmin(@RequestParam(required = false) KycStatus status) {
-        return service.listForAdmin(status).stream().map(KycSubmissionResponse::from).toList();
+        return service.listForAdmin(status).stream()
+                .map(sub -> KycSubmissionResponse.from(sub, service.checksFor(sub))).toList();
     }
 
     @GetMapping("/submissions/{submissionId}/documents/{documentId}/download")

@@ -41,16 +41,16 @@ export default function AvailabilityCalendar({
           onClick={() => move(-1)}
           disabled={atFirstMonth}
           aria-label="Previous month"
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30"
+          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 disabled:opacity-30"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-5 h-5" />
         </button>
         <p className="text-sm font-semibold text-gray-900">{label}</p>
-        <button type="button" onClick={() => move(1)} aria-label="Next month" className="p-1.5 rounded-lg hover:bg-gray-100">
-          <ChevronRight className="w-4 h-4" />
+        <button type="button" onClick={() => move(1)} aria-label="Next month" className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100">
+          <ChevronRight className="w-5 h-5" />
         </button>
       </div>
-      <div className="grid grid-cols-7 text-center text-[11px] font-medium text-gray-400 mb-1">
+      <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-400 mb-1">
         {WEEKDAYS.map((d) => (
           <span key={d}>{d}</span>
         ))}
@@ -88,7 +88,7 @@ export default function AvailabilityCalendar({
           );
         })}
       </div>
-      <p className="mt-2 text-[11px] text-gray-500">
+      <p className="mt-2 text-xs text-gray-500">
         <span className="line-through">12</span> = booked · tap your check-in, then your check-out day
       </p>
     </div>

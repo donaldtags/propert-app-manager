@@ -12,16 +12,22 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface PropertyRepository extends JpaRepository<Property, Long> {
-    @EntityGraph(attributePaths = {"landlord", "agent", "photos"})
+    @EntityGraph(attributePaths = {"landlord", "agent", "photos", "organisation"}, type = EntityGraph.EntityGraphType.LOAD)
     List<Property> findByLandlord(AppUser landlord);
 
-    @EntityGraph(attributePaths = {"landlord", "agent", "photos"})
+    /** An individual (non-agency) owner's listings in one status, e.g. drafts waiting on a licence. */
+    List<Property> findByLandlord_IdAndStatusAndOrganisationIdIsNull(Long landlordId, PropertyStatus status);
+
+    @EntityGraph(attributePaths = {"landlord", "agent", "organisation"}, type = EntityGraph.EntityGraphType.LOAD)
+    List<Property> findTop100ByOrganisationIdAndStatusOrderByCreatedAtDesc(Long organisationId, PropertyStatus status);
+
+    @EntityGraph(attributePaths = {"landlord", "agent", "photos", "organisation"}, type = EntityGraph.EntityGraphType.LOAD)
     List<Property> findByAgent(AppUser agent);
 
-    @EntityGraph(attributePaths = {"landlord", "agent", "photos"})
+    @EntityGraph(attributePaths = {"landlord", "agent", "photos", "organisation"}, type = EntityGraph.EntityGraphType.LOAD)
     Optional<Property> findWithPhotosById(Long id);
 
-    @EntityGraph(attributePaths = {"landlord", "agent"})
+    @EntityGraph(attributePaths = {"landlord", "agent", "organisation"}, type = EntityGraph.EntityGraphType.LOAD)
     @Query(value = """
             select p from Property p
             where (:listingType is null or p.listingType = :listingType)

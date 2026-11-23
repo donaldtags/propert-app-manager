@@ -45,7 +45,7 @@ function EscrowTimeline({ escrow }: { escrow: Escrow }) {
 
   const steps = [
     { label: "Deposit Paid", done: true },
-    { label: "Escrow Protected", done: funded },
+    { label: "Deposit protected", done: funded },
     { label: finalStepLabel, done: finalStepDone },
   ];
 

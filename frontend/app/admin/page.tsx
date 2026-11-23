@@ -1,5 +1,7 @@
 "use client";
 
+import IdReviewQueue from "@/components/admin/IdReviewQueue";
+import { AgentLicenceQueue, CompanyQueue, ReportQueue } from "@/components/admin/TrustQueues";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -23,7 +25,6 @@ import type {
   Property,
   Escrow,
   KycSubmission,
-  KycDocument,
   AdminDashboardOverview,
   AdminConversation,
   FraudSignal,
@@ -47,7 +48,6 @@ import {
   Lock,
   LayoutDashboard,
   IdCard,
-  Download,
   MessageSquare,
   ShieldAlert,
   MapPin,
@@ -55,6 +55,7 @@ import {
   Star,
   CreditCard,
   DollarSign,
+  Banknote,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -64,8 +65,9 @@ import StatusBadge from "@/components/StatusBadge";
 import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
 import AlertBanner from "@/components/AlertBanner";
+import AdminWithdrawalsPanel from "@/components/admin/AdminWithdrawalsPanel";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "escrows" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -275,10 +277,7 @@ export default function AdminPortalPage() {
   };
 
   const [kycSubmissions, setKycSubmissions] = useState<KycSubmission[]>([]);
-  const [kycLoading, setKycLoading] = useState(true);
-  const [rejectingId, setRejectingId] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [downloadingDoc, setDownloadingDoc] = useState<number | null>(null);
+  const [, setKycLoading] = useState(true);
 
   const [adminConversations, setAdminConversations] = useState<AdminConversation[]>([]);
   const [adminConversationsLoading, setAdminConversationsLoading] = useState(true);
@@ -286,7 +285,10 @@ export default function AdminPortalPage() {
   const isAdmin = user?.roles?.includes("ADMIN");
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) router.push("/");
+    // Signed out: ask them to sign in like every other protected page. Signed in without the
+    // admin role: there is nothing for them here, so go home.
+    if (!loading && !user) router.push("/login?redirect=%2Fadmin");
+    else if (!loading && !isAdmin) router.push("/");
   }, [user, loading, isAdmin, router]);
 
   const loadAll = () => {
@@ -339,12 +341,18 @@ export default function AdminPortalPage() {
     return allUsers.filter((u) => {
       if (roleFilter !== "ALL" && !u.roles?.includes(roleFilter as never)) return false;
       if (!needle) return true;
-      return u.fullName.toLowerCase().includes(needle) || u.email.toLowerCase().includes(needle);
+      return u.fullName.toLowerCase().includes(needle)
+        || (u.email ?? "").toLowerCase().includes(needle)
+        || (u.phone ?? "").includes(needle);
     });
   }, [allUsers, userSearch, roleFilter]);
 
   const pendingRequests = adminRequests.filter((r) => r.status === "PENDING");
-  const unverifiedProperties = allProperties.filter((p) => p.verificationStatus === "UNVERIFIED");
+  // PENDING = flagged for a (re-)check: edited after verification, or a photo also found on another
+  // owner's listing. Those come first.
+  const unverifiedProperties = allProperties
+    .filter((p) => p.verificationStatus === "UNVERIFIED" || p.verificationStatus === "PENDING")
+    .sort((a, b) => (a.verificationStatus === "PENDING" ? 0 : 1) - (b.verificationStatus === "PENDING" ? 0 : 1));
   const disputedEscrows = allEscrows.filter((e) => e.status === "DISPUTED");
   const pendingKyc = kycSubmissions.filter((s) => s.status === "PENDING");
 
@@ -418,11 +426,25 @@ export default function AdminPortalPage() {
     if (!token || !user) return;
     setError(""); setSuccess("");
     try {
-      await propertiesApi.verify(id, { verifierId: user.id }, token);
+      await propertiesApi.verify(id, { approved: true }, token);
       setSuccess("Property verified.");
       loadAll();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to verify property.");
+    }
+  };
+
+  const handleRejectProperty = async (id: number) => {
+    if (!token || !user) return;
+    const note = window.prompt("Why is this listing being rejected? The owner will see this reason.");
+    if (!note || !note.trim()) return;
+    setError(""); setSuccess("");
+    try {
+      await propertiesApi.verify(id, { approved: false, note: note.trim() }, token);
+      setSuccess("Listing rejected.");
+      loadAll();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to reject listing.");
     }
   };
 
@@ -442,40 +464,6 @@ export default function AdminPortalPage() {
     }
   };
 
-  const handleReviewKyc = async (id: number, status: "APPROVED" | "REJECTED", reviewNote?: string) => {
-    if (!token) return;
-    setError(""); setSuccess("");
-    try {
-      await kycApi.review(id, { status, reviewNote }, token);
-      setSuccess(status === "APPROVED" ? "Identity verification approved." : "Identity verification rejected.");
-      setRejectingId(null);
-      setRejectReason("");
-      loadAll();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to review verification request.");
-    }
-  };
-
-  const handleDownloadKycDoc = async (submissionId: number, doc: KycDocument) => {
-    if (!token) return;
-    setDownloadingDoc(doc.id);
-    try {
-      const blob = await kycApi.downloadDocument(submissionId, doc.id, token);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = doc.fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to download document.");
-    } finally {
-      setDownloadingDoc(null);
-    }
-  };
-
   if (loading || !isAdmin) return <PageLoader />;
 
   const TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
@@ -484,7 +472,11 @@ export default function AdminPortalPage() {
     { key: "requests", label: "Admin Requests", icon: UserCog, count: pendingRequests.length },
     { key: "kyc", label: "Verification Queue", icon: IdCard, count: pendingKyc.length },
     { key: "properties", label: "Property Verification", icon: Building2, count: unverifiedProperties.length },
+    { key: "reports", label: "Reported Listings", icon: ShieldAlert },
+    { key: "agents", label: "Agent Licences", icon: IdCard },
+    { key: "companies", label: "Companies", icon: Building2 },
     { key: "escrows", label: "Escrows", icon: ScrollText, count: disputedEscrows.length },
+    { key: "withdrawals", label: "Withdrawals", icon: Banknote },
     { key: "messages", label: "Messages", icon: MessageSquare, count: adminConversations.length },
     { key: "fraud", label: "Fraud Signals", icon: ShieldAlert, count: fraudSignals.length },
     { key: "neighbourhoods", label: "Neighbourhoods", icon: MapPin },
@@ -798,115 +790,7 @@ export default function AdminPortalPage() {
         </div>
       )}
 
-      {tab === "kyc" && (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <IdCard className="w-5 h-5 text-brand-600" /> Verification Queue
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Review submitted ID documents and selfies for identity verification.</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-          {kycLoading ? (
-            <div className="p-4 space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />)}
-            </div>
-          ) : kycSubmissions.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
-              <IdCard className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No identity verification requests</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-500 uppercase tracking-wide bg-gray-50">
-                    <th className="px-4 py-2.5 font-medium">User</th>
-                    <th className="px-4 py-2.5 font-medium">Submitted</th>
-                    <th className="px-4 py-2.5 font-medium">ID Type</th>
-                    <th className="px-4 py-2.5 font-medium">Documents</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
-                    <th className="px-4 py-2.5 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {kycSubmissions.map((s) => (
-                    <tr key={s.id}>
-                      <td className="px-4 py-2.5">
-                        <p className="font-medium text-gray-900">{s.userFullName}</p>
-                        <p className="text-xs text-gray-400">{s.userEmail}</p>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-400">{new Date(s.submittedAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-2.5 text-gray-600">{s.idDocumentType}</td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex flex-wrap gap-2">
-                          {s.documents.map((doc) => (
-                            <button
-                              key={doc.id}
-                              onClick={() => handleDownloadKycDoc(s.id, doc)}
-                              disabled={downloadingDoc === doc.id}
-                              className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 disabled:opacity-50"
-                            >
-                              <Download className="w-3 h-3" /> {doc.documentType}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          s.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                          s.status === "APPROVED" ? "bg-brand-100 text-brand-700" : "bg-red-100 text-red-700"
-                        }`}>{s.status}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        {s.status === "PENDING" && (
-                          rejectingId === s.id ? (
-                            <div className="flex flex-col items-end gap-2">
-                              <input
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                                placeholder="Reason for rejection"
-                                className="w-48 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-red-400"
-                              />
-                              <div className="flex gap-3">
-                                <button
-                                  onClick={() => setRejectingId(null)}
-                                  className="text-xs font-medium text-gray-500 hover:text-gray-700"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleReviewKyc(s.id, "REJECTED", rejectReason)}
-                                  className="text-xs font-medium text-red-600 hover:text-red-700"
-                                >
-                                  Confirm Reject
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex gap-3 justify-end">
-                              <button onClick={() => handleReviewKyc(s.id, "APPROVED")} className="text-xs font-medium text-brand-600 hover:text-brand-700">
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => { setRejectingId(s.id); setRejectReason(""); }}
-                                className="text-xs font-medium text-red-600 hover:text-red-700"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          </div>
-        </div>
-      )}
+      {tab === "kyc" && token && <IdReviewQueue token={token} onChanged={loadAll} />}
 
       {tab === "properties" && (
         <div>
@@ -933,18 +817,38 @@ export default function AdminPortalPage() {
                   <th className="px-4 py-2.5 font-medium">Title</th>
                   <th className="px-4 py-2.5 font-medium">Location</th>
                   <th className="px-4 py-2.5 font-medium">Price</th>
+                  <th className="px-4 py-2.5 font-medium">Owner&apos;s ID</th>
                   <th className="px-4 py-2.5 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {unverifiedProperties.map((p) => (
                   <tr key={p.id}>
-                    <td className="px-4 py-2.5 font-medium text-gray-900">{p.title}</td>
+                    <td className="px-4 py-2.5 font-medium text-gray-900">
+                      {p.title}
+                      {p.verificationStatus === "PENDING" && (
+                        <span className="ml-2 align-middle text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                          Needs re-check
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-gray-600">{p.suburb}, {p.city}</td>
                     <td className="px-4 py-2.5 text-gray-600">{p.currency} {p.price.toLocaleString()}</td>
+                    <td className="px-4 py-2.5">
+                      {p.listerIdVerified ? (
+                        <span className="text-xs font-semibold text-brand-700">Checked</span>
+                      ) : (
+                        <button onClick={() => setTab("kyc")} className="text-xs font-semibold text-amber-700 underline">
+                          Not checked - see Verification Queue
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-right">
-                      <button onClick={() => handleVerifyProperty(p.id)} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                      <button onClick={() => handleVerifyProperty(p.id)} className="text-xs font-medium text-brand-600 hover:text-brand-700 px-2 py-1">
                         Verify
+                      </button>
+                      <button onClick={() => handleRejectProperty(p.id)} className="text-xs font-medium text-red-600 hover:text-red-700 px-2 py-1">
+                        Reject
                       </button>
                     </td>
                   </tr>
@@ -955,6 +859,8 @@ export default function AdminPortalPage() {
           </div>
         </div>
       )}
+
+      {tab === "withdrawals" && <AdminWithdrawalsPanel />}
 
       {tab === "escrows" && (
         <div>
@@ -1029,6 +935,10 @@ export default function AdminPortalPage() {
           onRefresh={loadAll}
         />
       )}
+
+      {tab === "agents" && token && <AgentLicenceQueue token={token} />}
+      {tab === "companies" && token && <CompanyQueue token={token} />}
+      {tab === "reports" && token && <ReportQueue token={token} />}
 
       {tab === "fraud" && (
         <div>

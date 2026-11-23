@@ -55,14 +55,20 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/register", "/api/v1/auth/login",
-                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+                                // Second sign-in step: proven by the challenge token, not a session.
+                                "/api/v1/auth/2fa/verify", "/api/v1/auth/2fa/sms/send").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/logs/frontend").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/payments/webhooks/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/property-search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/affordability").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/inquiries").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/reports").permitAll()
+                        // Didit's result callback: authenticated by its HMAC signature, not a session.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/kyc/webhooks/didit").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties", "/api/v1/properties/*", "/api/v1/properties/*/passport").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/investments/reits").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/investments/fee-quote").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/stays/search", "/api/v1/stays/{propertyId:\\d+}",
                                 "/api/v1/stays/*/availability", "/api/v1/stays/*/quote").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/featured-listings/settings").permitAll()
@@ -77,6 +83,8 @@ public class SecurityConfig {
                         // Org public profile (brand, contact, EAC registration). /orgs/mine also matches this
                         // pattern; its service rejects anonymous callers with 401 itself.
                         .requestMatchers(HttpMethod.GET, "/api/v1/orgs/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orgs").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orgs/*/public-listings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/neighbourhoods").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/neighbourhoods").hasAuthority("PERM_NEIGHBOURHOOD_MANAGE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/vendors").permitAll()

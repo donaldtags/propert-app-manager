@@ -52,4 +52,8 @@ public class KycDocument {
 
     @Column(nullable = false)
     private Instant uploadedAt = Instant.now();
+
+    /** SHA-256 of the file as uploaded: proves later that the stored file hasn't been swapped. */
+    @Column(length = 64)
+    private String sha256;
 }

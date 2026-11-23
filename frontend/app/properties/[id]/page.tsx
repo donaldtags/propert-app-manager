@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import ReportListing from "@/components/ReportListing";
 import dynamic from "next/dynamic";
 import {
   Bed,
@@ -86,6 +87,7 @@ export default function PropertyDetailPage() {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [shareNote, setShareNote] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [tab, setTab] = useState<"overview" | "details" | "map" | "passport" | "tour">("overview");
   const [passport, setPassport] = useState<PropertyPassport | null>(null);
@@ -124,10 +126,13 @@ export default function PropertyDetailPage() {
   };
 
   // Inquiry form state
-  const [inquiryName, setInquiryName] = useState("");
-  const [inquiryEmail, setInquiryEmail] = useState("");
+  // null = untouched: signed-in visitors see their own name and email filled in.
+  const [inquiryNameInput, setInquiryName] = useState<string | null>(null);
+  const [inquiryEmailInput, setInquiryEmail] = useState<string | null>(null);
+  const inquiryName = inquiryNameInput ?? user?.fullName ?? "";
+  const inquiryEmail = inquiryEmailInput ?? user?.email ?? "";
   const [inquiryPhone, setInquiryPhone] = useState("");
-  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("Hi, I'm interested in this property. Is it still available?");
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquirySent, setInquirySent] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
@@ -136,7 +141,7 @@ export default function PropertyDetailPage() {
     if (!id) return;
     setLoading(true);
     try {
-      const prop = await propertiesApi.get(Number(id));
+      const prop = await propertiesApi.get(Number(id), token);
       setProperty(prop);
       setSaved(isSaved(prop.id));
       const r = await ratingsApi.listByLandlord(prop.landlordId);
@@ -147,7 +152,7 @@ export default function PropertyDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, user?.id]);
+  }, [id, user?.id, token]);
 
   useEffect(() => {
     load();
@@ -348,12 +353,36 @@ export default function PropertyDetailPage() {
     );
   }
 
+  const shareListing = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: property.title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareNote("Link copied");
+      setTimeout(() => setShareNote(""), 2500);
+    } catch (e) {
+      // Closing the share sheet is not an error worth showing.
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setShareNote("Couldn't share. Copy the address from your browser bar.");
+      setTimeout(() => setShareNote(""), 4000);
+    }
+  };
+
   const openLightbox = (index: number) => {
     setApplicationModalOpen(false);
     setViewingModalOpen(false);
     setPhotoIndex(index);
     setLightboxOpen(true);
   };
+
+  // Signed-out visitors have no id and most listings have no agent: compare only real ids, or
+  // `undefined === undefined` would treat every visitor as the owner.
+  const isListingOwner =
+    user?.id != null &&
+    (user.id === property.landlordId || (property.agentId != null && user.id === property.agentId));
 
   return (
     <div className="bg-white min-h-screen">
@@ -398,7 +427,8 @@ export default function PropertyDetailPage() {
               <button
                 type="button"
                 onClick={() => openLightbox(0)}
-                className="col-span-2 row-span-2 relative overflow-hidden"
+                aria-label={`Open photo 1 of ${photos.length}`}
+                className={`${photos.length === 1 ? "col-span-4" : "col-span-2"} row-span-2 relative overflow-hidden`}
               >
                 <Image
                   src={photos[0]}
@@ -406,10 +436,11 @@ export default function PropertyDetailPage() {
                   fill
                   className="object-cover hover:brightness-95 transition-[filter]"
                   priority
-                  sizes="50vw"
+                  sizes={photos.length === 1 ? "100vw" : "50vw"}
                 />
               </button>
-              {Array.from({ length: 4 }).map((_, i) => {
+              {/* A single photo spans the whole row instead of sitting beside four empty tiles. */}
+              {photos.length > 1 && Array.from({ length: 4 }).map((_, i) => {
                 const photoAt = i + 1;
                 const isLastTile = i === 3;
                 const remaining = photos.length - 5;
@@ -419,6 +450,7 @@ export default function PropertyDetailPage() {
                       key={photoAt}
                       type="button"
                       onClick={() => openLightbox(photoAt)}
+                      aria-label={`Open photo ${photoAt + 1} of ${photos.length}`}
                       className="relative overflow-hidden"
                     >
                       <Image
@@ -468,13 +500,23 @@ export default function PropertyDetailPage() {
         <div className="absolute top-4 right-4 flex gap-2">
           <button
             onClick={() => setSaved(toggleSaved(property.id))}
+            aria-label={saved ? "Remove from saved homes" : "Save this home"}
+            aria-pressed={saved}
             className={`w-10 h-10 rounded-full flex items-center justify-center shadow transition-colors ${saved ? "bg-red-500 text-white" : "bg-white/80 hover:bg-white text-gray-700"}`}
           >
             <Heart className={`w-5 h-5 ${saved ? "fill-current" : ""}`} />
           </button>
-          <button className="w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow text-gray-700 transition-colors">
+          <button
+            type="button"
+            onClick={shareListing}
+            aria-label="Share this listing"
+            className="w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow text-gray-700 transition-colors"
+          >
             <Share2 className="w-5 h-5" />
           </button>
+          <span role="status" aria-live="polite" className={shareNote ? "absolute top-12 right-0 whitespace-nowrap bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow" : "sr-only"}>
+            {shareNote}
+          </span>
         </div>
       </div>
 
@@ -729,14 +771,21 @@ export default function PropertyDetailPage() {
                     <p className="basis-full order-last text-xs text-amber-800">{CESSION_EXPLANATION}</p>
                   </>
                 )}
-                {property.verificationStatus === "VERIFIED" && (
+                {property.verificationStatus === "VERIFIED" ? (
                   <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200">
                     <CheckCircle className="w-3.5 h-3.5" /> Verified
+                  </span>
+                ) : (
+                  <span
+                    className="flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full border border-gray-200"
+                    title="EstateX hasn't checked this listing yet. Never pay before you've viewed the property."
+                  >
+                    Not yet verified
                   </span>
                 )}
                 {property.escrowRequired && (
                   <span className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full border border-brand-200">
-                    <Shield className="w-3.5 h-3.5" /> Escrow Protected
+                    <Shield className="w-3.5 h-3.5" /> Deposit protected
                   </span>
                 )}
                 {property.diasporaFriendly && (
@@ -1099,7 +1148,7 @@ export default function PropertyDetailPage() {
           <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain">
             {/* Price + actions card */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-              {(user?.id === property.landlordId || user?.id === property.agentId || user?.roles?.includes("ADMIN")) && (
+              {(isListingOwner || user?.roles?.includes("ADMIN")) && (
                 <Link
                   href={`/properties/${property.id}/edit`}
                   className="block w-full text-center border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold py-2 rounded-xl transition-colors mb-4 text-sm"
@@ -1118,7 +1167,7 @@ export default function PropertyDetailPage() {
                 <div className="mb-3">
                   <StayBookingWidget
                     propertyId={property.id}
-                    isHost={user?.id === property.landlordId || user?.id === property.agentId}
+                    isHost={isListingOwner}
                   />
                 </div>
               )}
@@ -1226,7 +1275,7 @@ export default function PropertyDetailPage() {
                   <div className="flex items-start gap-3 text-sm text-gray-600">
                     <Shield className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-gray-900">Deposit Escrow</p>
+                      <p className="font-semibold text-gray-900">Protected deposit</p>
                       <p className="text-xs text-gray-500">Your deposit is held safely until you receive the keys.</p>
                     </div>
                   </div>
@@ -1236,7 +1285,7 @@ export default function PropertyDetailPage() {
                     <CheckCircle className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-gray-900">Verified Property</p>
-                      <p className="text-xs text-gray-500">Inspected and verified by a certified agent.</p>
+                      <p className="text-xs text-gray-500">Checked by the EstateX verification team.</p>
                     </div>
                   </div>
                 )}
@@ -1257,7 +1306,11 @@ export default function PropertyDetailPage() {
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-5 h-5 text-brand-600" />
                 <h3 className="font-semibold text-gray-900 text-sm">
-                  {property.agentName ? "Listed by Agent" : "Listed by Owner"}
+                  {property.listedBy === "AGENCY"
+                    ? "Listed by an estate agency"
+                    : property.listedBy === "AGENT"
+                      ? "Listed by an independent agent"
+                      : "Listed by the owner"}
                 </h3>
               </div>
 
@@ -1278,20 +1331,49 @@ export default function PropertyDetailPage() {
                 );
               })()}
 
-              {(property.agentName ? property.agentCompanyName : property.landlordCompanyName) && (
-                <div className="flex items-center gap-1.5 text-sm text-brand-700 font-medium mb-1">
-                  <Building2 className="w-4 h-4" />
-                  {property.agentName ? property.agentCompanyName : property.landlordCompanyName}
+              {property.listedBy === "AGENCY" && property.organisationName && (
+                <Link
+                  href={`/agencies/${property.organisationSlug}`}
+                  className="flex items-center gap-2 text-sm text-brand-700 font-semibold mb-2 hover:underline"
+                >
+                  {property.organisationLogoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- company logo from their profile
+                    <img src={property.organisationLogoUrl} alt="" className="h-6 w-auto max-w-20 object-contain" />
+                  ) : (
+                    <Building2 className="w-4 h-4" />
+                  )}
+                  Agent at {property.organisationName}
+                </Link>
+              )}
+              {property.listedBy === "AGENT" && (
+                <p className="text-sm text-gray-600 mb-2">Independent agent (not part of a company on EstateX)</p>
+              )}
+              {property.listedBy === "OWNER" && (
+                <p className="text-sm text-gray-600 mb-2">Private owner, no agent involved</p>
+              )}
+              {property.listedBy !== "OWNER" && property.listerLicensed != null && (
+                <div
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full mb-3 ${
+                    property.listerLicensed ? "text-brand-700 bg-brand-50" : "text-gray-600 bg-gray-100"
+                  }`}
+                >
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  {property.listerLicensed ? "Licensed agent (checked by EstateX)" : "Agent licence not checked yet"}
+                </div>
+              )}
+              {property.listerIdVerified && (
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full mb-3 ml-1 text-brand-700 bg-brand-50">
+                  <BadgeCheck className="w-3.5 h-3.5" /> ID checked by EstateX
                 </div>
               )}
 
-              {property.agentPhone && (
+              {(property.organisationPhone ?? property.agentPhone) && (
                 <a
-                  href={`tel:${property.agentPhone}`}
-                  className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium mb-4"
+                  href={`tel:${property.organisationPhone ?? property.agentPhone}`}
+                  className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium mb-4 py-1"
                 >
                   <Phone className="w-4 h-4" />
-                  {property.agentPhone}
+                  {property.organisationPhone ?? property.agentPhone}
                 </a>
               )}
 
@@ -1310,44 +1392,59 @@ export default function PropertyDetailPage() {
                       {inquiryError && (
                         <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{inquiryError}</p>
                       )}
-                      <input
-                        type="text"
-                        required
-                        placeholder="Your name"
-                        value={inquiryName}
-                        onChange={(e) => setInquiryName(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                      />
-                      <input
-                        type="email"
-                        required
-                        placeholder="Your email"
-                        value={inquiryEmail}
-                        onChange={(e) => setInquiryEmail(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                      />
-                      <input
-                        type="tel"
-                        placeholder="Phone (optional)"
-                        value={inquiryPhone}
-                        onChange={(e) => setInquiryPhone(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
-                      />
-                      <textarea
-                        required
-                        rows={3}
-                        placeholder={`Hi, I'm interested in this property. Is it still available?`}
-                        value={inquiryMessage}
-                        onChange={(e) => setInquiryMessage(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
-                      />
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your name
+                        <input
+                          type="text"
+                          required
+                          autoComplete="name"
+                          placeholder="e.g. Tariro Moyo"
+                          value={inquiryName}
+                          onChange={(e) => setInquiryName(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your email
+                        <input
+                          type="email"
+                          required
+                          autoComplete="email"
+                          inputMode="email"
+                          placeholder="e.g. tariro@gmail.com"
+                          value={inquiryEmail}
+                          onChange={(e) => setInquiryEmail(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Phone or WhatsApp <span className="font-normal text-gray-500">(optional)</span>
+                        <input
+                          type="tel"
+                          autoComplete="tel"
+                          placeholder="e.g. +263 77 123 4567"
+                          value={inquiryPhone}
+                          onChange={(e) => setInquiryPhone(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your message
+                        <textarea
+                          required
+                          rows={3}
+                          value={inquiryMessage}
+                          onChange={(e) => setInquiryMessage(e.target.value)}
+                          className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-2.5 text-base sm:text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors resize-none"
+                        />
+                      </label>
                       <button
                         type="submit"
                         disabled={inquiryLoading}
                         className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
                       >
                         <Send className="w-4 h-4" />
-                        {inquiryLoading ? "Sending…" : "Send Inquiry"}
+                        {inquiryLoading ? "Sending…" : "Send message"}
                       </button>
                     </form>
                   )}
@@ -1366,6 +1463,8 @@ export default function PropertyDetailPage() {
                 </button>
               )}
             </div>
+
+            {!isListingOwner && <ReportListing propertyId={property.id} token={token} />}
 
             {/* Legal document templates — sale transactions only */}
             {property.listingType === "SALE" && (

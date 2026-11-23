@@ -22,8 +22,42 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrganisationController {
     private final OrganisationService service;
 
-    public OrganisationController(OrganisationService service) {
+    private final com.example.estatex.property.PropertyService properties;
+    private final com.example.estatex.notification.NotificationService notifications;
+
+    public OrganisationController(OrganisationService service, com.example.estatex.property.PropertyService properties,
+                                  com.example.estatex.notification.NotificationService notifications) {
         this.service = service;
+        this.properties = properties;
+        this.notifications = notifications;
+    }
+
+    /** Public directory of approved companies. */
+    @GetMapping
+    List<OrganisationResponse> directory() {
+        return service.directory().stream().map(o -> OrganisationResponse.from(o, false)).toList();
+    }
+
+    /** EstateX staff: companies that registered themselves and are waiting for review. */
+    @GetMapping("/pending-review")
+    List<OrganisationResponse> pendingReview(@AuthenticationPrincipal AppUser currentUser) {
+        return service.awaitingApproval(currentUser).stream().map(o -> OrganisationResponse.from(o, true)).toList();
+    }
+
+    @PatchMapping("/{slug}/approval")
+    OrganisationResponse decide(@PathVariable String slug, @RequestBody OrganisationDtos.ApprovalRequest request,
+                                @AuthenticationPrincipal AppUser currentUser) {
+        return OrganisationResponse.from(service.decideApproval(slug, request.approved() == null || request.approved(),
+                request.note(), currentUser, notifications), true);
+    }
+
+    /** A company's live listings for its public page (404 until the company is approved). */
+    @GetMapping("/{slug}/public-listings")
+    List<com.example.estatex.property.PropertyDtos.PropertyResponse> publicListings(@PathVariable String slug,
+                                                                                   @AuthenticationPrincipal AppUser currentUser) {
+        OrganisationResponse org = service.profile(slug, currentUser);
+        return properties.liveListingsOfOrganisation(org.id()).stream()
+                .map(com.example.estatex.property.PropertyDtos.PropertyResponse::publicView).toList();
     }
 
     @GetMapping("/mine")

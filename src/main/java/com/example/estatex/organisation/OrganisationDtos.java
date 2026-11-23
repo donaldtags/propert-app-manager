@@ -87,7 +87,10 @@ public final class OrganisationDtos {
             Integer saleCommissionBps,
             Integer managementFeeBps,
             Integer lettingFeeMonthsX100,
-            Long version
+            Long version,
+            /** APPROVED, PENDING or REJECTED (EstateX review of the company). */
+            String approvalStatus,
+            String approvalNote
     ) {
         public static OrganisationResponse from(Organisation o, boolean includeInternal) {
             return new OrganisationResponse(o.getId(), o.getSlug(), o.getName(), o.getSlogan(), o.getDivisions(),
@@ -100,7 +103,9 @@ public final class OrganisationDtos {
                     includeInternal ? o.getSaleCommissionBps() : null,
                     includeInternal ? o.getManagementFeeBps() : null,
                     includeInternal ? o.getLettingFeeMonthsX100() : null,
-                    includeInternal ? o.getVersion() : null);
+                    includeInternal ? o.getVersion() : null,
+                    o.isApproved() ? "APPROVED" : o.getApprovalStatus(),
+                    includeInternal ? o.getApprovalNote() : null);
         }
     }
 
@@ -151,8 +156,16 @@ public final class OrganisationDtos {
             @NotBlank @Pattern(regexp = "^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$",
                     message = "slug must be 3-60 lowercase letters, digits or hyphens") String slug,
             @NotBlank @Size(max = 160) String name,
-            Set<Division> divisions
+            Set<Division> divisions,
+            /** Required when a company registers itself; EstateX checks it before approving. */
+            @Size(max = 80) String eacRegistrationNumber,
+            @Size(max = 40) String phone,
+            @Size(max = 160) String email,
+            @Size(max = 300) String address
     ) {
+    }
+
+    public record ApprovalRequest(Boolean approved, String note) {
     }
 
     public record UpdateOrganisationRequest(

@@ -24,8 +24,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
     private static final Set<String> LIMITED_PATHS = Set.of(
-            "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/forgot-password"
+            "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/forgot-password",
+            "/api/v1/auth/reset-password", "/api/v1/auth/2fa/verify", "/api/v1/auth/2fa/sms/send"
     );
+    /** The public "message the owner" form: no login needed, so it's the obvious spam target. */
+    private static final java.util.regex.Pattern INQUIRY_PATH =
+            java.util.regex.Pattern.compile("^/api/v1/properties/\\d+/(inquiries|reports)$");
 
     private final ConcurrentHashMap<String, ConcurrentLinkedDeque<Instant>> hits = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
@@ -45,11 +49,15 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        if (!LIMITED_PATHS.contains(request.getRequestURI())) {
+        String path = request.getRequestURI();
+        boolean inquiry = "POST".equals(request.getMethod()) && INQUIRY_PATH.matcher(path).matches();
+        if (!inquiry && !LIMITED_PATHS.contains(path)) {
             filterChain.doFilter(request, response);
             return;
         }
-        String key = request.getRemoteAddr() + ":" + request.getRequestURI();
+        // Enquiries share one bucket per sender across all listings, so spam can't be sprayed
+        // over many listings at once.
+        String key = request.getRemoteAddr() + ":" + (inquiry ? "inquiries" : path);
         Instant now = Instant.now();
         ConcurrentLinkedDeque<Instant> timestamps = hits.computeIfAbsent(key, k -> new ConcurrentLinkedDeque<>());
         synchronized (timestamps) {

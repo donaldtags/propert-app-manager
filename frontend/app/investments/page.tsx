@@ -1,12 +1,13 @@
 "use client";
 
+import { reitFees } from "@/lib/trust";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { investments as investmentsApi, market as marketApi } from "@/lib/api";
-import type { Reit, Investment, MarketSnapshot } from "@/lib/types";
+import type { Reit, Investment, MarketSnapshot, CheckoutProvider } from "@/lib/types";
 import HorizontalBarChart from "@/components/HorizontalBarChart";
 import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
@@ -102,11 +103,15 @@ function ZseReitMarketTable() {
           <span className={snapshot && !snapshot.stale ? "text-brand-700" : "text-gray-500"}>
             {snapshot && !snapshot.stale ? "Live" : "Delayed"}
           </span>
-          <span className="text-gray-400">· updated {formatRelativeTime(snapshot?.lastUpdated ?? null, now)}</span>
+          {snapshot?.lastUpdated && (
+            <span className="text-gray-400">· updated {formatRelativeTime(snapshot.lastUpdated, now)}</span>
+          )}
         </div>
       </div>
 
-      {marketError && quotes.length === 0 ? (
+      {/* Skeletons only while the first answer is on its way; once the server has replied with no
+          quotes (its fetch from the exchange failed), say so instead of loading forever. */}
+      {(marketError || snapshot) && quotes.length === 0 ? (
         <EmptyState icon={AlertCircle} title="Market data is temporarily unavailable" compact />
       ) : quotes.length === 0 ? (
         <div className="px-6 py-8 space-y-2">
@@ -210,6 +215,8 @@ export default function InvestmentsPage() {
   const [checkoutReitId, setCheckoutReitId] = useState<number | null>(null);
   const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [units, setUnits] = useState<Record<number, string>>({});
+  // EstateX's REIT transaction fee (%), read from the server so the screen always matches the charge.
+  const [feePercent, setFeePercent] = useState(1.5);
   const [selling, setSelling] = useState<number | null>(null);
   const [sellUnits, setSellUnits] = useState<Record<number, string>>({});
   const [success, setSuccess] = useState("");
@@ -239,6 +246,13 @@ export default function InvestmentsPage() {
     return ["All", ...unique];
   }, [reits]);
 
+  useEffect(() => {
+    if (reits.length === 0) return;
+    reitFees.quote(reits[0].id, 1, "BUY").then((q) => setFeePercent(Number(q.feePercent))).catch(() => {});
+  }, [reits]);
+  const money = (n: number) => `$${n.toFixed(2)}`;
+  const feeOf = (gross: number) => Math.round(gross * feePercent) / 100;
+
   const visibleReits = useMemo(
     () => (countryFilter === "All" ? reits : reits.filter((r) => r.market === countryFilter)),
     [reits, countryFilter]
@@ -261,7 +275,7 @@ export default function InvestmentsPage() {
     setCheckoutReitId(reit.id);
   };
 
-  const handleInvestCheckout = async (reit: Reit, provider: "paynow" | "stripe") => {
+  const handleInvestCheckout = async (reit: Reit, provider: CheckoutProvider) => {
     if (!token) return;
     const n = Number(units[reit.id] || 1);
     setError(""); setSuccess("");
@@ -641,6 +655,7 @@ export default function InvestmentsPage() {
                         <div>
                           <PaymentProviderPicker
                             loadingProvider={checkoutProvider}
+                            walletAmount={Number(units[reit.id] || 1) * reit.unitPrice}
                             onChoose={(provider) => handleInvestCheckout(reit, provider)}
                           />
                           {!checkoutProvider && (
@@ -662,6 +677,7 @@ export default function InvestmentsPage() {
                               onChange={(e) => setUnits((u) => ({ ...u, [reit.id]: e.target.value }))}
                               className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
                               placeholder="Units"
+                              aria-label={`Units of ${reit.name} to buy`}
                             />
                             <button
                               onClick={() => startInvestCheckout(reit)}
@@ -673,9 +689,16 @@ export default function InvestmentsPage() {
                               <span className="truncate">{`Buy ${reit.name} Units`}</span>
                             </button>
                           </div>
-                          <p className="text-xs text-gray-400 mt-2">
-                            Total: ${(Number(units[reit.id] || 1) * reit.unitPrice).toFixed(2)} USD
-                          </p>
+                          {(() => {
+                            const gross = Number(units[reit.id] || 1) * reit.unitPrice;
+                            const fee = feeOf(gross);
+                            return (
+                              <p className="text-xs text-gray-600 mt-2">
+                                {money(gross)} + {feePercent}% EstateX fee ({money(fee)}) ={" "}
+                                <strong className="text-gray-900">{money(gross + fee)} total</strong>
+                              </p>
+                            );
+                          })()}
                         </>
                       )}
                     </div>
@@ -691,6 +714,7 @@ export default function InvestmentsPage() {
                           disabled={totalUnitsOwned === 0}
                           className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-400 disabled:opacity-50 disabled:bg-gray-50"
                           placeholder="Units"
+                          aria-label={`Units of ${reit.name} to sell`}
                         />
                         <button
                           onClick={() => handleSell(reit)}
@@ -706,7 +730,10 @@ export default function InvestmentsPage() {
                       </div>
                       <p className="text-xs text-gray-400 mt-2">
                         {totalUnitsOwned > 0
-                          ? `You can sell up to ${totalUnitsOwned} unit${totalUnitsOwned > 1 ? "s" : ""}`
+                          ? (() => {
+                              const gross = Number(sellUnits[reit.id] || 1) * reit.unitPrice;
+                              return `You can sell up to ${totalUnitsOwned} unit${totalUnitsOwned > 1 ? "s" : ""}. You receive ${money(gross - feeOf(gross))} after the ${feePercent}% EstateX fee.`;
+                            })()
                           : "You don't own any units to sell yet"}
                       </p>
                     </div>

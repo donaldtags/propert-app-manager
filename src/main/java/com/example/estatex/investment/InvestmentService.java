@@ -52,6 +52,34 @@ public class InvestmentService {
         this.platformAccountService = platformAccountService;
     }
 
+    // Setter-injected so the constructor above stays as it was.
+    private ReitFees fees;
+    private com.example.estatex.common.AuditService audit;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setFeeSupport(ReitFees fees, com.example.estatex.common.AuditService audit) {
+        this.fees = fees;
+        this.audit = audit;
+    }
+
+    /** What a purchase or sale of these units costs / pays out, including EstateX's fee. */
+    @Transactional(readOnly = true)
+    public ReitFees.Quote quote(Long reitId, java.math.BigDecimal units, boolean buying) {
+        if (units == null || units.signum() <= 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Enter how many units");
+        }
+        Reit reit = reits.findById(reitId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "REIT not found"));
+        return buying ? fees.buy(reit.getUnitPrice(), units) : fees.sell(reit.getUnitPrice(), units);
+    }
+
+    // Setter-injected so the wallet payout stays a self-contained addition to this service.
+    private com.example.estatex.wallet.WalletService walletService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setWalletService(com.example.estatex.wallet.WalletService walletService) {
+        this.walletService = walletService;
+    }
+
     private InvestmentDtos.ReitResponse toResponse(Reit reit) {
         return InvestmentDtos.ReitResponse.from(reit, scoreService, marketService.quoteFor(reit.getTickerSymbol()));
     }
@@ -138,7 +166,8 @@ public class InvestmentService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only " + reit.getAvailableUnits() + " units remain available in this REIT");
         }
         String currency = request.currency() == null || request.currency().isBlank() ? "USD" : request.currency();
-        java.math.BigDecimal amount = reit.getUnitPrice().multiply(request.units());
+        ReitFees.Quote quote = fees.buy(reit.getUnitPrice(), request.units());
+        java.math.BigDecimal amount = quote.investorAmount();
         AppUser platformAccount = platformAccountService.billingAccount();
         Payment payment = payments.create(
                 new PaymentDtos.CreatePaymentRequest(
@@ -149,10 +178,12 @@ public class InvestmentService {
                         currency,
                         provider,
                         "Investment: " + request.units() + " units in " + reit.getName()
+                                + " (incl. " + quote.feePercent().stripTrailingZeros().toPlainString() + "% EstateX fee)"
                 ),
                 investor,
                 PaymentPurpose.INVESTMENT,
-                "reitId=" + reit.getId() + ",units=" + request.units() + ",currency=" + currency,
+                "reitId=" + reit.getId() + ",units=" + request.units() + ",currency=" + currency
+                        + ",gross=" + quote.gross() + ",fee=" + quote.fee(),
                 null
         );
         return payments.initiateCheckout(payment.getId(), provider, investor);
@@ -187,6 +218,14 @@ public class InvestmentService {
         investment.setCurrency(meta.getOrDefault("currency", "USD"));
         investment.setStatus(InvestmentStatus.ACTIVE);
         investments.save(investment);
+        if (meta.get("fee") != null) {
+            // EstateX revenue: the buy-side transaction fee, booked once the money has arrived.
+            long feeCents = new java.math.BigDecimal(meta.get("fee")).movePointRight(2).longValueExact();
+            audit.record(payment.getPayer(), com.example.estatex.common.AuditService
+                    .entry("revenue.reit_fee", "Payment", payment.getId())
+                    .money(feeCents, investment.getCurrency())
+                    .metadata(Map.of("side", "BUY", "reitId", reit.getId(), "units", units.toPlainString())));
+        }
     }
 
     private Map<String, String> parseMetadata(String metadata) {
@@ -239,8 +278,35 @@ public class InvestmentService {
             reit.setUnitsSold(reit.getUnitsSold().subtract(request.units()).max(java.math.BigDecimal.ZERO));
         }
 
+        // Sale proceeds at today's unit price, less EstateX's fee. The fee is booked as revenue;
+        // the net amount is what the investor is owed (paid into their wallet once wallets exist).
+        ReitFees.Quote settlement = fees.sell(reit.getUnitPrice(), request.units());
+        audit.record(investor, com.example.estatex.common.AuditService
+                .entry("revenue.reit_fee", "Reit", reit.getId())
+                .money(settlement.fee().movePointRight(2).longValueExact(), "USD")
+                .metadata(Map.of("side", "SELL", "units", request.units().toPlainString(),
+                        "gross", settlement.gross().toPlainString(), "netToInvestor", settlement.investorAmount().toPlainString())));
         investments.saveAll(touched);
+        creditSaleProceeds(investor, reit, request.units(), settlement.investorAmount(),
+                lots.isEmpty() ? "USD" : lots.get(0).getCurrency());
         return investments.findByInvestor(investor);
+    }
+
+    /** Selling units pays the investor - net of EstateX's fee - into their EstateX wallet. */
+    private void creditSaleProceeds(AppUser investor, Reit reit, java.math.BigDecimal units, java.math.BigDecimal net,
+                                    String currency) {
+        long cents = com.example.estatex.wallet.WalletService.toCents(net);
+        if (cents <= 0) return;
+        walletService.post(investor.getId(), currency, cents, com.example.estatex.wallet.WalletEntryType.PAYOUT,
+                com.example.estatex.wallet.WalletService.PLATFORM_COLLECTIONS,
+                "Sold " + units.stripTrailingZeros().toPlainString() + " units of " + reit.getName()
+                        + " (after " + fees.percent().stripTrailingZeros().toPlainString() + "% fee)",
+                "Reit", reit.getId(), "reit-sale:" + java.util.UUID.randomUUID(), investor);
+    }
+
+    /** What the investor receives for selling units at today's unit price, after EstateX's fee. */
+    java.math.BigDecimal saleProceeds(Reit reit, java.math.BigDecimal units) {
+        return fees.sell(reit.getUnitPrice(), units).investorAmount();
     }
 
     @Transactional(readOnly = true)

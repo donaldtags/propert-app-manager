@@ -61,7 +61,7 @@ export default function EditPropertyPage() {
     if (!id) return;
     (async () => {
       try {
-        const prop = await propertiesApi.get(Number(id));
+        const prop = await propertiesApi.get(Number(id), token);
         const isOwner = user.id === prop.landlordId || user.id === prop.agentId;
         if (!isOwner && !user.roles?.includes("ADMIN")) {
           setLoadError("You don't have permission to edit this listing.");
@@ -101,7 +101,7 @@ export default function EditPropertyPage() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user, id]);
+  }, [authLoading, user, token, id]);
 
   const suburbs = form.city ? ZIMBABWE_SUBURBS[form.city] ?? [] : [];
 

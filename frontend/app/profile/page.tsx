@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { users } from "@/lib/api";
 import Link from "next/link";
+import AgentLicenceCard from "@/components/AgentLicenceCard";
 import {
   User,
   Shield,
@@ -68,7 +69,7 @@ export default function ProfilePage() {
       users.tenantPassport(user.id, token).then(setTenantPassport).catch(() => {});
     }
     if (user.roles?.includes("LANDLORD") || user.roles?.includes("AGENT") || user.roles?.includes("PRIVATE") || user.roles?.includes("DEVELOPER")) {
-      users.landlordPassport(user.id).then(setLandlordPassport).catch(() => {});
+      users.landlordPassport(user.id, token).then(setLandlordPassport).catch(() => {});
     }
   }, [user, token]);
 
@@ -126,7 +127,7 @@ export default function ProfilePage() {
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-bold break-words">{user.fullName}</h1>
-              <p className="text-brand-100 text-sm break-all">{user.email}</p>
+              <p className="text-brand-100 text-sm break-all">{user.email || user.phone}</p>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {user.roles?.map((role) => (
                   <span key={role} className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">
@@ -192,6 +193,8 @@ export default function ProfilePage() {
           </Link>
         )}
       </div>
+
+      {user.roles?.includes("AGENT") && token && <AgentLicenceCard token={token} />}
 
       {/* Tenant Passport */}
       {tenantPassport && (
