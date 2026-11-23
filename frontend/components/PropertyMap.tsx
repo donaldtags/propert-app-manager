@@ -13,9 +13,11 @@ interface Props {
 }
 
 function formatPrice(price: number, currency: string) {
-  if (price >= 1_000_000) return `$${(price / 1_000_000).toFixed(1)}M`;
-  if (price >= 1_000) return `$${(price / 1_000).toFixed(0)}K`;
-  return `$${price}`;
+  // Only US dollars get "$"; anything else (e.g. ZWG) shows its code so prices aren't mislabelled.
+  const symbol = !currency || currency === "USD" ? "$" : `${currency} `;
+  if (price >= 1_000_000) return `${symbol}${(price / 1_000_000).toFixed(1)}M`;
+  if (price >= 1_000) return `${symbol}${(price / 1_000).toFixed(0)}K`;
+  return `${symbol}${price}`;
 }
 
 const DEFAULT_ZOOM = 12;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { maintenance as maintenanceApi, properties as propertiesApi, leases as leasesApi, vendors as vendorsApi } from "@/lib/api";
@@ -71,17 +72,17 @@ export default function MaintenancePage() {
   }, [user, token]);
 
   // The picker turns the spinner on when a property is chosen; refreshes keep the list on screen.
-  const loadForProperty = async (propertyId: number) => {
+  const loadForProperty = useCallback(async (propertyId: number) => {
     if (!token) return;
     return maintenanceApi.list(propertyId, token)
       .then(setRequests)
       .catch(() => {})
       .finally(() => setReqLoading(false));
-  };
+  }, [token]);
 
   useEffect(() => {
     if (form.propertyId) loadForProperty(form.propertyId);
-  }, [form.propertyId]);
+  }, [form.propertyId, loadForProperty]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,9 +297,11 @@ export default function MaintenancePage() {
                   <div className="flex flex-wrap gap-2 mt-2">
                     {req.photos.map((photo) => (
                       <a key={photo.id} href={photo.photoUrl} target="_blank" rel="noreferrer">
-                        <img
+                        <Image
                           src={photo.photoUrl}
                           alt="Maintenance issue"
+                          width={64}
+                          height={64}
                           className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                         />
                       </a>

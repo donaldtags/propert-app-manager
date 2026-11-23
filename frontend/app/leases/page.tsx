@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { leases as leasesApi, properties as propertiesApi, users as usersApi } from "@/lib/api";
@@ -105,10 +105,10 @@ export default function LeasesPage() {
         }
       })
       .finally(() => setPickersLoading(false));
-  }, [user, canManageLeases]);
+  }, [user, token, canManageLeases]);
 
   // leasesLoading starts true for the first fetch; refreshes keep the current list until the new one lands.
-  const loadLeases = async () => {
+  const loadLeases = useCallback(async () => {
     if (!user || !token) return;
     const isTenant = user.roles?.includes("TENANT");
     const isLandlord = user.roles?.includes("LANDLORD");
@@ -124,9 +124,9 @@ export default function LeasesPage() {
         setLeaseList(all.filter((l, i, arr) => arr.findIndex((x) => x.id === l.id) === i));
       })
       .finally(() => setLeasesLoading(false));
-  };
+  }, [user, token]);
 
-  useEffect(() => { loadLeases(); }, [user, token]);
+  useEffect(() => { loadLeases(); }, [loadLeases]);
 
   const handleAutoFill = async (file: File | undefined) => {
     if (!file || !token) return;

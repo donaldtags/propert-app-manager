@@ -7,10 +7,7 @@ import { users } from "@/lib/api";
 import Link from "next/link";
 import AgentLicenceCard from "@/components/AgentLicenceCard";
 import {
-  User,
   Shield,
-  Globe,
-  TrendingUp,
   CheckCircle,
   Edit3,
   Save,

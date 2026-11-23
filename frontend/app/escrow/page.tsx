@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { escrow as escrowApi, properties as propertiesApi } from "@/lib/api";
-import type { Escrow, FundingMethod, Property } from "@/lib/types";
+import type { Escrow, Property } from "@/lib/types";
 import {
   Shield,
   AlertCircle,

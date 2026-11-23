@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
@@ -37,18 +37,18 @@ export default function ConstructionProjectsPage() {
     }
   }, [user, loading, router]);
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!user || !token) return;
     constructionApi
       .listByOwner(user.id, token)
       .then(setProjects)
       .catch(() => setError("Failed to load your construction projects."))
       .finally(() => setListLoading(false));
-  };
+  }, [user, token]);
 
   useEffect(() => {
-    if (user && token && user.roles?.includes("DIASPORA")) load();
-  }, [user, token]);
+    if (user?.roles?.includes("DIASPORA")) load();
+  }, [user, load]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

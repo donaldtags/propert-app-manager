@@ -204,7 +204,7 @@ function formatMoney(value: number, currency: string) {
 }
 
 export default function InvestmentsPage() {
-  const { user, token, loading } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
 
   const [reits, setReits] = useState<Reit[]>([]);

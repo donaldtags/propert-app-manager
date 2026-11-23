@@ -107,9 +107,9 @@ export default function TenantDashboardPage() {
   }, [user, token]);
 
   const activeLeases = useMemo(() => dashboard?.activeLeases ?? [], [dashboard]);
-  const recentPayments = dashboard?.recentPayments ?? [];
+  const recentPayments = useMemo(() => dashboard?.recentPayments ?? [], [dashboard]);
   const maintenance = dashboard?.maintenanceRequests ?? [];
-  const escrows = dashboard?.escrows ?? [];
+  const escrows = useMemo(() => dashboard?.escrows ?? [], [dashboard]);
 
   const primaryLease: Lease | null = useMemo(() => {
     return (
