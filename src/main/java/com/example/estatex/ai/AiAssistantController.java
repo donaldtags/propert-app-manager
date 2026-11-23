@@ -44,7 +44,7 @@ public class AiAssistantController {
     AiDtos.AiPropertyAnswer propertySearch(@Valid @RequestBody AiDtos.AiPropertyQuery request) {
         List<Property> matches = service.search(request.query(), request.history());
         String answer = service.answer(request.query(), matches, request.history());
-        List<PropertyResponse> responses = matches.stream().map(PropertyResponse::from).toList();
+        List<PropertyResponse> responses = matches.stream().map(PropertyResponse::publicView).toList();
         return new AiDtos.AiPropertyAnswer(answer, responses, service.aiPowered());
     }
 

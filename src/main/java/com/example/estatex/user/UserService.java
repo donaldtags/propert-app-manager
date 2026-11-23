@@ -105,6 +105,11 @@ public class UserService {
                 .or(() -> users.findFirstByPhone(trimmed));
     }
 
+    /** Plain lookup, without the trust-score recompute that {@link #require} does. */
+    public Optional<AppUser> find(Long id) {
+        return users.findById(id);
+    }
+
     public AppUser require(Long id) {
         AppUser user = users.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         trustScoreService.recompute(user);

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import EstateXLogo from "@/components/EstateXLogo";
 import { Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
+import { safeRedirect } from "@/lib/safeRedirect";
 
 function passwordStrength(pw: string) {
   const checks = {
@@ -23,7 +24,7 @@ function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectParam = searchParams.get("redirect");
+  const redirectParam = safeRedirect(searchParams);
   const redirect = redirectParam ?? "/";
 
   const [fullName, setFullName] = useState("");
@@ -36,6 +37,7 @@ function RegisterForm() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const { checks, score } = passwordStrength(password);
   const pwOk = score === 4;
@@ -43,11 +45,16 @@ function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pwOk) { setError("Password does not meet requirements."); return; }
-    if (!pwMatch) { setError("Passwords do not match."); return; }
+    // The banner sits at the top of a long form, so also move focus to the field at fault:
+    // focusing scrolls it into view, and the hint or checklist next to it says what to change.
+    const fail = (message: string, fieldId: string) => {
+      setError(message);
+      document.getElementById(fieldId)?.focus();
+    };
+    if (!pwOk) return fail("Password does not meet requirements.", "reg-password");
+    if (!pwMatch) return fail("Passwords do not match.", "reg-confirm");
     if (!email.trim() && !phone.trim()) {
-      setError("Enter an email address or a phone number - you'll use it to sign in.");
-      return;
+      return fail("Enter an email address or a phone number - you'll use it to sign in.", "reg-email");
     }
     setError("");
     setLoading(true);
@@ -63,6 +70,7 @@ function RegisterForm() {
       router.push(redirectParam ?? dashboardPathFor(registeredUser.roles));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed. Try again.");
+      requestAnimationFrame(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
     } finally {
       setLoading(false);
     }
@@ -84,7 +92,7 @@ function RegisterForm() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5">
+            <div ref={errorRef} role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5">
               {error}
             </div>
           )}
@@ -254,7 +262,12 @@ function RegisterForm() {
                     : "border-gray-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                 }`}
                 placeholder="••••••••"
+                aria-invalid={confirmPw.length > 0 && !pwMatch}
+                aria-describedby="reg-confirm-hint"
               />
+              <p id="reg-confirm-hint" aria-live="polite" className="text-xs text-red-600 mt-1.5 min-h-0">
+                {confirmPw.length > 0 && !pwMatch ? "Passwords do not match." : ""}
+              </p>
             </div>
 
             <button

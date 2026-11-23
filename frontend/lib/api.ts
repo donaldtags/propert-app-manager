@@ -272,7 +272,8 @@ export const properties = {
     return { items, totalCount };
   },
 
-  get: (id: number) => request<Property>(`/properties/${id}`),
+  /** Pass the token when signed in: owners, agents and booked guests get details others don't (a short stay's address). */
+  get: (id: number, token?: string | null) => request<Property>(`/properties/${id}`, {}, token ?? undefined),
 
   geocode: (params: { address?: string; suburb?: string; city?: string; country?: string }, token: string) => {
     const q = new URLSearchParams();
@@ -447,8 +448,9 @@ export const users = {
   landlordProfile: (id: number, token: string) =>
     request<LandlordProfile>(`/users/${id}/landlord-profile`, {}, token),
 
-  landlordPassport: (id: number) =>
-    request<LandlordPassport>(`/users/${id}/landlord-passport`),
+  /** Public only for people with listings; send the token to see your own before your first listing. */
+  landlordPassport: (id: number, token?: string) =>
+    request<LandlordPassport>(`/users/${id}/landlord-passport`, {}, token),
 
   tenantPassport: (id: number, token: string) =>
     request<TenantPassport>(`/users/${id}/tenant-passport`, {}, token),

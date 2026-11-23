@@ -54,7 +54,7 @@ class StayController {
         int pageSize = Math.min(Math.max(size, 1), 50);
         int from = Math.min(Math.max(page, 0) * pageSize, free.size());
         List<PropertyResponse> body = free.subList(from, Math.min(from + pageSize, free.size())).stream()
-                .map(PropertyResponse::from).toList();
+                .map(PropertyResponse::publicView).toList();
         return ResponseEntity.ok().header("X-Total-Count", String.valueOf(free.size())).body(body);
     }
 

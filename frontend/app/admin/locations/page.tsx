@@ -30,7 +30,7 @@ export default function LocationSuggestionsPage() {
   useEffect(() => {
     if (loading) return;
     if (!user || !token || !user.roles.includes("ADMIN")) {
-      router.replace("/login?next=/admin/locations");
+      router.replace("/login?redirect=%2Fadmin%2Flocations");
       return;
     }
     locations.pending(token).then(setItems, (e: unknown) => setError(e instanceof Error ? e.message : "Failed to load"));

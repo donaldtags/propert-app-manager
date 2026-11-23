@@ -57,7 +57,7 @@ public class OrganisationController {
                                                                                    @AuthenticationPrincipal AppUser currentUser) {
         OrganisationResponse org = service.profile(slug, currentUser);
         return properties.liveListingsOfOrganisation(org.id()).stream()
-                .map(com.example.estatex.property.PropertyDtos.PropertyResponse::from).toList();
+                .map(com.example.estatex.property.PropertyDtos.PropertyResponse::publicView).toList();
     }
 
     @GetMapping("/mine")

@@ -69,7 +69,7 @@ export default function ProfilePage() {
       users.tenantPassport(user.id, token).then(setTenantPassport).catch(() => {});
     }
     if (user.roles?.includes("LANDLORD") || user.roles?.includes("AGENT") || user.roles?.includes("PRIVATE") || user.roles?.includes("DEVELOPER")) {
-      users.landlordPassport(user.id).then(setLandlordPassport).catch(() => {});
+      users.landlordPassport(user.id, token).then(setLandlordPassport).catch(() => {});
     }
   }, [user, token]);
 

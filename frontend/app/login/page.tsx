@@ -7,6 +7,7 @@ import EstateXLogo from "@/components/EstateXLogo";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
+import { safeRedirect } from "@/lib/safeRedirect";
 import PageLoader from "@/components/PageLoader";
 import TwoFactorStep from "@/components/auth/TwoFactorStep";
 import type { TwoFactorChallenge, User } from "@/lib/types";
@@ -15,7 +16,7 @@ function LoginForm() {
   const { user, loading: authLoading, login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectParam = searchParams.get("redirect");
+  const redirectParam = safeRedirect(searchParams);
   const redirect = redirectParam ?? "/";
 
   const [identifier, setIdentifier] = useState("");

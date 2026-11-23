@@ -4,6 +4,7 @@ import com.example.estatex.common.LegacyBrand;
 import com.example.estatex.property.ListingType;
 import com.example.estatex.property.Property;
 import com.example.estatex.property.PropertyDtos;
+import com.example.estatex.property.PropertyRepository;
 import com.example.estatex.property.PropertyService;
 import com.example.estatex.user.AppUser;
 import com.example.estatex.user.UserDtos;
@@ -36,8 +37,11 @@ class ReitCatalogSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final UserService userService;
     private final PropertyService propertyService;
+    private final PropertyRepository properties;
 
-    ReitCatalogSeeder(ReitRepository reits, UserRepository userRepository, UserService userService, PropertyService propertyService) {
+    ReitCatalogSeeder(ReitRepository reits, UserRepository userRepository, UserService userService, PropertyService propertyService,
+                      PropertyRepository properties) {
+        this.properties = properties;
         this.reits = reits;
         this.userRepository = userRepository;
         this.userService = userService;
@@ -177,13 +181,29 @@ class ReitCatalogSeeder implements CommandLineRunner {
                         property(issuer, "Phakalane Garden Homes", ListingType.SALE, "Gaborone", "Phakalane", "Botswana",
                                 4, 3, "185000.00", "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&q=80")
                 ));
+
+        refreshPortfolioDescriptions(issuer);
+    }
+
+    private static final String PORTFOLIO_ASSET_DESCRIPTION = "Institutionally managed asset held within an EstateX REIT portfolio.";
+
+    /** Listings seeded before the rename (or with the old "a EstateX" wording) get today's description. */
+    private void refreshPortfolioDescriptions(AppUser issuer) {
+        properties.findByLandlord(issuer).stream()
+                .filter(p -> p.getDescription() != null
+                        && p.getDescription().startsWith("Institutionally managed asset held within a")
+                        && !p.getDescription().equals(PORTFOLIO_ASSET_DESCRIPTION))
+                .forEach(p -> {
+                    p.setDescription(PORTFOLIO_ASSET_DESCRIPTION);
+                    properties.save(p);
+                });
     }
 
     private Property property(AppUser issuer, String title, ListingType listingType, String city, String suburb,
             String country, int bedrooms, int bathrooms, String price, String photoUrl) {
         Property created = propertyService.create(new PropertyDtos.CreatePropertyRequest(
                 title,
-                "Institutionally managed asset held within a EstateX REIT portfolio.",
+                PORTFOLIO_ASSET_DESCRIPTION,
                 listingType,
                 city,
                 suburb,

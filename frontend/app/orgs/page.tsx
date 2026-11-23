@@ -20,7 +20,7 @@ export default function WorkspacesPage() {
   useEffect(() => {
     if (loading) return;
     if (!user || !token) {
-      router.replace("/login?next=/orgs");
+      router.replace("/login?redirect=%2Forgs");
       return;
     }
     organisations.mine(token).then(setItems, (e: unknown) =>

@@ -10,7 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
@@ -35,6 +37,15 @@ public class GlobalExceptionHandler {
     ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException ex) {
         String msg = ex.getMessage() != null ? ex.getMessage().split(";")[0] : "Malformed request body";
         return ResponseEntity.badRequest().body(error(HttpStatus.BAD_REQUEST, msg));
+    }
+
+    /** A missing or malformed query/path parameter is the caller's mistake, not a server fault. */
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    ResponseEntity<Map<String, Object>> handleBadParameter(Exception ex) {
+        String message = ex instanceof MissingServletRequestParameterException missing
+                ? "Missing required parameter: " + missing.getParameterName()
+                : "Invalid value for parameter: " + ((MethodArgumentTypeMismatchException) ex).getName();
+        return ResponseEntity.badRequest().body(error(HttpStatus.BAD_REQUEST, message));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

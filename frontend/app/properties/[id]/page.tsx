@@ -87,6 +87,7 @@ export default function PropertyDetailPage() {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [shareNote, setShareNote] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [tab, setTab] = useState<"overview" | "details" | "map" | "passport" | "tour">("overview");
   const [passport, setPassport] = useState<PropertyPassport | null>(null);
@@ -140,7 +141,7 @@ export default function PropertyDetailPage() {
     if (!id) return;
     setLoading(true);
     try {
-      const prop = await propertiesApi.get(Number(id));
+      const prop = await propertiesApi.get(Number(id), token);
       setProperty(prop);
       setSaved(isSaved(prop.id));
       const r = await ratingsApi.listByLandlord(prop.landlordId);
@@ -151,7 +152,7 @@ export default function PropertyDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, user?.id]);
+  }, [id, user?.id, token]);
 
   useEffect(() => {
     load();
@@ -352,6 +353,24 @@ export default function PropertyDetailPage() {
     );
   }
 
+  const shareListing = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: property.title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareNote("Link copied");
+      setTimeout(() => setShareNote(""), 2500);
+    } catch (e) {
+      // Closing the share sheet is not an error worth showing.
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setShareNote("Couldn't share. Copy the address from your browser bar.");
+      setTimeout(() => setShareNote(""), 4000);
+    }
+  };
+
   const openLightbox = (index: number) => {
     setApplicationModalOpen(false);
     setViewingModalOpen(false);
@@ -408,7 +427,8 @@ export default function PropertyDetailPage() {
               <button
                 type="button"
                 onClick={() => openLightbox(0)}
-                className="col-span-2 row-span-2 relative overflow-hidden"
+                aria-label={`Open photo 1 of ${photos.length}`}
+                className={`${photos.length === 1 ? "col-span-4" : "col-span-2"} row-span-2 relative overflow-hidden`}
               >
                 <Image
                   src={photos[0]}
@@ -416,10 +436,11 @@ export default function PropertyDetailPage() {
                   fill
                   className="object-cover hover:brightness-95 transition-[filter]"
                   priority
-                  sizes="50vw"
+                  sizes={photos.length === 1 ? "100vw" : "50vw"}
                 />
               </button>
-              {Array.from({ length: 4 }).map((_, i) => {
+              {/* A single photo spans the whole row instead of sitting beside four empty tiles. */}
+              {photos.length > 1 && Array.from({ length: 4 }).map((_, i) => {
                 const photoAt = i + 1;
                 const isLastTile = i === 3;
                 const remaining = photos.length - 5;
@@ -429,6 +450,7 @@ export default function PropertyDetailPage() {
                       key={photoAt}
                       type="button"
                       onClick={() => openLightbox(photoAt)}
+                      aria-label={`Open photo ${photoAt + 1} of ${photos.length}`}
                       className="relative overflow-hidden"
                     >
                       <Image
@@ -478,13 +500,23 @@ export default function PropertyDetailPage() {
         <div className="absolute top-4 right-4 flex gap-2">
           <button
             onClick={() => setSaved(toggleSaved(property.id))}
+            aria-label={saved ? "Remove from saved homes" : "Save this home"}
+            aria-pressed={saved}
             className={`w-10 h-10 rounded-full flex items-center justify-center shadow transition-colors ${saved ? "bg-red-500 text-white" : "bg-white/80 hover:bg-white text-gray-700"}`}
           >
             <Heart className={`w-5 h-5 ${saved ? "fill-current" : ""}`} />
           </button>
-          <button className="w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow text-gray-700 transition-colors">
+          <button
+            type="button"
+            onClick={shareListing}
+            aria-label="Share this listing"
+            className="w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow text-gray-700 transition-colors"
+          >
             <Share2 className="w-5 h-5" />
           </button>
+          <span role="status" aria-live="polite" className={shareNote ? "absolute top-12 right-0 whitespace-nowrap bg-gray-900 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow" : "sr-only"}>
+            {shareNote}
+          </span>
         </div>
       </div>
 

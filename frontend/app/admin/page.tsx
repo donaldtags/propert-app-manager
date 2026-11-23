@@ -285,7 +285,10 @@ export default function AdminPortalPage() {
   const isAdmin = user?.roles?.includes("ADMIN");
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) router.push("/");
+    // Signed out: ask them to sign in like every other protected page. Signed in without the
+    // admin role: there is nothing for them here, so go home.
+    if (!loading && !user) router.push("/login?redirect=%2Fadmin");
+    else if (!loading && !isAdmin) router.push("/");
   }, [user, loading, isAdmin, router]);
 
   const loadAll = () => {

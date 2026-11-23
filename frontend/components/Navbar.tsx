@@ -13,6 +13,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -21,6 +22,21 @@ export default function Navbar() {
     setProfileOpen(false);
     setMenuOpen(false);
   }, [pathname]);
+
+  // Escape closes either menu and hands focus back to what opened it.
+  useEffect(() => {
+    if (!menuOpen && !profileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (menuOpen) {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+      setProfileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen, profileOpen]);
 
   // Close the profile menu on outside clicks.
   useEffect(() => {
@@ -150,6 +166,7 @@ export default function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
+            ref={menuButtonRef}
             className="lg:hidden p-2 text-gray-600"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}

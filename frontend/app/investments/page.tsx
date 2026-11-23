@@ -103,11 +103,15 @@ function ZseReitMarketTable() {
           <span className={snapshot && !snapshot.stale ? "text-brand-700" : "text-gray-500"}>
             {snapshot && !snapshot.stale ? "Live" : "Delayed"}
           </span>
-          <span className="text-gray-400">· updated {formatRelativeTime(snapshot?.lastUpdated ?? null, now)}</span>
+          {snapshot?.lastUpdated && (
+            <span className="text-gray-400">· updated {formatRelativeTime(snapshot.lastUpdated, now)}</span>
+          )}
         </div>
       </div>
 
-      {marketError && quotes.length === 0 ? (
+      {/* Skeletons only while the first answer is on its way; once the server has replied with no
+          quotes (its fetch from the exchange failed), say so instead of loading forever. */}
+      {(marketError || snapshot) && quotes.length === 0 ? (
         <EmptyState icon={AlertCircle} title="Market data is temporarily unavailable" compact />
       ) : quotes.length === 0 ? (
         <div className="px-6 py-8 space-y-2">
@@ -673,6 +677,7 @@ export default function InvestmentsPage() {
                               onChange={(e) => setUnits((u) => ({ ...u, [reit.id]: e.target.value }))}
                               className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500"
                               placeholder="Units"
+                              aria-label={`Units of ${reit.name} to buy`}
                             />
                             <button
                               onClick={() => startInvestCheckout(reit)}
@@ -709,6 +714,7 @@ export default function InvestmentsPage() {
                           disabled={totalUnitsOwned === 0}
                           className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-400 disabled:opacity-50 disabled:bg-gray-50"
                           placeholder="Units"
+                          aria-label={`Units of ${reit.name} to sell`}
                         />
                         <button
                           onClick={() => handleSell(reit)}

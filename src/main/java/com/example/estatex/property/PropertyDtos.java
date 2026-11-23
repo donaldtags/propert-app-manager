@@ -178,6 +178,18 @@ public final class PropertyDtos {
             Boolean listerIdVerified
     ) {
         public static PropertyResponse from(Property property) {
+            return from(property, true);
+        }
+
+        /**
+         * For anyone browsing. A short stay's street address stays private until the guest's booking
+         * is confirmed (the listing says so); suburb, city and the map pin are enough to choose.
+         */
+        public static PropertyResponse publicView(Property property) {
+            return from(property, property.getListingType() != ListingType.SHORT_STAY);
+        }
+
+        public static PropertyResponse from(Property property, boolean revealAddress) {
             com.example.estatex.organisation.Organisation org = property.getOrganisationId() == null ? null
                     : property.getOrganisation();
             // Not loaded on this path (no open session): leave the company out rather than fail.
@@ -208,7 +220,7 @@ public final class PropertyDtos {
                     property.getVerificationStatus(),
                     property.getCity(),
                     property.getSuburb(),
-                    property.getAddress(),
+                    revealAddress ? property.getAddress() : null,
                     property.getCountry(),
                     property.getBedrooms(),
                     property.getBathrooms(),

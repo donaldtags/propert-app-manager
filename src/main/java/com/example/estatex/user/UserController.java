@@ -101,8 +101,18 @@ public class UserController {
         );
     }
 
+    /**
+     * Public, but only for people who actually list property: anyone else gets the same 404 as a
+     * missing account, so names can't be collected by walking ids. The account itself and admins
+     * can always see it.
+     */
     @GetMapping("/{id}/landlord-passport")
-    PassportDtos.LandlordPassport landlordPassport(@PathVariable Long id) {
+    PassportDtos.LandlordPassport landlordPassport(@PathVariable Long id, @AuthenticationPrincipal AppUser currentUser) {
+        boolean privileged = currentUser != null
+                && (currentUser.getId().equals(id) || currentUser.hasPermission(Permission.ADMIN_OVERRIDE));
+        if (!privileged && !passportService.listsProperty(id)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "User not found");
+        }
         return passportService.landlordPassport(id);
     }
 

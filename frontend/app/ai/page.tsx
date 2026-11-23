@@ -254,6 +254,7 @@ export default function AiSearchPage() {
             }
           }}
           placeholder={mode === "SEARCH" ? "Describe your ideal property..." : "Ask about your rent, lease, or maintenance..."}
+          aria-label={mode === "SEARCH" ? "Describe the property you want" : "Your question"}
           rows={1}
           className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 resize-none"
           style={{ maxHeight: "120px" }}

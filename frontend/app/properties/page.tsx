@@ -95,6 +95,16 @@ function PropertiesContent() {
   const [page, setPage] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  // The free-plan API sleeps when idle and takes up to a minute to wake: say so instead of a bare spinner.
+  const [slowLoad, setSlowLoad] = useState(false);
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setSlowLoad(true), 6000);
+    return () => {
+      clearTimeout(t);
+      setSlowLoad(false);
+    };
+  }, [loading]);
   const [error, setError] = useState("");
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
@@ -170,8 +180,12 @@ function PropertiesContent() {
   };
 
   const applyFilters = () => {
-    setMinPrice(draftMinPrice ? Number(draftMinPrice) : undefined);
-    setMaxPrice(draftMaxPrice ? Number(draftMaxPrice) : undefined);
+    // A minimum above the maximum can only be a slip: swap them instead of returning nothing.
+    let lo = draftMinPrice ? Number(draftMinPrice) : undefined;
+    let hi = draftMaxPrice ? Number(draftMaxPrice) : undefined;
+    if (lo != null && hi != null && lo > hi) [lo, hi] = [hi, lo];
+    setMinPrice(lo);
+    setMaxPrice(hi);
     setBedrooms(draftBedrooms ? Number(draftBedrooms) : undefined);
     setBathrooms(draftBathrooms ? Number(draftBathrooms) : undefined);
     setDiasporaFriendly(draftDiasporaFriendly);
@@ -368,8 +382,13 @@ function PropertiesContent() {
     }
   });
 
-  const locationLabel = suburb ? `${suburb}, ${city}` : city || "Zimbabwe";
-  const listingTypeLabel = listingType === "SHORT_STAY" ? "short stays" : listingType === "SALE" ? "homes for sale" : "rentals";
+  // Listings span several countries, so only name a place when the visitor picked one.
+  const locationLabel = suburb ? `${suburb}, ${city}` : city;
+  const one = totalCount === 1;
+  const listingTypeLabel =
+    listingType === "SHORT_STAY" ? (one ? "short stay" : "short stays")
+    : listingType === "SALE" ? (one ? "home for sale" : "homes for sale")
+    : (one ? "rental" : "rentals");
 
   const activeChips: { label: string; onRemove: () => void }[] = [
     ...(city ? [{ label: suburb ? `${suburb}, ${city}` : city, onRemove: () => { setCity(""); setSuburb(""); setSearchQuery(""); } }] : []),
@@ -403,7 +422,7 @@ function PropertiesContent() {
       {/* Compact header: result counter, search/filter toggle, list/map switcher */}
       <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center gap-3 shrink-0">
         <h1 className="text-base sm:text-lg font-bold text-gray-900 min-w-0 flex-1 truncate">
-          {loading ? "Searching…" : `${totalCount} ${listingTypeLabel} in ${locationLabel}`}
+          {loading ? (slowLoad ? "Waking the server up. This can take a minute…" : "Searching…") : `${totalCount} ${listingTypeLabel}${locationLabel ? ` in ${locationLabel}` : ""}`}
         </h1>
         <button
           type="button"
@@ -476,6 +495,7 @@ function PropertiesContent() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="City or suburb..."
+              aria-label="City or suburb"
               list="top-search-location-options"
               className="text-sm text-gray-900 outline-none flex-1 placeholder-gray-400"
             />
@@ -594,6 +614,7 @@ function PropertiesContent() {
                   min={0}
                   inputMode="numeric"
                   placeholder="Min $"
+                  aria-label="Minimum price in US dollars"
                   value={draftMinPrice}
                   onChange={(e) => setDraftMinPrice(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-400"
@@ -604,6 +625,7 @@ function PropertiesContent() {
                   min={0}
                   inputMode="numeric"
                   placeholder="Max $"
+                  aria-label="Maximum price in US dollars"
                   value={draftMaxPrice}
                   onChange={(e) => setDraftMaxPrice(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-400"

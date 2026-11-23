@@ -99,6 +99,14 @@ public class PassportService {
         );
     }
 
+    /** True when the user owns or is the agent on at least one listing. */
+    @Transactional(readOnly = true)
+    public boolean listsProperty(Long userId) {
+        return users.find(userId)
+                .map(u -> !properties.findByLandlord(u).isEmpty() || !properties.findByAgent(u).isEmpty())
+                .orElse(false);
+    }
+
     @Transactional(readOnly = true)
     public PassportDtos.LandlordPassport landlordPassport(Long landlordId) {
         AppUser landlord = users.require(landlordId);
