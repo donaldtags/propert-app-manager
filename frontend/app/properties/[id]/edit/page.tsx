@@ -209,7 +209,7 @@ export default function EditPropertyPage() {
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Home className="w-7 h-7 text-brand-600" /> Edit Listing
         </h1>
-        <p className="text-gray-500 mt-1">Update your listing's details or photos.</p>
+        <p className="text-gray-500 mt-1">Update your listing&apos;s details or photos.</p>
       </div>
 
       {billing && (

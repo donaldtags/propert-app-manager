@@ -192,7 +192,6 @@ export default function AdminPortalPage() {
   const [vSuccess, setVSuccess] = useState("");
 
   const loadVendors = () => {
-    setVendorsLoading(true);
     vendorsApi.list().then(setVendorList).catch(() => {}).finally(() => setVendorsLoading(false));
   };
 
@@ -291,24 +290,20 @@ export default function AdminPortalPage() {
     else if (!loading && !isAdmin) router.push("/");
   }, [user, loading, isAdmin, router]);
 
+  // Loading flags start true, so the first load shows skeletons; refreshes after an action keep the
+  // current rows on screen until the new ones arrive instead of flashing back to a skeleton.
   const loadAll = () => {
     if (!token) return;
-    setUsersLoading(true);
     usersApi.list(undefined, token).then(setAllUsers).catch(() => {}).finally(() => setUsersLoading(false));
 
-    setRequestsLoading(true);
     usersApi.listAdminRequests(token).then(setAdminRequests).catch(() => {}).finally(() => setRequestsLoading(false));
 
-    setPropertiesLoading(true);
     propertiesApi.list().then(setAllProperties).catch(() => {}).finally(() => setPropertiesLoading(false));
 
-    setEscrowsLoading(true);
     escrowApi.listAllForAdmin(token).then(setAllEscrows).catch(() => {}).finally(() => setEscrowsLoading(false));
 
-    setOverviewLoading(true);
     dashboardsApi.adminOverview(token).then(setOverview).catch(() => {}).finally(() => setOverviewLoading(false));
 
-    setFraudLoading(true);
     adminApi.fraudSignals(token).then(setFraudSignals).catch(() => {}).finally(() => setFraudLoading(false));
 
     loadVendors();
@@ -325,10 +320,8 @@ export default function AdminPortalPage() {
       setPlanDrafts(Object.fromEntries(list.map((p) => [p.plan, p])));
     }).catch(() => {});
 
-    setKycLoading(true);
     kycApi.listForAdmin(token).then(setKycSubmissions).catch(() => {}).finally(() => setKycLoading(false));
 
-    setAdminConversationsLoading(true);
     messagesApi.adminListConversations(token).then(setAdminConversations).catch(() => {}).finally(() => setAdminConversationsLoading(false));
   };
 

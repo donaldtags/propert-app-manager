@@ -29,6 +29,7 @@ export default function FeaturedListingsPage() {
 
   const [dashboard, setDashboard] = useState<LandlordDashboard | null>(null);
   const [dashLoading, setDashLoading] = useState(true);
+  const [now] = useState(Date.now);
   const [settings, setSettings] = useState<FeaturedListingSettings | null>(null);
   const [checkoutForId, setCheckoutForId] = useState<number | null>(null);
   const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export default function FeaturedListingsPage() {
     setCheckoutProvider(provider);
     try {
       const checkout = await propertiesApi.featureCheckout(propertyId, provider, token);
-      window.location.href = checkout.redirectUrl;
+      window.location.assign(checkout.redirectUrl);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not start checkout.");
       setCheckoutProvider(null);
@@ -137,7 +138,7 @@ export default function FeaturedListingsPage() {
       ) : (
         <div className="space-y-3">
           {ownProperties.map((prop) => {
-            const isFeaturedActive = prop.featured && prop.featuredUntil && new Date(prop.featuredUntil).getTime() > Date.now();
+            const isFeaturedActive = prop.featured && prop.featuredUntil && new Date(prop.featuredUntil).getTime() > now;
             return (
               <div key={prop.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-4">
                 <div className="min-w-0">

@@ -78,7 +78,6 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     if (!user || !token) return;
-    setPickersLoading(true);
     Promise.all([propertiesApi.list(), leasesApi.listByTenant(user.id, token).catch(() => [] as Lease[])])
       .then(([allProperties, tenantLeases]) => {
         setMyProperties(allProperties);
@@ -115,7 +114,7 @@ export default function PaymentsPage() {
         setPaymentList(updated);
       } else {
         const checkout = await paymentsApi.checkout(payment.id, form.provider, token);
-        window.location.href = checkout.redirectUrl;
+        window.location.assign(checkout.redirectUrl);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Payment failed.");

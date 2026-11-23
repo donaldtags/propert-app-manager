@@ -59,21 +59,16 @@ export default function AiSearchPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Re-greet by name once the logged-in user loads, as long as the conversation hasn't started yet.
-  useEffect(() => {
-    if (!user) return;
-    setMessages((m) => {
-      if (m.length !== 1 || m[0].role !== "assistant") return m;
-      const greeting = mode === "SEARCH" ? searchWelcome(firstName(user.fullName)) : assistantWelcome(firstName(user.fullName));
-      return [{ role: "assistant", content: greeting }];
-    });
-  }, [user, mode]);
+  // The first message is always the greeting; it's built here so it picks up the visitor's name
+  // whenever the signed-in user finishes loading.
+  const name = firstName(user?.fullName);
+  const greeting: Message = { role: "assistant", content: mode === "SEARCH" ? searchWelcome(name) : assistantWelcome(name) };
+  const conversation = [greeting, ...messages.slice(1)];
 
   const switchMode = (next: Mode) => {
     if (next === mode) return;
     setMode(next);
     setAiPowered(null);
-    const name = firstName(user?.fullName);
     setMessages([{ role: "assistant", content: next === "SEARCH" ? searchWelcome(name) : assistantWelcome(name) }]);
   };
 
@@ -88,7 +83,7 @@ export default function AiSearchPage() {
       setInput("");
       return;
     }
-    const history = messages
+    const history = conversation
       .slice(-MAX_HISTORY_TURNS)
       .map(({ role, content }) => ({ role, content }));
     const userMsg: Message = { role: "user", content: text };
@@ -174,7 +169,7 @@ export default function AiSearchPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-6 space-y-4">
-        {messages.map((msg, i) => (
+        {conversation.map((msg, i) => (
           <div key={i} className={`flex flex-col gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}>
             <div className={`flex gap-3 w-full ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
               <div

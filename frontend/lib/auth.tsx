@@ -91,6 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // The token lives in localStorage, which only exists after hydration, so restoring the session is
+  // exactly what an effect is for.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const stored = readMigrated(TOKEN_KEY, LEGACY_TOKEN_KEY);
     if (stored) {
@@ -99,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState((s) => ({ ...s, loading: false }));
     }
   }, [loadUser]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const signedIn = useCallback((token: string, user: User) => {
     localStorage.setItem(TOKEN_KEY, token);

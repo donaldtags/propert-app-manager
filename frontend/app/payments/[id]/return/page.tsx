@@ -29,26 +29,30 @@ function ReturnContent() {
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
 
-  const check = useCallback(async () => {
+  // Asks the server (which asks the provider) where this payment stands.
+  const fetchStatus = useCallback(() => {
     if (!token) return;
+    paymentsApi.confirmCheckout(Number(id), token)
+      .then((result) => {
+        setPayment(result);
+        setError("");
+      })
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not confirm this payment."))
+      .finally(() => setChecking(false));
+  }, [id, token]);
+
+  const check = useCallback(() => {
     setChecking(true);
     setError("");
-    try {
-      const result = await paymentsApi.confirmCheckout(Number(id), token);
-      setPayment(result);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not confirm this payment.");
-    } finally {
-      setChecking(false);
-    }
-  }, [id, token]);
+    fetchStatus();
+  }, [fetchStatus]);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push(`/login?redirect=${encodeURIComponent(`/payments/${id}/return`)}`);
       return;
     }
-    if (user && token) check();
+    if (user && token) fetchStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, token]);
 

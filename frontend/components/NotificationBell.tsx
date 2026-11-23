@@ -99,7 +99,7 @@ export default function NotificationBell() {
             )}
           </div>
           {items.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">You're all caught up.</p>
+            <p className="text-sm text-gray-400 text-center py-8">You&apos;re all caught up.</p>
           ) : (
             items.map((n) => {
               const Icon = TYPE_ICONS[n.type];

@@ -111,7 +111,6 @@ function EscrowContent() {
   }, [user, token]);
 
   useEffect(() => {
-    setPickerLoading(true);
     propertiesApi.list()
       .then(setAllProperties)
       .catch(() => {})
@@ -202,7 +201,7 @@ function EscrowContent() {
     setFunding(true);
     try {
       const checkout = await escrowApi.checkout(id, provider, token);
-      window.location.href = checkout.redirectUrl;
+      window.location.assign(checkout.redirectUrl);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : `Failed to start ${provider} checkout.`);
       setFundStep("channel");

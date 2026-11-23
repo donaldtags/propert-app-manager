@@ -41,12 +41,15 @@ function SecuritySettingsPageInner() {
     if (!loading && !user) router.push("/login?redirect=/settings/security");
   }, [user, loading, router]);
 
-  useEffect(() => {
+  // Sent here to pick up a role (?needRole=): open that role's form whenever the user (re)loads
+  // without it.
+  const [roleCheckedFor, setRoleCheckedFor] = useState<typeof user | undefined>(undefined);
+  if (user !== roleCheckedFor) {
+    setRoleCheckedFor(user);
     if (needRoles.length > 0 && !user?.roles?.some((r) => needRoles.includes(r))) {
       setAddingRole(needRoles[0]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }
 
   const handleAddRole = async (role: UserRole) => {
     if (!user || !token) return;
@@ -99,7 +102,7 @@ function SecuritySettingsPageInner() {
             <p className="font-semibold">
               Add the {needRoles.join(" or ")} role to continue{needReason ? ` — ${needReason}` : ""}.
             </p>
-            <p className="text-xs mt-0.5 text-brand-700">We've highlighted it for you below.</p>
+            <p className="text-xs mt-0.5 text-brand-700">We&apos;ve highlighted it for you below.</p>
           </div>
         </div>
       )}

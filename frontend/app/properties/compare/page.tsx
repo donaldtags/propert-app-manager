@@ -96,15 +96,14 @@ function ComparePageInner() {
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [ratings, setRatings] = useState<Record<number, { average: number | null; count: number }>>({});
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Loading until the listings for the current ?ids= have come back.
+  const idsKey = searchParams.get("ids") ?? "";
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loading = ids.length > 0 && loadedKey !== idsKey;
 
   useEffect(() => {
-    if (ids.length === 0) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    if (ids.length === 0) return;
     Promise.allSettled(ids.map((id) => propertiesApi.get(id)))
       .then(async (results) => {
         const loaded = results
@@ -129,9 +128,9 @@ function ComparePageInner() {
         setRatings(map);
       })
       .catch(() => setError("Failed to load properties for comparison."))
-      .finally(() => setLoading(false));
+      .finally(() => setLoadedKey(idsKey));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.get("ids")]);
+  }, [idsKey]);
 
   if (loading) {
     return (

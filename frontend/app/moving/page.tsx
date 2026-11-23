@@ -136,7 +136,7 @@ export default function MovingAssistantPage() {
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Truck className="w-7 h-7 text-brand-600" /> Moving Assistant
         </h1>
-        <p className="text-gray-500 mt-1">We don't lose you when you move — here's everything to make it smooth</p>
+        <p className="text-gray-500 mt-1">We don&apos;t lose you when you move — here&apos;s everything to make it smooth</p>
       </div>
 
       {error && (

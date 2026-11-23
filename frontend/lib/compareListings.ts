@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { readMigrated } from "./storageKeys";
 
 const STORAGE_KEY = "estatex_compare_properties";
@@ -16,7 +17,7 @@ function readIds(): number[] {
 
 function writeIds(ids: number[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-  window.dispatchEvent(new Event("compare-listings-changed"));
+  window.dispatchEvent(new Event(CHANGED));
 }
 
 export function isComparing(propertyId: number): boolean {
@@ -47,4 +48,20 @@ export function clearCompare() {
 
 export function getCompareIds(): number[] {
   return readIds();
+}
+
+const CHANGED = "compare-listings-changed";
+
+function subscribe(onChange: () => void) {
+  window.addEventListener(CHANGED, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(CHANGED, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+/** Whether a listing is in the compare tray, kept in step with other cards and tabs. */
+export function useIsComparing(propertyId: number): boolean {
+  return useSyncExternalStore(subscribe, () => isComparing(propertyId), () => false);
 }

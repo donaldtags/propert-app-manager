@@ -84,14 +84,14 @@ export default function LandlordDashboardPage() {
   const loadViewings = async () => {
     if (!user || !token) return;
     const isAgent = user.roles?.includes("AGENT");
-    const results = await Promise.allSettled([
+    return Promise.allSettled([
       viewingsApi.listByLandlord(user.id, token),
       isAgent ? viewingsApi.listByAgent(user.id, token) : Promise.resolve([] as Viewing[]),
-    ]);
-    const all: Viewing[] = [];
-    results.forEach((r) => { if (r.status === "fulfilled") all.push(...r.value); });
-    const unique = all.filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i);
-    setViewingRequests(unique);
+    ]).then((results) => {
+      const all: Viewing[] = [];
+      results.forEach((r) => { if (r.status === "fulfilled") all.push(...r.value); });
+      setViewingRequests(all.filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i));
+    });
   };
 
   useEffect(() => {
@@ -177,8 +177,9 @@ export default function LandlordDashboardPage() {
     }));
   }, [ownProperties]);
 
+  // Captured once per visit; render code has to stay pure.
+  const [now] = useState(Date.now);
   const upcomingExpiries = useMemo(() => {
-    const now = Date.now();
     const in30Days = now + 30 * 24 * 60 * 60 * 1000;
     return leases
       .filter((l) => (l.status === "ACTIVE" || l.status === "SIGNED") && l.endDate)
@@ -186,7 +187,7 @@ export default function LandlordDashboardPage() {
       .filter((l) => l.endTime >= now && l.endTime <= in30Days)
       .sort((a, b) => a.endTime - b.endTime)
       .map((l) => l.lease);
-  }, [leases]);
+  }, [leases, now]);
 
   if (loading || dashLoading) {
     return (
