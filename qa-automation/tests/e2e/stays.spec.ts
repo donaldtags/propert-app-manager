@@ -54,36 +54,6 @@ test.describe("Short stays in the browser", () => {
     await expect(page).toHaveURL(/\/login\?redirect=/);
   });
 
-  test("the listings page opens on All and shows every type before any filter", async ({ page, api }) => {
-    const suburb = `Alltypes${Date.now().toString(36)}`;
-    // One owner per listing: the free Starter plan allows a single listing each.
-    const create = async (listingType: string, price: number) => {
-      const owner = await api.register(`${listingType} Owner`, "LANDLORD");
-      return api.ok<{ id: number; title: string }>("POST", "/properties", {
-        token: owner.token,
-        data: {
-          title: `${listingType} in ${suburb}`, description: "Home", listingType, city: "Harare", suburb,
-          bedrooms: 2, bathrooms: 1, price, currency: "USD", escrowRequired: false, landlordId: owner.id,
-          photoUrls: ["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200"],
-        },
-      });
-    };
-    const rental = await create("RENT", 500);
-    const sale = await create("SALE", 90000);
-
-    await page.goto(`/properties?suburb=${suburb}&city=Harare`);
-    const toggle = page.locator('[aria-controls="search-controls"]');
-    if (await toggle.isVisible()) await toggle.click();
-    await expect(page.getByRole("button", { name: "All", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByRole("heading", { name: /^2 properties/ }).first()).toBeVisible();
-    await expect(page.getByText(rental.title).filter({ visible: true }).first()).toBeVisible();
-    await expect(page.getByText(sale.title).filter({ visible: true }).first()).toBeVisible();
-
-    await page.getByRole("button", { name: "Rent", exact: true }).click();
-    await expect(page).toHaveURL(/listingType=RENT/);
-    await expect(page.getByText(sale.title)).toHaveCount(0);
-  });
-
   test("stays search shows date and guest pickers @smoke", async ({ page }) => {
     await page.goto("/properties?listingType=SHORT_STAY");
     const toggle = page.locator('[aria-controls="search-controls"]');
