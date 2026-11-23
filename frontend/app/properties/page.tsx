@@ -55,9 +55,11 @@ function PropertiesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [listingType, setListingType] = useState<ListingType>(
-    (searchParams.get("listingType") as ListingType) ?? "RENT"
-  );
+  // "" = all types (rent, sale and stays) - what a visitor sees before choosing a filter.
+  const [listingType, setListingType] = useState<ListingType | "">(() => {
+    const t = searchParams.get("listingType");
+    return t === "RENT" || t === "SALE" || t === "SHORT_STAY" ? t : "";
+  });
   const [city, setCity] = useState(searchParams.get("city") ?? "");
   const [suburb, setSuburb] = useState(searchParams.get("suburb") ?? "");
   const [bedrooms, setBedrooms] = useState<number | undefined>(
@@ -286,7 +288,7 @@ function PropertiesContent() {
             size: PAGE_SIZE,
           })
         : propertiesApi.searchPaged({
-        listingType,
+        listingType: listingType || undefined,
         city: city || undefined,
         suburb: suburb || undefined,
         bedrooms,
@@ -341,7 +343,7 @@ function PropertiesContent() {
   // browser back/forward buttons move between prior searches.
   useEffect(() => {
     const q = new URLSearchParams();
-    q.set("listingType", listingType);
+    if (listingType) q.set("listingType", listingType);
     if (city) q.set("city", city);
     if (suburb) q.set("suburb", suburb);
     if (bedrooms != null) q.set("bedrooms", String(bedrooms));
@@ -400,7 +402,8 @@ function PropertiesContent() {
   const listingTypeLabel =
     listingType === "SHORT_STAY" ? (one ? "short stay" : "short stays")
     : listingType === "SALE" ? (one ? "home for sale" : "homes for sale")
-    : (one ? "rental" : "rentals");
+    : listingType === "RENT" ? (one ? "rental" : "rentals")
+    : (one ? "property" : "properties");
 
   const activeChips: { label: string; onRemove: () => void }[] = [
     ...(city ? [{ label: suburb ? `${suburb}, ${city}` : city, onRemove: () => { setCity(""); setSuburb(""); setSearchQuery(""); } }] : []),
@@ -486,15 +489,16 @@ function PropertiesContent() {
       <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 z-20">
         {/* Type tabs */}
         <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium shrink-0">
-          {(["RENT", "SALE", "SHORT_STAY"] as ListingType[]).map((t) => (
+          {(["", "RENT", "SALE", "SHORT_STAY"] as (ListingType | "")[]).map((t) => (
             <button
-              key={t}
+              key={t || "ALL"}
               onClick={() => setListingType(t)}
-              className={`px-4 py-2 transition-colors ${
+              aria-pressed={listingType === t}
+              className={`px-3 sm:px-4 py-2 transition-colors ${
                 listingType === t ? "bg-brand-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
               }`}
             >
-              {t === "SHORT_STAY" ? "Short Stay" : t === "RENT" ? "Rent" : "Buy"}
+              {t === "" ? "All" : t === "SHORT_STAY" ? "Stays" : t === "RENT" ? "Rent" : "Buy"}
             </button>
           ))}
         </div>
