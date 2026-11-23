@@ -9,8 +9,6 @@ import { users as usersApi, dashboards, kyc as kycApi, leases as leasesApi } fro
 import type { TenantPassport, VerificationLevel, KycSubmission, Lease, TenantDashboard } from "@/lib/types";
 import {
   IdCard,
-  Mail,
-  Phone,
   ShieldCheck,
   ShieldAlert,
   Star,
@@ -60,17 +58,16 @@ export default function TenantPassportPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const isTenantEligible = (u: typeof user) =>
-    !!u?.roles?.includes("TENANT") || !!u?.roles?.includes("DIASPORA");
+  const isTenantEligible = !!user?.roles?.includes("TENANT") || !!user?.roles?.includes("DIASPORA");
 
   useEffect(() => {
-    if (!loading && (!user || !isTenantEligible(user))) {
+    if (!loading && (!user || !isTenantEligible)) {
       router.push(user ? "/profile" : "/login?redirect=/passport");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isTenantEligible]);
 
   useEffect(() => {
-    if (!user || !token || !isTenantEligible(user)) return;
+    if (!user || !token || !isTenantEligible) return;
     Promise.allSettled([
       usersApi.tenantPassport(user.id, token),
       usersApi.verificationLevel(user.id, token),
@@ -87,7 +84,7 @@ export default function TenantPassportPage() {
         if (p.status === "rejected") setError("Failed to load your tenant passport.");
       })
       .finally(() => setPageLoading(false));
-  }, [user, token]);
+  }, [user, token, isTenantEligible]);
 
   if (loading || pageLoading) {
     return (

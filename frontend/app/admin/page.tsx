@@ -3,7 +3,7 @@
 import IdReviewQueue from "@/components/admin/IdReviewQueue";
 import { AgentLicenceQueue, CompanyQueue, ReportQueue } from "@/components/admin/TrustQueues";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import {
@@ -92,6 +92,16 @@ function RoleBadge({ role }: { role: string }) {
     </span>
   );
 }
+
+// Kept in sync with StatusBadge's tone buckets so the chart and the badges never disagree.
+const ESCROW_STATUS_COLORS: Record<string, string> = {
+  CREATED: "bg-amber-500",
+  FUNDED: "bg-brand-600",
+  RELEASED: "bg-brand-600",
+  DISPUTED: "bg-red-600",
+  REFUNDED: "bg-terracotta-500",
+  CANCELLED: "bg-gray-300",
+};
 
 export default function AdminPortalPage() {
   const { user, token, loading } = useAuth();
@@ -191,9 +201,9 @@ export default function AdminPortalPage() {
   const [vError, setVError] = useState("");
   const [vSuccess, setVSuccess] = useState("");
 
-  const loadVendors = () => {
+  const loadVendors = useCallback(() => {
     vendorsApi.list().then(setVendorList).catch(() => {}).finally(() => setVendorsLoading(false));
-  };
+  }, []);
 
   const handleCreateVendor = async () => {
     if (!token || !vName) return;
@@ -292,7 +302,7 @@ export default function AdminPortalPage() {
 
   // Loading flags start true, so the first load shows skeletons; refreshes after an action keep the
   // current rows on screen until the new ones arrive instead of flashing back to a skeleton.
-  const loadAll = () => {
+  const loadAll = useCallback(() => {
     if (!token) return;
     usersApi.list(undefined, token).then(setAllUsers).catch(() => {}).finally(() => setUsersLoading(false));
 
@@ -323,11 +333,11 @@ export default function AdminPortalPage() {
     kycApi.listForAdmin(token).then(setKycSubmissions).catch(() => {}).finally(() => setKycLoading(false));
 
     messagesApi.adminListConversations(token).then(setAdminConversations).catch(() => {}).finally(() => setAdminConversationsLoading(false));
-  };
+  }, [token, loadVendors]);
 
   useEffect(() => {
     if (isAdmin && token) loadAll();
-  }, [isAdmin, token]);
+  }, [isAdmin, token, loadAll]);
 
   const filteredUsers = useMemo(() => {
     const needle = userSearch.trim().toLowerCase();
@@ -370,16 +380,6 @@ export default function AdminPortalPage() {
       { label: "KYC Submissions", value: kycSubmissions.length },
     ];
   }, [overview, allEscrows.length, allUsers.length, kycSubmissions.length]);
-
-  // Kept in sync with StatusBadge's tone buckets so the chart and the badges never disagree.
-  const ESCROW_STATUS_COLORS: Record<string, string> = {
-    CREATED: "bg-amber-500",
-    FUNDED: "bg-brand-600",
-    RELEASED: "bg-brand-600",
-    DISPUTED: "bg-red-600",
-    REFUNDED: "bg-terracotta-500",
-    CANCELLED: "bg-gray-300",
-  };
 
   const escrowStatusBreakdown = useMemo(() => {
     return Object.keys(ESCROW_STATUS_COLORS)

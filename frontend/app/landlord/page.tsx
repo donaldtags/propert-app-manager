@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
@@ -81,7 +81,7 @@ export default function LandlordDashboardPage() {
     }
   }, [user, loading, router]);
 
-  const loadViewings = async () => {
+  const loadViewings = useCallback(async () => {
     if (!user || !token) return;
     const isAgent = user.roles?.includes("AGENT");
     return Promise.allSettled([
@@ -92,7 +92,7 @@ export default function LandlordDashboardPage() {
       results.forEach((r) => { if (r.status === "fulfilled") all.push(...r.value); });
       setViewingRequests(all.filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i));
     });
-  };
+  }, [user, token]);
 
   useEffect(() => {
     if (user && token && hasBusinessRole(user.roles)) {
@@ -104,7 +104,7 @@ export default function LandlordDashboardPage() {
       loadViewings();
       leasesApi.receivedActions(token).then(setLeaseActionRequests).catch(() => {});
     }
-  }, [user, token]);
+  }, [user, token, loadViewings]);
 
   const handleReviewLeaseAction = async (id: number, status: "APPROVED" | "DECLINED") => {
     if (!token) return;
@@ -152,8 +152,8 @@ export default function LandlordDashboardPage() {
     }
   };
 
-  const ownProperties = dashboard?.properties ?? [];
-  const leases = dashboard?.activeLeases ?? [];
+  const ownProperties = useMemo(() => dashboard?.properties ?? [], [dashboard]);
+  const leases = useMemo(() => dashboard?.activeLeases ?? [], [dashboard]);
   const payments = dashboard?.recentPayments ?? [];
   const maintenance = dashboard?.maintenanceRequests ?? [];
   const financials = dashboard?.financials;

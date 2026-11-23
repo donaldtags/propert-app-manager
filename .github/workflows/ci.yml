@@ -74,9 +74,9 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
-      # Errors fail the build; warnings are reported but don't.
+      # Warnings fail the build too, so the count stays at zero.
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --max-warnings=0
 
   qa-suite:
     name: QA suite type check
