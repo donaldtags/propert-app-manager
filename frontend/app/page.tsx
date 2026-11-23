@@ -91,11 +91,11 @@ export default function HomePage() {
       <section className="py-12 px-4 max-w-screen-xl mx-auto w-full">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Featured Rentals</h2>
-            <p className="text-gray-500 text-sm mt-1">Verified properties ready to move in</p>
+            <h2 className="text-2xl font-bold text-gray-900">Latest properties</h2>
+            <p className="text-gray-500 text-sm mt-1">Homes to rent, buy or stay in - verified ones first</p>
           </div>
           <Link
-            href="/properties?listingType=RENT"
+            href="/properties"
             className="text-brand-600 text-sm font-semibold hover:underline flex items-center gap-1"
           >
             View all <span aria-hidden>→</span>

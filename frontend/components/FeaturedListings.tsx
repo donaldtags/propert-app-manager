@@ -38,7 +38,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 
 export default async function FeaturedListings() {
   const featured = await withTimeout(
-    properties.list({ listingType: "RENT" }).then((data) => data.slice(0, 6)),
+    // The newest six of every type (rent, sale, stays); verified and featured ones first.
+    properties.searchPaged({ page: 0, size: 6 }).then((r) => r.items),
     FEATURED_TIMEOUT_MS,
     [] as Awaited<ReturnType<typeof properties.list>>
   );
