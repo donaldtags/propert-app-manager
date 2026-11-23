@@ -26,6 +26,22 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      # setup-java's cache only covers ~/.m2/repository; the wrapper keeps Maven itself in
+      # ~/.m2/wrapper, so cache that too and stop fetching it from Maven Central every run.
+      - name: Cache Maven distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/wrapper
+          key: maven-wrapper-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+      # On a cache miss, retry the download so one Maven Central blip doesn't fail the run.
+      - name: Install Maven
+        run: |
+          for attempt in 1 2 3; do
+            ./mvnw -B -ntp --version && exit 0
+            echo "Maven download failed (attempt $attempt), retrying in 15s"
+            sleep 15
+          done
+          exit 1
       # Self-contained: the "test" profile uses an in-memory H2 database.
       - name: Run tests
         run: ./mvnw -B -ntp test
