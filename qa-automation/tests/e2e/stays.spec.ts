@@ -7,7 +7,7 @@ test.describe("Short stays in the browser", () => {
 
     await signIn(page, guest);
     await page.goto(`/properties/${stay.id}`);
-    await expect(page.getByText(stay.title).first()).toBeVisible();
+    await expect(page.getByText(stay.title).filter({ visible: true }).first()).toBeVisible();
 
     // Two months ahead keeps the test clear of "today" edge cases.
     const calendar = page.getByLabel("Availability calendar");
@@ -40,7 +40,7 @@ test.describe("Short stays in the browser", () => {
   test("a signed-out visitor sees the booking button, never the owner's controls", async ({ page, api }) => {
     const stay = await api.shortStay({ nightly: 40, cleaningFee: 0, minNights: 1 });
     await page.goto(`/properties/${stay.id}`);
-    await expect(page.getByText(stay.title).first()).toBeVisible();
+    await expect(page.getByText(stay.title).filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Select your dates" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Edit Listing" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Manage bookings & calendar" })).toHaveCount(0);
