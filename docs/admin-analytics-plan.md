@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A–E and R done (2026-11-26); Phase F (revenue) next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A–F and R done (2026-11-26); Phase G (insights and alerts) next, after your review.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -928,4 +928,99 @@ Frontend: `referralCode.test.ts`.
   code, and the page no longer clears a result it already has. Covered by the concurrency test.
 - **Not verified:** a real Paynow or Stripe payment completing a discounted checkout. Tests use a
   fake gateway.
+
+### Phase F: Revenue analytics (DONE 2026-11-26)
+
+**Important finding: two charges are recorded without collecting money.** Both use provider
+`platform` and are tagged purpose OTHER:
+- **Listing fees.** Every new listing's $7 monthly fee (`PropertyBillingService.chargeForNewListing`)
+  and its monthly renewal.
+- **Subscription renewals** (`SubscriptionService.renewDuePaidSubscriptions`).
+
+The code creates the payment and immediately marks it SUCCESSFUL through the payee
+self-confirmation path, with no gateway and no stored card. So listings stay live and paid plans
+renew without anyone paying.
+
+The analytics now classify these as **"charges recorded without payment"**. They're excluded
+from cash, revenue and "client money", counted separately (metric `UNCOLLECTED_CHARGES`), and
+explained on the overview and the Revenue tab.
+
+**The billing behaviour itself is unchanged.** It's a product and pricing decision for the owner:
+for example, require checkout and mark the charge PAST_DUE until paid, or add stored cards.
+
+**Capture.**
+- `subscription_events` is an append-only plan and status history with the plan's price at the
+  time. It's written by `SubscriptionHistoryRecorder`, a Hibernate listener like listing
+  history; period-date changes aren't recorded as events.
+- V10 adds a BASELINE row per subscription and a capture start.
+- Featured-listing checkouts now record `durationDays` in the payment metadata.
+
+**Revenue service** (`GET /api/v1/admin/analytics/revenue?from&to&grain`). Needs
+`ANALYTICS_FINANCE_VIEW`; every view is audited (`ANALYTICS_REVENUE_VIEWED`). Four groups, never
+added together:
+- **Cash:** successful subscription and featured-listing payments by payment date, plus refunds
+  (none exist; there's no refund flow) and failed payments.
+- **Recognised:** each payment spread pro rata over what it pays for (subscription 30 days,
+  featured listing its duration), deferred revenue at the end, and referral discounts given.
+- **Outstanding:** what past-due subscribers owe (an estimate: there are no invoices) and charges
+  recorded without payment.
+- **Estimated:**
+  - MRR, ARR and ARPA, from subscription history; MRR counts ACTIVE paid subscriptions only;
+  - the commission share: an admin-set % (`PUT /revenue/commission-share`, `ANALYTICS_CONFIGURE`,
+    0–50%, audited) of agency commission RECEIVED. **It is off (0%) by default and never added to
+    cash.**
+
+**Unit economics:**
+- subscriber churn (churned ÷ paying at the start + new);
+- LTV = ARPA ÷ monthly churn, which needs at least 60 days of history and some churn;
+- CAC = (marketing spend entered + referral rewards) ÷ new paying subscribers;
+- payback months.
+
+**Series per period:**
+- cash, recognised, and their split by product;
+- MRR, paying subscribers, and new, expansion, contraction and churned MRR;
+- churn %, failed payments, uncollected charges and marketing spend (spread over its month).
+
+**Breakdowns:** by product (each subscription plan, and featured listings), by customer category
+(the payer's main role) and by location (the listing's city for featured listings, the
+subscriber's city for subscriptions).
+
+**Marketing spend.** `POST` and `DELETE /api/v1/admin/analytics/marketing-spend`. Finance staff
+enter it by month and channel; it's audited. Table `marketing_spend`; its column is
+`spend_month`, because "month" is reserved in H2.
+
+**Engine and overview.**
+- New metrics: MRR, PAYING_SUBSCRIBERS, SUBSCRIPTION_CANCELLATIONS and UNCOLLECTED_CHARGES.
+- "Platform" charges are no longer counted as successful payments or as client money.
+- The overview's MRR now comes from history and can be compared with earlier periods (it was a
+  live count). Drill-down resolves subscriptions.
+
+**Frontend.** A **Revenue** tab for admins and finance staff, with:
+- the four groups side by side, plus unit economics;
+- a warning banner for uncollected charges;
+- cash vs recognised, and MRR charts;
+- an MRR movements table;
+- the three breakdowns;
+- marketing spend entry and deletion;
+- the commission-share setting (admin only);
+- notes and CSV export.
+
+**Tests** (`RevenueTests`, 6; a 2025 fixture no other test touches):
+- **Cash $45:** rent, the renewal and the listing fee are excluded.
+- **Recognised:** March $30.50, April $14.50 (Harare month boundaries); deferred at the end of
+  March $14.50, and recognised + deferred = cash.
+- **Subscriptions:** MRR $64, then $49; new MRR $49; churned $15; churn 50%.
+- **Unit economics:** CAC $100, payback 2.0 months.
+- **Breakdowns and checks:** by product and category, uncollected $22 (1 listing fee and 1
+  renewal), and cash reconciled against the payments table.
+- **Commission share:** off until set; $300 at 10%; finance staff can't change it; it's never
+  added to cash.
+- **Capture:** the subscription listener records CREATED and CHANGED with the price, and ignores
+  period-date-only changes.
+- **Access:** finance only, every view audited, and the range is validated.
+
+**Verification:** in a browser on a scratch MariaDB database seeded with 12 subscribers, 6 months
+of payments, featured listings and marketing spend, the Revenue tab showed no errors. That check
+found that listing fees, not only renewals, were self-confirmed (14 of the 16 uncollected
+charges), which led to the rename above.
 

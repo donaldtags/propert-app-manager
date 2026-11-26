@@ -143,6 +143,10 @@ public class OverviewService {
                 new Spec("platform_revenue", "Platform revenue", MetricDefinition.PLATFORM_REVENUE, null, "USD", "UP"),
                 new Spec("revenue_subscriptions", "Subscriptions", MetricDefinition.REVENUE_SUBSCRIPTIONS, null, "USD", "UP"),
                 new Spec("revenue_featured", "Featured listings", MetricDefinition.REVENUE_FEATURED_LISTINGS, null, "USD", "UP"),
+                new Spec("mrr", "Monthly recurring revenue", MetricDefinition.MRR, null, "USD", "UP"),
+                new Spec("paying_subscribers", "Paying subscribers", MetricDefinition.PAYING_SUBSCRIBERS, null, "COUNT", "UP"),
+                new Spec("cancellations", "Subscription cancellations", MetricDefinition.SUBSCRIPTION_CANCELLATIONS, null, "COUNT", "DOWN"),
+                new Spec("uncollected", "Charges recorded without payment", MetricDefinition.UNCOLLECTED_CHARGES, null, "COUNT", "DOWN"),
                 new Spec("payments_ok", "Successful payments", MetricDefinition.PAYMENTS_SUCCESSFUL, null, "COUNT", "UP"),
                 new Spec("payments_failed", "Failed payments", MetricDefinition.PAYMENTS_FAILED, null, "COUNT", "DOWN"),
                 new Spec("payment_volume", "Client money handled", MetricDefinition.PAYMENT_VOLUME, null, "USD", "NEUTRAL"),
@@ -317,10 +321,6 @@ public class OverviewService {
                         "COUNT", "UP", "Agencies approved by EstateX and active, right now."));
             }
             if (s.key().equals("business") && c.user().hasPermission(Permission.ANALYTICS_FINANCE_VIEW)) {
-                s.kpis().add(live("mrr", "Monthly recurring revenue",
-                        "select coalesce(sum(p.monthly_price), 0) from landlord_subscriptions s join subscription_plan_settings p "
-                                + "on p.plan = s.plan where s.status = 'ACTIVE' and p.currency = 'USD'", "USD", "UP",
-                        "Monthly price of every active paid subscription, right now. An estimate of next month's subscription income."));
                 s.kpis().add(live("past_due", "Subscriptions past due",
                         "select count(*) from landlord_subscriptions where status = 'PAST_DUE'", "COUNT", "DOWN",
                         "Subscriptions whose renewal payment hasn't come in."));

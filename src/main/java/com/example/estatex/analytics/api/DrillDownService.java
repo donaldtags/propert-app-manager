@@ -105,6 +105,9 @@ public class DrillDownService {
                 case "offer" -> "select o.id, p.title, 'Offer' detail, o.amount_cents / 100.0 amount, o.currency, o.created_at at, o.status from offers o left join properties p on p.id = o.property_id where o.id in ";
                 case "user" -> "select id, full_name title, cast(null as char(20)) detail, cast(null as decimal(19,2)) amount, cast(null as char(3)) currency, created_at at, cast(null as char(20)) status from users where id in ";
                 case "payment" -> "select id, purpose_type title, provider detail, amount, currency, coalesce(paid_at, created_at) at, status from payments where id in ";
+                case "subscription" -> "select s.id, u.full_name title, concat('Plan ', s.plan) detail, p.monthly_price amount, p.currency, "
+                        + "s.updated_at at, s.status from landlord_subscriptions s join users u on u.id = s.user_id "
+                        + "left join subscription_plan_settings p on p.plan = s.plan where s.id in ";
                 default -> null;
             };
             if (sql == null) return;

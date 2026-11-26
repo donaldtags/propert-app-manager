@@ -1767,3 +1767,27 @@ export const referralsApi = {
   reverse: (token: string, id: number, reason: string) =>
     request<ReferralAdminView>(`/admin/referrals/${id}/reverse`, { method: "POST", body: JSON.stringify({ reason }) }, token),
 };
+
+// Revenue analytics (finance). See docs/admin-analytics-plan.md Phase F.
+export interface RevenueKpi {
+  key: string; group: "CASH" | "RECOGNISED" | "OUTSTANDING" | "ESTIMATED" | "UNIT"; label: string; help: string;
+  unit: "USD" | "COUNT" | "PERCENT" | "MONTHS"; value?: number | null; note?: string | null;
+}
+export interface RevenueSlice { key: string; label: string; cash: number; recognised: number; payments: number }
+export interface MarketingSpendRow { id: number; month: string; channel: string; amount: number; currency: string; note?: string | null }
+export interface RevenueData {
+  from: string; to: string; grain: MarketGrain; subscriptionHistoryStartsAt?: string | null; kpis: RevenueKpi[];
+  series: { start: string; end: string; label: string; complete: boolean; values: Record<string, number> }[];
+  byProduct: RevenueSlice[]; byCategory: RevenueSlice[]; byLocation: RevenueSlice[]; spend: MarketingSpendRow[];
+  commissionSharePercent: number; notes: string[];
+}
+export const revenueAnalytics = {
+  get: (token: string, p: { from?: string; to?: string; grain?: MarketGrain }) =>
+    request<RevenueData>(`/admin/analytics/revenue?${marketQs(p)}`, {}, token),
+  addSpend: (token: string, s: { month: string; channel: string; amount: number; note?: string }) =>
+    request<MarketingSpendRow>("/admin/analytics/marketing-spend", { method: "POST", body: JSON.stringify(s) }, token),
+  deleteSpend: (token: string, id: number) =>
+    request<{ deleted: boolean }>(`/admin/analytics/marketing-spend/${id}`, { method: "DELETE" }, token),
+  setCommissionShare: (token: string, percent: number) =>
+    request<{ percent: number }>("/admin/analytics/revenue/commission-share", { method: "PUT", body: JSON.stringify({ percent }) }, token),
+};

@@ -30,13 +30,13 @@ import org.springframework.stereotype.Component;
 public class MarketMetricsCalculator {
     private static final Set<MetricDefinition> MONEY = Set.of(MetricDefinition.ASKING_PRICE, MetricDefinition.ASKING_PRICE_PER_M2,
             MetricDefinition.CONTRACTED_RENT, MetricDefinition.VERIFIED_SALES, MetricDefinition.PLATFORM_REVENUE,
-            MetricDefinition.REFERRAL_DISCOUNTS, MetricDefinition.REFERRAL_REWARDS,
+            MetricDefinition.REFERRAL_DISCOUNTS, MetricDefinition.REFERRAL_REWARDS, MetricDefinition.MRR,
             MetricDefinition.REVENUE_SUBSCRIPTIONS, MetricDefinition.REVENUE_FEATURED_LISTINGS, MetricDefinition.PAYMENT_VOLUME);
     /** Distributions whose headline value is the count, not the median. */
     private static final Set<MetricDefinition> COUNT_HEADLINE = Set.of(MetricDefinition.PRICE_REDUCTIONS, MetricDefinition.VERIFIED_SALES);
     /** Distributions whose headline value is the total. */
     private static final Set<MetricDefinition> SUM_HEADLINE = Set.of(MetricDefinition.PLATFORM_REVENUE,
-            MetricDefinition.REFERRAL_DISCOUNTS, MetricDefinition.REFERRAL_REWARDS,
+            MetricDefinition.REFERRAL_DISCOUNTS, MetricDefinition.REFERRAL_REWARDS, MetricDefinition.MRR,
             MetricDefinition.REVENUE_SUBSCRIPTIONS, MetricDefinition.REVENUE_FEATURED_LISTINGS, MetricDefinition.PAYMENT_VOLUME);
     private static final Map<String, MetricDefinition> STATUS_METRICS = Map.of(
             "WITHDRAWN", MetricDefinition.WITHDRAWN_LISTINGS,
@@ -135,6 +135,7 @@ public class MarketMetricsCalculator {
         platform(p, asOf, zone, hourly, acc);
         payments(p, asOf, acc);
         referrals(p, asOf, acc);
+        subscriptions(p, asOf, acc);
         List<MetricValue> rows = acc.rows(p, now, runId);
         for (MetricValue v : rows) {
             String source = MetricDefinition.valueOf(v.getMetricKey()).captureSource();
@@ -275,10 +276,18 @@ public class MarketMetricsCalculator {
     private void payments(Period p, Instant asOf, Acc acc) {
         Timestamp from = Timestamp.from(p.start());
         Timestamp to = Timestamp.from(asOf);
-        jdbc.query("select id, amount, currency, purpose_type, status, paid_at, created_at from payments "
+        jdbc.query("select id, amount, currency, purpose_type, status, provider, paid_at, created_at from payments "
                 + "where (paid_at >= ? and paid_at < ?) or (created_at >= ? and created_at < ?)", rs -> {
             String ref = "payment:" + rs.getLong("id");
             String status = rs.getString("status");
+            if ("platform".equalsIgnoreCase(rs.getString("provider"))) {
+                // Marked paid by the system (listing fees, renewals) with no money moving: not a payment, not revenue, not client money.
+                Instant made = rs.getTimestamp("created_at").toInstant();
+                if ("SUCCESSFUL".equals(status) && !made.isBefore(p.start()) && made.isBefore(asOf)) {
+                    acc.count(MetricDefinition.UNCOLLECTED_CHARGES, Dims.ALL, true, ref);
+                }
+                return;
+            }
             Timestamp paid = rs.getTimestamp("paid_at");
             Instant paidAt = (paid != null ? paid : rs.getTimestamp("created_at")).toInstant();
             Instant created = rs.getTimestamp("created_at").toInstant();
@@ -301,6 +310,30 @@ public class MarketMetricsCalculator {
                 acc.value(MetricDefinition.PAYMENT_VOLUME, Dims.ALL, amount, true, ref);
             }
         }, from, to, from, to);
+    }
+
+    /** MRR and paying subscribers at the end of the period, and cancellations during it, from subscription history. */
+    private void subscriptions(Period p, Instant asOf, Acc acc) {
+        Map<Long, Object[]> atStart = new HashMap<>();
+        Map<Long, Object[]> atEnd = new HashMap<>();
+        jdbc.query("select subscription_id, occurred_at, status, monthly_price from subscription_events where occurred_at < ? "
+                + "order by occurred_at, id", rs -> {
+            Object[] st = {rs.getString("status"), rs.getBigDecimal("monthly_price")};
+            atEnd.put(rs.getLong("subscription_id"), st);
+            if (rs.getTimestamp("occurred_at").toInstant().isBefore(p.start())) atStart.put(rs.getLong("subscription_id"), st);
+        }, Timestamp.from(asOf));
+        for (Map.Entry<Long, Object[]> e : atEnd.entrySet()) {
+            if (paying(e.getValue())) {
+                acc.count(MetricDefinition.PAYING_SUBSCRIBERS, Dims.ALL, true, "subscription:" + e.getKey());
+                acc.value(MetricDefinition.MRR, Dims.ALL, (BigDecimal) e.getValue()[1], true, null);
+            } else if (paying(atStart.get(e.getKey()))) {
+                acc.count(MetricDefinition.SUBSCRIPTION_CANCELLATIONS, Dims.ALL, true, null);
+            }
+        }
+    }
+
+    private static boolean paying(Object[] st) {
+        return st != null && "ACTIVE".equals(st[0]) && st[1] != null && ((BigDecimal) st[1]).signum() > 0;
     }
 
     private void referrals(Period p, Instant asOf, Acc acc) {

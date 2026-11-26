@@ -63,6 +63,7 @@ import {
   SearchCheck,
   Map as MapIcon,
   Gift,
+  Wallet,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -78,13 +79,14 @@ import ExecutiveOverview from "@/components/admin/analytics/ExecutiveOverview";
 import MarketDashboard from "@/components/admin/analytics/MarketDashboard";
 import DemandAnalytics from "@/components/admin/analytics/DemandAnalytics";
 import ReferralsPanel from "@/components/admin/ReferralsPanel";
+import RevenueDashboard from "@/components/admin/analytics/RevenueDashboard";
 import dynamic from "next/dynamic";
 // Leaflet touches window, so the map only renders in the browser.
 const MarketMap = dynamic(() => import("@/components/admin/analytics/MarketMap"), { ssr: false });
 import StaffAccessPanel from "@/components/admin/StaffAccessPanel";
 import { STAFF_ROLES } from "@/lib/types";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand" | "referrals";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand" | "referrals" | "revenue";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -489,7 +491,10 @@ export default function AdminPortalPage() {
       { key: "market-map" as Tab, label: "Market Map", icon: MapIcon },
       { key: "demand" as Tab, label: "Customer Demand", icon: SearchCheck },
     ] : []),
-    ...(canSeeReferrals ? [{ key: "referrals" as Tab, label: "Referrals", icon: Gift }] : []),
+    ...(canSeeReferrals ? [
+      { key: "revenue" as Tab, label: "Revenue", icon: Wallet },
+      { key: "referrals" as Tab, label: "Referrals", icon: Gift },
+    ] : []),
     ...(canSeeEngine ? [{ key: "analytics-engine" as Tab, label: "Analytics Engine", icon: Activity }] : []),
   ];
   const ADMIN_TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
@@ -535,6 +540,7 @@ export default function AdminPortalPage() {
       {tab === "market-map" && canSeeMarket && <MarketMap />}
       {tab === "demand" && canSeeMarket && <DemandAnalytics />}
       {tab === "referrals" && canSeeReferrals && <ReferralsPanel canEdit={!!isAdmin} />}
+      {tab === "revenue" && canSeeReferrals && <RevenueDashboard canConfigure={!!isAdmin} />}
 
       {tab === "operations" && (
         <div>

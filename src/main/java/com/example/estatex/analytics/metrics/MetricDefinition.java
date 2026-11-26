@@ -80,6 +80,15 @@ public enum MetricDefinition {
                     + "USD. Not EstateX revenue."),
     PAYMENTS_SUCCESSFUL(1, Kind.COUNT, Domain.FINANCE, null, "Payments that succeeded during the period (all purposes)."),
     PAYMENTS_FAILED(1, Kind.COUNT, Domain.FINANCE, null, "Payments started during the period that failed."),
+    MRR(1, Kind.DISTRIBUTION, Domain.FINANCE, "subscription_events",
+            "Monthly recurring revenue: the monthly price of active paid subscriptions at the end of the period (USD). "
+                    + "What subscriptions are worth per month, not cash received."),
+    PAYING_SUBSCRIBERS(1, Kind.COUNT, Domain.FINANCE, "subscription_events", "Active paid subscriptions at the end of the period."),
+    SUBSCRIPTION_CANCELLATIONS(1, Kind.COUNT, Domain.FINANCE, "subscription_events",
+            "Paid subscriptions that ended or dropped to the free plan during the period."),
+    UNCOLLECTED_CHARGES(1, Kind.COUNT, Domain.FINANCE, null,
+            "Listing fees and subscription renewals the system marked paid without collecting money (no stored card). "
+                    + "Excluded from revenue."),
     REFERRAL_SIGNUPS(1, Kind.COUNT, Domain.PLATFORM, null,
             "New accounts that signed up with a friend's referral code (self-referrals excluded)."),
     REFERRAL_DISCOUNTS(1, Kind.DISTRIBUTION, Domain.FINANCE, null,
@@ -138,6 +147,7 @@ public enum MetricDefinition {
             case OFFERS -> "offers";
             case TOTAL_USERS, NEW_REGISTRATIONS, NEW_AGENTS, NEW_LANDLORDS, NEW_DEVELOPERS -> "users";
             case REFERRAL_SIGNUPS, REFERRAL_DISCOUNTS, REFERRAL_REWARDS -> "referrals";
+            case UNCOLLECTED_CHARGES -> "payments";
             default -> "payments";
         };
     }
