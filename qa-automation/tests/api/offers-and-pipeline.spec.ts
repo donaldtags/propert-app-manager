@@ -17,7 +17,7 @@ test.describe("Offers within mandate authority", () => {
       token: a.negotiator.token, data: { decision: "ACCEPT", ownerInstructionReference: "WhatsApp from owner (QA)" },
     });
     expect(accepted.status).toBe("ACCEPTED");
-    expect((await api.ok("GET", `/properties/${id}`, { token: a.negotiator.token })).status).toBe("RESERVED");
+    expect((await api.ok("GET", `/properties/${id}`, { token: a.negotiator.token })).status).toBe("UNDER_OFFER");
   });
 
   test("no mandate in force, no offers", async ({ api, agency: a }) => {

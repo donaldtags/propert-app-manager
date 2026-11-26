@@ -182,7 +182,7 @@ public class PipelineService implements ContactActivitySource {
                 throw new ApiException(HttpStatus.CONFLICT, "The listing has no signed-off mandate in force.");
             }
         }
-        if (NEEDS_LIVE.contains(to) && p.getStatus() != PropertyStatus.AVAILABLE && p.getStatus() != PropertyStatus.RESERVED) {
+        if (NEEDS_LIVE.contains(to) && p.getStatus() != PropertyStatus.AVAILABLE && p.getStatus() != PropertyStatus.UNDER_OFFER) {
             throw new ApiException(HttpStatus.CONFLICT, "The listing isn't live yet. Publish it first.");
         }
         if (to == PipelineStage.CONVEYANCING && !offers.existsByPropertyIdAndStatusCode(p.getId(), OfferStatus.ACCEPTED.name())) {

@@ -105,6 +105,16 @@ public class Property {
     @Column(name = "title_type", length = 20)
     private String titleTypeCode;
 
+    // String-backed for the same reason as titleTypeCode.
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    @Column(name = "category", length = 20)
+    private String categoryCode;
+
+    /** Internal floor area in square metres; null when not known. Used for price per m². */
+    @Column(name = "floor_area_m2")
+    private Integer floorAreaM2;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private AppUser landlord;
 
@@ -124,6 +134,14 @@ public class Property {
 
     public void setTitleType(TitleType titleType) {
         this.titleTypeCode = titleType == null ? null : titleType.name();
+    }
+
+    public PropertyCategory getCategory() {
+        return categoryCode == null ? null : PropertyCategory.valueOf(categoryCode);
+    }
+
+    public void setCategory(PropertyCategory category) {
+        this.categoryCode = category == null ? null : category.name();
     }
 
     public boolean isOrganisationListing() {

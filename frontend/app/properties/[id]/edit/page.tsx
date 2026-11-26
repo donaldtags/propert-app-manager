@@ -9,6 +9,8 @@ import { Home, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X } from "l
 import type { Property, PropertyBilling } from "@/lib/types";
 import { useZimbabweLocations } from "@/lib/locations";
 import LocationPicker from "@/components/LocationPicker";
+import { CATEGORY_OPTIONS } from "@/components/workspace/listingLabels";
+import type { PropertyCategory } from "@/lib/types";
 
 export default function EditPropertyPage() {
   const { cities: ZIMBABWE_CITIES, suburbs: ZIMBABWE_SUBURBS } = useZimbabweLocations();
@@ -31,6 +33,8 @@ export default function EditPropertyPage() {
     longitude: null as number | null,
     bedrooms: 0,
     bathrooms: 0,
+    category: "" as PropertyCategory | "",
+    floorAreaM2: "",
     price: "",
     currency: "USD",
     diasporaFriendly: false,
@@ -78,6 +82,8 @@ export default function EditPropertyPage() {
           longitude: prop.longitude ?? null,
           bedrooms: prop.bedrooms,
           bathrooms: prop.bathrooms,
+          category: prop.category ?? "",
+          floorAreaM2: prop.floorAreaM2 ? String(prop.floorAreaM2) : "",
           price: String(prop.price),
           currency: prop.currency,
           diasporaFriendly: prop.diasporaFriendly,
@@ -154,6 +160,8 @@ export default function EditPropertyPage() {
           longitude: form.longitude ?? undefined,
           bedrooms: form.bedrooms,
           bathrooms: form.bathrooms,
+          category: form.category || undefined,
+          floorAreaM2: form.floorAreaM2 ? Number(form.floorAreaM2) : undefined,
           price: Number(form.price),
           currency: form.currency,
           diasporaFriendly: form.diasporaFriendly,
@@ -291,6 +299,27 @@ export default function EditPropertyPage() {
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="lp-cat" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Property type</label>
+              <select id="lp-cat"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as PropertyCategory | "" }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              >
+                <option value="">Choose…</option>
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="lp-area" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Floor area (m²) <span className="text-gray-400 font-normal">optional</span></label>
+              <input id="lp-area" type="number" min={1} inputMode="numeric"
+                value={form.floorAreaM2}
+                onChange={(e) => setForm((f) => ({ ...f, floorAreaM2: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              />
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">

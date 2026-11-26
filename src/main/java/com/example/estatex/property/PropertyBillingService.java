@@ -106,7 +106,7 @@ public class PropertyBillingService {
         Instant cutoff = Instant.now().minus(GRACE_PERIOD_DAYS, ChronoUnit.DAYS);
         for (PropertyBilling billing : billings.findByStatusAndPastDueSinceBefore(PropertyBillingStatus.PAST_DUE, cutoff)) {
             Property property = billing.getProperty();
-            if (property.getStatus() != PropertyStatus.SOLD) {
+            if (property.getStatus() != PropertyStatus.REPORTED_SOLD) {
                 property.setStatus(PropertyStatus.INACTIVE);
                 properties.save(property);
             }

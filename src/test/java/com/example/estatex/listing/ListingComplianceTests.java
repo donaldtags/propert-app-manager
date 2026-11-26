@@ -206,7 +206,7 @@ class ListingComplianceTests {
         // The job running the morning after takes it down.
         mandateService.expireMandates(lastDay.plusDays(1));
         call(get(base + "/listings/" + id), negotiator, null)
-                .andExpect(jsonPath("$.property.status").value("DRAFT"))
+                .andExpect(jsonPath("$.property.status").value("EXPIRED"))
                 .andExpect(jsonPath("$.mandates[0].status").value("EXPIRED"));
         mvc.perform(get("/api/v1/properties/" + id)).andExpect(status().isNotFound());
         call(get("/api/v1/notifications/mine"), negotiator, null)

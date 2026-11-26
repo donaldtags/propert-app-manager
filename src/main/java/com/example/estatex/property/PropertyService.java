@@ -130,6 +130,8 @@ public class PropertyService {
         property.setParkingAvailable(request.parkingAvailable());
         property.setPetsAllowed(request.petsAllowed());
         property.setVirtualTourUrl(request.virtualTourUrl());
+        property.setCategory(request.category());
+        property.setFloorAreaM2(request.floorAreaM2());
         property.setLandlord(landlord);
         if (request.agentId() != null) {
             AppUser agent = users.require(request.agentId());
@@ -160,6 +162,10 @@ public class PropertyService {
                 && com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(property.getLandlord())) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Your listings go live once EstateX approves your agent licence. Upload it from your profile.");
+        }
+        if (request.status() == PropertyStatus.EXPIRED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Listings expire automatically when their mandate ends. To take it off the market yourself, choose Withdrawn.");
         }
         boolean priceChanged = request.price() != null
                 && (property.getPrice() == null || request.price().compareTo(property.getPrice()) != 0);
@@ -203,6 +209,8 @@ public class PropertyService {
         if (request.petsAllowed() != null) property.setPetsAllowed(request.petsAllowed());
         if (request.virtualTourUrl() != null) property.setVirtualTourUrl(request.virtualTourUrl());
         if (request.status() != null) property.setStatus(request.status());
+        if (request.category() != null) property.setCategory(request.category());
+        if (request.floorAreaM2() != null) property.setFloorAreaM2(request.floorAreaM2());
         if (identityChanged || locationTextChanged) {
             requireRecheck(property, currentUser, "Title, type or location changed after verification");
         }
@@ -246,7 +254,7 @@ public class PropertyService {
         return billing.describe(property);
     }
 
-    private void requireOwnerOrAdmin(Property property, AppUser currentUser) {
+    public void requireOwnerOrAdmin(Property property, AppUser currentUser) {
         if (currentUser == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Sign in to edit listings");
         }
@@ -313,7 +321,7 @@ public class PropertyService {
     @Transactional(readOnly = true)
     public Property requireVisible(Long id, AppUser viewer) {
         Property property = require(id);
-        if (!property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT) {
+        if (!property.isOrganisationListing() && property.getStatus().isHiddenFromPublic()) {
             boolean ownerOrStaff = viewer != null && (viewer.getId().equals(property.getLandlord().getId())
                     || (property.getAgent() != null && viewer.getId().equals(property.getAgent().getId()))
                     || viewer.hasPermission(Permission.ADMIN_OVERRIDE));
@@ -321,7 +329,7 @@ public class PropertyService {
                 throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");
             }
         }
-        if (property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT
+        if (property.isOrganisationListing() && property.getStatus().isHiddenFromPublic()
                 && !orgAccess.can(viewer, property.getOrganisationId(), OrgPermission.ORG_VIEW)
                 && (viewer == null || !viewer.hasPermission(Permission.ADMIN_OVERRIDE))) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");

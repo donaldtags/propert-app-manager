@@ -76,7 +76,7 @@ public class MandateService {
         }
         Listing l = listings.load(slug, propertyId, user, OrgPermission.LISTING_EDIT);
         Property p = l.property();
-        if (p.getStatus() == PropertyStatus.SOLD) {
+        if (p.getStatus() == PropertyStatus.REPORTED_SOLD) {
             throw new ApiException(HttpStatus.CONFLICT, "This property is already sold.");
         }
         LocalDate today = time.today();
@@ -239,7 +239,7 @@ public class MandateService {
                     continue;
                 }
                 if (p.getStatus() == PropertyStatus.AVAILABLE) {
-                    listings.takeOffMarket(p, c, null, "Mandate expired on " + m.getExpiryDate(), true);
+                    listings.takeOffMarket(p, c, null, "Mandate expired on " + m.getExpiryDate(), true, PropertyStatus.EXPIRED);
                 } else {
                     listings.notifyResponsible(c, p.getId(), "Mandate expired",
                             "The mandate for \"" + p.getTitle() + "\" expired on " + m.getExpiryDate() + ".");

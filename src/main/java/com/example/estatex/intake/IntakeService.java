@@ -46,7 +46,7 @@ public class IntakeService {
     private static final Set<String> PHOTO_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_PHOTO_BYTES = 10L * 1024 * 1024;
     private static final List<PropertyStatus> COMPARABLE_STATUSES = List.of(
-            PropertyStatus.AVAILABLE, PropertyStatus.RESERVED, PropertyStatus.SOLD, PropertyStatus.OCCUPIED);
+            PropertyStatus.AVAILABLE, PropertyStatus.UNDER_OFFER, PropertyStatus.REPORTED_SOLD, PropertyStatus.OCCUPIED);
 
     private final OrgAccessService access;
     private final PropertyRepository properties;

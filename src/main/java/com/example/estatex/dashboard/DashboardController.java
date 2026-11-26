@@ -266,7 +266,7 @@ public class DashboardController {
 
         Map<PropertyStatus, Long> propertyCounts = properties.statusCounts();
         long listed = propertyCounts.getOrDefault(PropertyStatus.AVAILABLE, 0L);
-        long sold = propertyCounts.getOrDefault(PropertyStatus.SOLD, 0L);
+        long sold = propertyCounts.getOrDefault(PropertyStatus.REPORTED_SOLD, 0L);
         long rented = propertyCounts.getOrDefault(PropertyStatus.OCCUPIED, 0L);
         long totalProperties = propertyCounts.values().stream().mapToLong(Long::longValue).sum();
         double occupancyRate = (rented + listed) == 0 ? 0.0 : (rented * 100.0) / (rented + listed);

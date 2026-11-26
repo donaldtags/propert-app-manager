@@ -107,6 +107,7 @@ import type {
   WalletWithdrawal,
   WithdrawalRequest,
   WithdrawalStatus,
+  PropertyCategory,
 } from "./types";
 
 export const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -309,6 +310,8 @@ export const properties = {
       parkingAvailable?: boolean;
       petsAllowed?: boolean;
       virtualTourUrl?: string;
+      category?: PropertyCategory;
+      floorAreaM2?: number;
       landlordId: number;
       agentId?: number;
       photoUrls?: string[];
@@ -347,6 +350,8 @@ export const properties = {
       petsAllowed: boolean;
       virtualTourUrl: string;
       status: string;
+      category: PropertyCategory;
+      floorAreaM2: number;
     }>,
     token: string
   ) => request<Property>(`/properties/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),

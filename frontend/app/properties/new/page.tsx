@@ -11,6 +11,8 @@ import type { UserRole } from "@/lib/types";
 import { useZimbabweLocations } from "@/lib/locations";
 import PageLoader from "@/components/PageLoader";
 import LocationPicker from "@/components/LocationPicker";
+import { CATEGORY_OPTIONS } from "@/components/workspace/listingLabels";
+import type { PropertyCategory } from "@/lib/types";
 
 const LISTING_TYPES = [
   { value: "RENT", label: "For Rent", desc: "Monthly rental property" },
@@ -35,6 +37,8 @@ export default function NewPropertyPage() {
     country: "Zimbabwe",
     bedrooms: 2,
     bathrooms: 1,
+    category: "" as PropertyCategory | "",
+    floorAreaM2: "",
     price: "",
     currency: "USD",
     latitude: "",
@@ -160,6 +164,8 @@ export default function NewPropertyPage() {
           country: form.country,
           bedrooms: form.bedrooms,
           bathrooms: form.bathrooms,
+          category: form.category || undefined,
+          floorAreaM2: form.floorAreaM2 ? Number(form.floorAreaM2) : undefined,
           price: Number(form.price),
           currency: form.currency,
           latitude: form.latitude ? Number(form.latitude) : undefined,
@@ -230,7 +236,7 @@ export default function NewPropertyPage() {
               View Listing
             </Link>
             <button
-              onClick={() => { setSuccess(false); setCreatedId(null); setPhotoFiles([]); setPhotoUploadWarning(""); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, solarInstalled: false, backupPower: false, waterSource: "", furnished: false, internetAvailable: false, securityFeatures: false, parkingAvailable: false, petsAllowed: false, virtualTourUrl: "", photoUrls: [] }); }}
+              onClick={() => { setSuccess(false); setCreatedId(null); setPhotoFiles([]); setPhotoUploadWarning(""); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, category: "", floorAreaM2: "", price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, solarInstalled: false, backupPower: false, waterSource: "", furnished: false, internetAvailable: false, securityFeatures: false, parkingAvailable: false, petsAllowed: false, virtualTourUrl: "", photoUrls: [] }); }}
               className="border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold px-6 py-3 rounded-xl transition-colors"
             >
               List Another
@@ -345,6 +351,27 @@ export default function NewPropertyPage() {
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="lp-cat" className="block text-sm font-medium text-gray-700 mb-1.5">Property type</label>
+              <select id="lp-cat"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as PropertyCategory | "" }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              >
+                <option value="">Choose…</option>
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="lp-area" className="block text-sm font-medium text-gray-700 mb-1.5">Floor area (m²) <span className="text-gray-400 font-normal">optional</span></label>
+              <input id="lp-area" type="number" min={1} inputMode="numeric"
+                value={form.floorAreaM2}
+                onChange={(e) => setForm((f) => ({ ...f, floorAreaM2: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              />
             </div>
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-1.5">

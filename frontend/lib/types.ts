@@ -1,7 +1,11 @@
 export type ListingType = "RENT" | "SALE" | "SHORT_STAY";
 export type TitleType = "TITLE_DEED" | "SECTIONAL_TITLE" | "CESSION";
 
-export type PropertyStatus = "DRAFT" | "AVAILABLE" | "RESERVED" | "OCCUPIED" | "SOLD" | "INACTIVE";
+export type PropertyStatus =
+  | "DRAFT" | "AVAILABLE" | "UNDER_OFFER" | "OCCUPIED" | "REPORTED_SOLD" | "WITHDRAWN" | "EXPIRED" | "INACTIVE";
+
+export type PropertyCategory =
+  | "HOUSE" | "FLAT" | "TOWNHOUSE" | "COTTAGE" | "ROOM" | "STAND" | "COMMERCIAL" | "INDUSTRIAL" | "FARM" | "OTHER";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 export type WaterSource = "MUNICIPAL" | "BOREHOLE" | "WELL" | "TANKER" | "OTHER";
 export type UserRole = "TENANT" | "LANDLORD" | "AGENT" | "DIASPORA" | "INVESTOR" | "ADMIN" | "DEVELOPER" | "PRIVATE" | "SERVICE_PROVIDER";
@@ -70,6 +74,8 @@ export interface Property {
   parkingAvailable: boolean;
   petsAllowed: boolean;
   virtualTourUrl?: string;
+  category?: PropertyCategory;
+  floorAreaM2?: number;
   landlordId: number;
   agentId?: number;
   landlordName?: string;

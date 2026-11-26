@@ -42,8 +42,23 @@ public final class PropertyDtos {
             List<String> photoUrls,
             List<String> imageUrls,
             List<String> photos,
-            String virtualTourUrl
+            String virtualTourUrl,
+            PropertyCategory category,
+            @Min(1) Integer floorAreaM2
     ) {
+        /** For callers written before category and floor area existed. */
+        public CreatePropertyRequest(String title, String description, ListingType listingType, String city, String suburb,
+                String address, String country, int bedrooms, int bathrooms, BigDecimal price, String currency,
+                BigDecimal latitude, BigDecimal longitude, boolean diasporaFriendly, boolean escrowRequired,
+                boolean solarInstalled, boolean backupPower, WaterSource waterSource, boolean furnished,
+                boolean internetAvailable, boolean securityFeatures, boolean parkingAvailable, boolean petsAllowed,
+                Long landlordId, Long agentId, List<String> photoUrls, List<String> imageUrls, List<String> photos,
+                String virtualTourUrl) {
+            this(title, description, listingType, city, suburb, address, country, bedrooms, bathrooms, price, currency,
+                    latitude, longitude, diasporaFriendly, escrowRequired, solarInstalled, backupPower, waterSource,
+                    furnished, internetAvailable, securityFeatures, parkingAvailable, petsAllowed, landlordId, agentId,
+                    photoUrls, imageUrls, photos, virtualTourUrl, null, null);
+        }
     }
 
     /**
@@ -80,7 +95,9 @@ public final class PropertyDtos {
             Boolean parkingAvailable,
             Boolean petsAllowed,
             String virtualTourUrl,
-            PropertyStatus status
+            PropertyStatus status,
+            PropertyCategory category,
+            @Min(1) Integer floorAreaM2
     ) {
     }
 
@@ -175,7 +192,9 @@ public final class PropertyDtos {
             String organisationLogoUrl,
             String organisationPhone,
             /** The person marketing it (agent, or owner) has had their ID document checked by EstateX. */
-            Boolean listerIdVerified
+            Boolean listerIdVerified,
+            PropertyCategory category,
+            Integer floorAreaM2
     ) {
         public static PropertyResponse from(Property property) {
             return from(property, true);
@@ -265,7 +284,9 @@ public final class PropertyDtos {
                     org == null ? null : org.getSlug(),
                     org == null ? null : org.getLogoOnLightUrl(),
                     org == null ? null : (org.getPhone() != null ? org.getPhone() : org.getWhatsappNumber()),
-                    lister.idVerified()
+                    lister.idVerified(),
+                    property.getCategory(),
+                    property.getFloorAreaM2()
             );
         }
     }

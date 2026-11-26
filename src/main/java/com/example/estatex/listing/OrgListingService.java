@@ -44,7 +44,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class OrgListingService {
-    private static final Set<PropertyStatus> PUBLISHABLE_FROM = Set.of(PropertyStatus.DRAFT, PropertyStatus.INACTIVE);
+    private static final Set<PropertyStatus> PUBLISHABLE_FROM = Set.of(PropertyStatus.DRAFT, PropertyStatus.INACTIVE,
+            PropertyStatus.WITHDRAWN, PropertyStatus.EXPIRED);
 
     private final OrgAccessService access;
     private final PropertyService propertyService;
@@ -338,7 +339,7 @@ public class OrgListingService {
         p.setStatus(next);
         audit.record(actor, entry(publishable ? "LISTING_RELISTED" : "LISTING_UNPUBLISHED", "Property", p.getId())
                 .organisation(p.getOrganisationId())
-                .transition(PropertyStatus.RESERVED, next)
+                .transition(PropertyStatus.UNDER_OFFER, next)
                 .metadata(Map.of("reason", "Accepted offer withdrawn")));
     }
 
@@ -377,11 +378,16 @@ public class OrgListingService {
     }
 
     void takeOffMarket(Property p, ListingCompliance c, AppUser actor, String reason, boolean automatic) {
+        takeOffMarket(p, c, actor, reason, automatic, PropertyStatus.DRAFT);
+    }
+
+    /** {@code to} is DRAFT for a compliance problem, or EXPIRED when the mandate ran out. */
+    void takeOffMarket(Property p, ListingCompliance c, AppUser actor, String reason, boolean automatic, PropertyStatus to) {
         PropertyStatus before = p.getStatus();
-        p.setStatus(PropertyStatus.DRAFT);
+        p.setStatus(to);
         audit.record(actor, entry("LISTING_UNPUBLISHED", "Property", p.getId())
                 .organisation(c.getOrganisationId())
-                .transition(before, PropertyStatus.DRAFT)
+                .transition(before, to)
                 .metadata(Map.of("reason", reason, "automatic", automatic)));
         if (automatic) {
             notifyResponsible(c, p.getId(), "Listing taken off the market",

@@ -192,7 +192,7 @@ class PhaseTwoTests {
         f.call(post(base + "/offers/" + lowId + "/owner-response"), negotiator,
                         "{\"decision\": \"ACCEPT\", \"ownerInstructionReference\": \"WhatsApp from owner 17 Nov 14:02\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACCEPTED"));
-        f.call(get("/api/v1/properties/" + id), negotiator, null).andExpect(jsonPath("$.status").value("RESERVED"));
+        f.call(get("/api/v1/properties/" + id), negotiator, null).andExpect(jsonPath("$.status").value("UNDER_OFFER"));
 
         long other = f.json(f.call(post(base + "/listings/" + id + "/offers"), negotiator,
                 "{\"buyerContactId\": %d, \"amountCents\": 24000000}".formatted(f.contact("Buyer Two", "0771 444 555"))))

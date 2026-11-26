@@ -43,6 +43,7 @@ import { useAuth } from "@/lib/auth";
 import StayBookingWidget from "@/components/stays/StayBookingWidget";
 import { logEvent } from "@/lib/api";
 import { isSaved, toggleSaved } from "@/lib/savedListings";
+import { trackListingView } from "@/lib/marketplaceEvents";
 import { settingsRoleUrl } from "@/lib/roleGate";
 
 const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
@@ -146,6 +147,7 @@ export default function PropertyDetailPage() {
         setProperty(prop);
         setSaved(isSaved(prop.id));
         setRatings(await ratingsApi.listByLandlord(prop.landlordId));
+        trackListingView(prop.id, token);
         logEvent("info", "property_viewed", `/properties/${id}`, "User opened property details", user?.id, { propertyId: Number(id) });
       })
       .catch(() => { /* handled by the empty state */ })
@@ -496,7 +498,7 @@ export default function PropertyDetailPage() {
         </div>
         <div className="absolute top-4 right-4 flex gap-2">
           <button
-            onClick={() => setSaved(toggleSaved(property.id))}
+            onClick={() => setSaved(toggleSaved(property.id, token))}
             aria-label={saved ? "Remove from saved homes" : "Save this home"}
             aria-pressed={saved}
             className={`w-10 h-10 rounded-full flex items-center justify-center shadow transition-colors ${saved ? "bg-red-500 text-white" : "bg-white/80 hover:bg-white text-gray-700"}`}

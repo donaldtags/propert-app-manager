@@ -47,7 +47,7 @@ export default function MarketingPage() {
 
   if (!detail) return <p className="text-muted">Loading…</p>;
   const p = detail.property;
-  const live = p.status === "AVAILABLE" || p.status === "RESERVED";
+  const live = p.status === "AVAILABLE" || p.status === "UNDER_OFFER";
   const listingUrl = typeof window !== "undefined" ? `${window.location.origin}/properties/${p.id}` : `/properties/${p.id}`;
   const price = formatCents(Math.round(Number(p.price) * 100), p.currency) + (p.listingType === "RENT" ? "/month" : "");
   const pitch = `${p.title} · ${p.bedrooms} bed, ${p.bathrooms} bath · ${p.suburb}, ${p.city} · ${price}`;
