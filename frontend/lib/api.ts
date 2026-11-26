@@ -1547,3 +1547,44 @@ export const wallet = {
       request<WalletWithdrawal>(`/admin/wallet/withdrawals/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
   },
 };
+
+// Analytics engine (admin). See docs/admin-analytics-plan.md §3.
+export interface AnalyticsRunStep { name: string; status: "OK" | "FAILED" | "SKIPPED"; ms?: number; detail?: string }
+export interface AnalyticsWarning { code: string; message: string; count?: number; sampleIds?: number[] }
+export interface AnalyticsRun {
+  id: number;
+  job: string;
+  status: "RUNNING" | "SUCCEEDED" | "FAILED" | "ABANDONED";
+  triggeredBy?: string;
+  windowStart: string;
+  windowEnd: string;
+  attempt: number;
+  startedAt: string;
+  finishedAt?: string;
+  durationMs?: number;
+  recordsRead: number;
+  recordsRejected: number;
+  metricsWritten: number;
+  stepRetries: number;
+  steps: AnalyticsRunStep[];
+  warnings: AnalyticsWarning[];
+  error?: string;
+}
+export interface AnalyticsEngineStatus {
+  state: "UP_TO_DATE" | "RUNNING" | "STALE" | "FAILED" | "NEVER_RUN";
+  stale: boolean;
+  lastSuccessAt?: string;
+  dataThrough?: string;
+  nextScheduledAt?: string;
+  historyStartsAt?: string;
+  openDuplicatePairs: number;
+  lastRun?: AnalyticsRun;
+  lastSuccess?: AnalyticsRun;
+}
+export interface AnalyticsOutcome { status: "SUCCEEDED" | "FAILED" | "SKIPPED"; runId?: number; detail?: string }
+
+export const analyticsEngine = {
+  status: (token: string) => request<AnalyticsEngineStatus>("/admin/analytics/engine/status", {}, token),
+  runs: (token: string, limit = 25) => request<AnalyticsRun[]>(`/admin/analytics/engine/runs?limit=${limit}`, {}, token),
+  runNow: (token: string) => request<AnalyticsOutcome>("/admin/analytics/engine/run", { method: "POST" }, token),
+};

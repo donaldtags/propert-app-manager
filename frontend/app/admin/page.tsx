@@ -56,6 +56,7 @@ import {
   CreditCard,
   DollarSign,
   Banknote,
+  Activity,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -66,8 +67,9 @@ import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
 import AlertBanner from "@/components/AlertBanner";
 import AdminWithdrawalsPanel from "@/components/admin/AdminWithdrawalsPanel";
+import AnalyticsEnginePanel from "@/components/admin/AnalyticsEnginePanel";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -476,6 +478,7 @@ export default function AdminPortalPage() {
     { key: "vendors", label: "Service Vendors", icon: Wrench, count: vendorList.length },
     { key: "pricing", label: "Featured Listing Pricing", icon: Star },
     { key: "subscriptions", label: "Subscription Plans", icon: CreditCard },
+    { key: "analytics-engine", label: "Analytics Engine", icon: Activity },
   ];
 
   return (
@@ -854,6 +857,7 @@ export default function AdminPortalPage() {
       )}
 
       {tab === "withdrawals" && <AdminWithdrawalsPanel />}
+      {tab === "analytics-engine" && <AnalyticsEnginePanel />}
 
       {tab === "escrows" && (
         <div>

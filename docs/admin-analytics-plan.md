@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phase A done (2026-11-26); Phase B next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A and B done (2026-11-26); Phase C (executive overview) next, after your review.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -422,4 +422,138 @@ no-op. Check this at the first deploy: Render logs should show `Migrating schema
 - Existing listings have no category until someone edits them.
 - View and search counts measure interest only and can be inflated by a determined script
   (mitigated by the per-IP limit).
+
+### Phase B: Hourly analytics engine (DONE 2026-11-26)
+
+**Scheduling** (`analytics/engine/AnalyticsScheduler`). The engine runs on the server itself;
+no browser or signed-in admin is needed:
+- at 5 past every hour, Harare time (`0 5 * * * *`);
+- at 02:00 for the nightly run;
+- once just after startup, to catch up on anything missed while the server was down. This runs
+  on a background virtual thread, so startup is never delayed.
+
+`spring.task.scheduling.pool.size=4`, so a slow job can't hold up the mandate and billing jobs.
+Tests turn scheduling off with `app.analytics.scheduling-enabled=false`.
+
+**Lock and idempotency** (`JobLock`, table `analytics_job_runs`).
+- The unique key on (job, window start, attempt) means only one worker can take a window.
+- A window that has already succeeded is never processed again.
+- If a fresh RUNNING row exists, other workers skip.
+- A row with no heartbeat for 45 minutes is marked ABANDONED by exactly one worker, which then
+  takes over.
+
+**Windows.** Each hourly run covers the time from the end of the last successful run to the top
+of the current hour. A manual run goes up to the current moment. After long downtime, only the
+last 72 hours are caught up, and the run records a `CATCH_UP_GAP` warning. Older periods can be
+recalculated from the admin API's rebuild action.
+
+**Run steps.** Each step is timed and recorded on the run. Each is retried 3 times, after 30 s,
+2 min and 5 min:
+1. collect changes
+2. validate and find duplicates
+3. check verification
+4. calculate figures (this includes the breakdowns by city and suburb)
+5. significance tests (skipped until Phase G)
+6. market intelligence (skipped until Phase G)
+7. alerts (skipped until Phase G)
+8. publish
+
+Publishing writes the snapshots and replaces the figures for every recalculated period in **one
+transaction**. If any step fails, nothing is published: the previous figures stay, and the
+status shows FAILED or STALE.
+
+**Figures** (`analytics/metrics`):
+- **Catalogue:** 22 metrics in `MetricDefinition`. Each has a version, a plain-English
+  definition and its source table.
+- **Grains:** HOUR, DAY, WEEK, MONTH, QUARTER and YEAR, following the Harare calendar, with
+  weeks starting on Monday.
+- **Which periods each run recalculates:**
+  - hourly runs: the hours in their window, plus the current day, week and month;
+  - the nightly run: day through year;
+  - a rebuild: every period in its range.
+- **Breakdowns.** Each figure is stored for all listings, by listing type, by city, by city and
+  suburb, by category, by bedroom band, by category and bedroom band, and by city and category.
+  Hourly figures are only broken down to city level.
+- **Each stored figure carries:** n, median, p25, p75, mean, min, max, sum, the excluded count,
+  coverage, a low-sample flag (n < 5), whether the period is complete, the time it covers up
+  to, the definition version and the id of the run that produced it.
+- **Source.** Listing state at any moment is rebuilt from `property_events` (`StateReader`), and
+  figures are always recalculated from source data. That is why running the same window twice
+  gives the same answer.
+
+**Snapshots** (`listing_daily_snapshots`). One row per listing per day. A day with no rows yet
+gets every listing; after that, only changed listings are updated. Every night, yesterday is
+rebuilt from scratch and compared with what the hourly runs wrote. Any difference is reported as
+a `RECONCILIATION_MISMATCH` warning and the rebuilt version replaces it.
+
+**Data quality** (`DataQualityChecker`):
+- Live listings with no price, or priced in another currency, are left out of price figures and
+  counted.
+- Unusual prices, missing suburb, missing map location and missing category are flagged, never
+  dropped.
+- Possible duplicates go into `listing_duplicate_candidates`. A pair is flagged when either:
+  - the same lister has two listings in the same suburb with the same bedrooms and prices within
+    3%; or
+  - different listers have the same title and rooms with prices within 1%.
+
+**Endpoints:**
+
+| Endpoint | Permission |
+|---|---|
+| `GET /api/v1/admin/analytics/engine/status` | any analytics permission |
+| `GET /api/v1/admin/analytics/engine/runs` | `ANALYTICS_OPS_VIEW` |
+| `POST /api/v1/admin/analytics/engine/run` | `ANALYTICS_CONFIGURE`, audited |
+| `POST /api/v1/admin/analytics/engine/rebuild?from=&to=` | `ANALYTICS_CONFIGURE`, audited, ≤ 400 days |
+| `GET /api/v1/admin/analytics/definitions` | analytics view |
+| `GET /api/v1/admin/analytics/metrics?metric=&grain=&dims=&from=&to=` | analytics view |
+
+The 7 new `Permission` values are held by ADMIN. The staff roles come in Phase C.
+
+**Frontend.** A new "Analytics Engine" tab in `/admin` (`components/admin/AnalyticsEnginePanel.tsx`)
+shows:
+- the state (up to date, updating, stale, failed or not run yet), each with a plain-English
+  explanation;
+- the last successful update, the next scheduled update, records processed, and records left out
+  of price figures;
+- when history begins;
+- data-quality warnings;
+- run history, with the steps of each run;
+- an "Update now" button.
+
+**Tests** (25 new):
+- `StatsTest`: datasets with known answers, interpolated percentiles, and an outlier that is
+  kept.
+- `PeriodTest`: days follow Harare midnight, weeks start Monday, quarter and year boundaries,
+  incomplete periods.
+- `DimsTest`: text normalisation and slice breakdowns.
+- `DuplicateRulesTest`.
+- `AnalyticsEngineTests`:
+  - exact figures for a known dataset (median 700, mean 1,508, p25 540, p75 800, per-m² median
+    10 with 80% coverage, one 10% price cut, one withdrawn listing);
+  - running the same window twice gives the same result;
+  - two concurrent workers: exactly one succeeds;
+  - a step that fails twice and is retried;
+  - a failed publish keeps the previous figures and shows FAILED;
+  - a stale lock is taken over;
+  - catch-up is capped at 72 hours;
+  - reconciliation repairs a snapshot that drifted;
+  - access control;
+  - a load test.
+
+**Verification:**
+- Backend: 162/162 tests pass.
+- **Load test:** 50,000 listings were processed in ~6.8 s on H2. The run covered 7 periods with
+  250 suburbs.
+- Frontend: typecheck clean, lint 0 errors, vitest 50/50.
+- The engine panel was **not** viewed in a browser. The backend running locally was started
+  before Phase B and doesn't have the new endpoints.
+
+**Found along the way:**
+- H2 returns `OffsetDateTime` for timestamp-with-zone columns, where Postgres returns
+  `Timestamp`. `JobLock.instant()` now handles both.
+- A stray edit in `PropertyController.java` (`statieasc`) stopped the backend compiling. It is
+  fixed; it was the cause of "the APIs return nothing on localhost".
+
+**Not yet verified:** the engine against real Postgres and MariaDB. The first deploy should show
+an hourly run in the engine tab.
 
