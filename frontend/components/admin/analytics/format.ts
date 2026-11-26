@@ -1,7 +1,8 @@
 import type { OverviewGrain, OverviewKpi } from "@/lib/api";
 
-export function formatValue(v: number | null | undefined, unit: OverviewKpi["unit"]): string {
+export function formatValue(v: number | null | undefined, unit: OverviewKpi["unit"] | "DAYS"): string {
   if (v == null) return "—";
+  if (unit === "DAYS") return `${Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 })} days`;
   if (unit === "USD") {
     const abs = Math.abs(v);
     if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(abs >= 10_000_000 ? 0 : 1)}m`;

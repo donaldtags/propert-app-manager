@@ -58,6 +58,8 @@ import {
   Banknote,
   Activity,
   Gauge,
+  KeyRound,
+  TrendingUp,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -70,10 +72,11 @@ import AlertBanner from "@/components/AlertBanner";
 import AdminWithdrawalsPanel from "@/components/admin/AdminWithdrawalsPanel";
 import AnalyticsEnginePanel from "@/components/admin/AnalyticsEnginePanel";
 import ExecutiveOverview from "@/components/admin/analytics/ExecutiveOverview";
+import MarketDashboard from "@/components/admin/analytics/MarketDashboard";
 import StaffAccessPanel from "@/components/admin/StaffAccessPanel";
 import { STAFF_ROLES } from "@/lib/types";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -291,6 +294,7 @@ export default function AdminPortalPage() {
   // Specialist staff (finance, analysts, operations, verification) see the analytics, not the admin tools.
   const isStaff = !!user?.roles?.some((r) => STAFF_ROLES.includes(r));
   const canSeeEngine = isAdmin || !!user?.roles?.some((r) => r === "OPERATIONS_ADMIN" || r === "VERIFICATION_OFFICER");
+  const canSeeMarket = isAdmin || !!user?.roles?.some((r) => r === "MARKET_ANALYST" || r === "OPERATIONS_ADMIN");
 
   useEffect(() => {
     // Signed out: ask them to sign in like every other protected page. Signed in without a
@@ -470,6 +474,10 @@ export default function AdminPortalPage() {
 
   const ANALYTICS_TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
     { key: "overview", label: "Executive Overview", icon: LayoutDashboard },
+    ...(canSeeMarket ? [
+      { key: "market-rent" as Tab, label: "Rental Market", icon: KeyRound },
+      { key: "market-sale" as Tab, label: "Sales Market", icon: TrendingUp },
+    ] : []),
     ...(canSeeEngine ? [{ key: "analytics-engine" as Tab, label: "Analytics Engine", icon: Activity }] : []),
   ];
   const ADMIN_TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
@@ -510,6 +518,8 @@ export default function AdminPortalPage() {
 
       {tab === "overview" && <ExecutiveOverview onOpenEngine={canSeeEngine ? () => setTab("analytics-engine") : undefined} />}
       {tab === "staff" && isAdmin && <StaffAccessPanel />}
+      {tab === "market-rent" && canSeeMarket && <MarketDashboard type="rent" canConfigure={!!isAdmin} />}
+      {tab === "market-sale" && canSeeMarket && <MarketDashboard type="sale" canConfigure={!!isAdmin} />}
 
       {tab === "operations" && (
         <div>

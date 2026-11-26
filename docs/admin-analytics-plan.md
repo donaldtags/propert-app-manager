@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A, B and C done (2026-11-26); Phase D (rental and sales dashboards) next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A–D done (2026-11-26); Phase E (map and demand) next, after your review.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -675,4 +675,89 @@ an hourly run in the engine tab.
   - Backend 183/183.
   - The local backend was restarted on the new code. On the real local data, the startup
     catch-up succeeded (1,524 figures) and every public endpoint returned 200.
+
+### Phase D: Rental and sales market dashboards (DONE 2026-11-26)
+
+**How it works.**
+- The dashboards accept any combination of filters: country, city, suburb, property type, exact
+  bedrooms (5 = 5+), price range and dates. Exact bedrooms and price ranges aren't among the
+  pre-calculated figures, so `analytics/market/MarketDashboardService` calculates on request:
+  - **stock** (live listings, asking prices with p25/p75, price per m², vacancy) from the
+    engine's daily listing snapshots, using the latest snapshot in each period, so it matches
+    the last successful run;
+  - **flows** (new listings, withdrawals, price cuts, time to let or days on market, leases,
+    reported and verified sales, enquiries, viewings, applications, offers) from listing history
+    and the transaction tables.
+- **One filter for everything.** Every figure, chart and table goes through one `MarketFilter`.
+  The price range applies to the asking price for listings and to the agreed amount for leases
+  and sales.
+- **Caching.** Results are cached per filter set, per engine run, for 10 minutes.
+
+**Rules that keep it honest:**
+- **Asking vs agreed.** Asking and agreed rent are separate series and KPIs. Verified sales
+  (from conveyancer or Deeds Registry evidence) are separate from reported sales.
+- **Blank vs zero.**
+  - Listing figures before listing history began are left blank.
+  - Counts from tables with full history (leases, sales, enquiries) show a real 0 for an empty
+    period.
+  - Listing flows show 0 only after history began.
+- **Small samples.** Medians resting on fewer than 5 listings are flagged as a small sample.
+- **Yield.**
+  - Gross yield = median asking rent × 12 ÷ median asking sale price, for the same place and
+    kind of home, only where at least 5 rentals and 5 sales are listed.
+  - Net yield appears only once an admin has set the cost ratio, through
+    `PUT /market/settings/yield-cost-ratio`. That needs `ANALYTICS_CONFIGURE`, is audited, and
+    accepts 0–90%.
+
+**Endpoints:**
+- `GET /api/v1/admin/analytics/market/{rent|sale}`. Needs `ANALYTICS_MARKET_VIEW`; demand
+  figures are included only with `ANALYTICS_DEMAND_VIEW`.
+- `GET /api/v1/admin/analytics/market/{type}/listings`: the live listings behind a figure.
+- `GET` and `PUT /api/v1/admin/analytics/market/settings/yield-cost-ratio`.
+- New table: `analytics_settings`.
+
+**Frontend.** New **Rental Market** and **Sales Market** tabs, for admins, market analysts and
+operations staff (`components/admin/analytics/MarketDashboard.tsx`). Each has:
+- **Filters:** one row with date presets, grouping, city and suburb, type, bedrooms and price.
+- **KPI tiles** comparing with the first period that has data.
+- **Charts:**
+  - asking vs agreed rent, or asking vs verified sale price, with a middle-50% band;
+  - supply, new listings, and leases signed or reported vs verified sales;
+  - enquiries per listing, applications vs approvals, and price cuts;
+  - sales vs rental activity.
+- **Tables** by suburb (click a suburb to focus on it), type, bedrooms and price band, each with a
+  "Listings" drawer.
+- **Yield table**, with the cost-ratio setting for admins.
+- **CSV export.**
+- **Chart components** are hand-built SVG (`charts/LineChart.tsx`, `charts/ColumnChart.tsx`):
+  - validated palette slots 1 and 2, 2 px lines and columns no wider than 24 px;
+  - one y-axis, with a legend plus end labels when there are two series;
+  - a hover crosshair and tooltip, gaps for missing data, and hidden data tables for screen
+    readers.
+
+**Tests** (`MarketDashboardTests`, 5 tests; all values worked out by hand):
+- **Rentals:** median asking 600, mean 584, agreed 650, new 6, withdrawn 1, a lease signed and
+  time to let. Blank vs zero is checked before history began.
+- **Filters:** category + bedrooms + max price gives 3 homes on every KPI, chart point and
+  breakdown table, and in the listings drill-down.
+- **Sales:** reported vs verified (85,000), per m² 1,071.43, price bands.
+- **Yield:** suppressed below 5 listings; 9.00% gross; net 6.30% once a 30% cost ratio is set.
+  The setting is audited and analysts can't change it.
+- **Permissions:** finance and verification staff get 403; analysts see demand figures. Bad
+  type, dates and bedrooms are rejected.
+
+**Engine test fix.** One run of the "different windows" concurrency test failed. Under load, the
+second thread started after the first had finished, which is valid sequential behaviour. The test
+now checks the real rule: two runs of the same job never overlap in time. A deterministic latch
+test checks that a run started during another is skipped.
+
+**Verification:**
+- Backend 188/188. Frontend: typecheck clean, lint 0 errors, vitest 50/50.
+- **On real MariaDB** (a scratch database on port 8090, with 78 listings and 15 leases backdated
+  over 7 months and one day rebuilt per month), both dashboards were checked in a browser. That
+  covered the charts, the hover tooltip, the 3-bedroom filter, tables, yields and drill-down,
+  with no API or console errors.
+- I fixed what that check found: the KPI comparison now names the actual period, empty count
+  periods show 0 instead of a gap, axis labels no longer collide, count axes use whole numbers,
+  and "Sept" now reads "Sep".
 

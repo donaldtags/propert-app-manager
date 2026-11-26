@@ -204,10 +204,13 @@ class AnalyticsEngineTests {
                 .andExpect(jsonPath("$.lastSuccess.status").value("SUCCEEDED"));
     }
 
-    /** Different windows of the same job starting together (a manual run and the scheduled one): still only one runs. */
+    /**
+     * Different windows of the same job (a manual run and the scheduled one) must never run at the
+     * same time. Started together, either one is skipped or they ran one after the other.
+     */
     @org.junit.jupiter.api.RepeatedTest(5)
     @Order(4)
-    void onlyOneWindowOfAJobRunsAtATime() throws Exception {
+    void runsOfAJobNeverOverlap() throws Exception {
         String job = "overlaptest" + System.nanoTime();
         Instant end = Instant.now();
         engine.beforeStep = step -> sleep(300);
@@ -215,7 +218,43 @@ class AnalyticsEngineTests {
                 () -> engine.process(job, end.minus(Duration.ofHours(2)), end, "SCHEDULE", false, List.of()));
         CompletableFuture<AnalyticsEngine.Outcome> b = CompletableFuture.supplyAsync(
                 () -> engine.process(job, end.minus(Duration.ofHours(1)), end, "MANUAL", false, List.of()));
-        assertThat(List.of(a.get().status(), b.get().status())).containsExactlyInAnyOrder("SUCCEEDED", "SKIPPED");
+        a.get();
+        b.get();
+        List<java.util.Map<String, Object>> runs = jdbc.queryForList(
+                "select started_at, finished_at from analytics_job_runs where job_name = ? and status = 'SUCCEEDED' order by started_at", job);
+        assertThat(runs).isNotEmpty();
+        if (runs.size() == 2) {
+            assertThat(JobLock.instant(runs.get(1).get("started_at")))
+                    .as("the second run started only after the first finished")
+                    .isAfterOrEqualTo(JobLock.instant(runs.get(0).get("finished_at")));
+        }
+    }
+
+    /** Deterministic version: a run that starts while another of the same job is in progress is skipped. */
+    @Test
+    @Order(5)
+    void aRunStartedDuringAnotherIsSkipped() throws Exception {
+        String job = "duringtest" + System.nanoTime();
+        Instant end = Instant.now();
+        java.util.concurrent.CountDownLatch inProgress = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        engine.beforeStep = step -> {
+            if (step.equals("collect_changes") && inProgress.getCount() > 0) {
+                inProgress.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        };
+        CompletableFuture<AnalyticsEngine.Outcome> first = CompletableFuture.supplyAsync(
+                () -> engine.process(job, end.minus(Duration.ofHours(2)), end, "SCHEDULE", false, List.of()));
+        assertThat(inProgress.await(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        AnalyticsEngine.Outcome second = engine.process(job, end.minus(Duration.ofHours(1)), end, "MANUAL", false, List.of());
+        release.countDown();
+        assertThat(second.status()).isEqualTo("SKIPPED");
+        assertThat(first.get().status()).isEqualTo("SUCCEEDED");
     }
 
     @Test

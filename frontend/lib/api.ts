@@ -1653,3 +1653,53 @@ export const staffAccess = {
   set: (token: string, userId: number, roles: StaffRole[]) =>
     request<StaffMember>(`/admin/staff/${userId}`, { method: "PUT", body: JSON.stringify({ roles }) }, token),
 };
+
+// Rental and sales market dashboards (admin). See docs/admin-analytics-plan.md Phase D.
+export type MarketType = "rent" | "sale";
+export type MarketGrain = "DAY" | "WEEK" | "MONTH" | "QUARTER" | "YEAR";
+export interface MarketParams {
+  from?: string; to?: string; grain?: MarketGrain; city?: string; suburb?: string; category?: string;
+  bedrooms?: number; minPrice?: number; maxPrice?: number;
+}
+export interface MarketKpi {
+  key: string; label: string; help: string; unit: "COUNT" | "USD" | "PERCENT" | "DAYS";
+  value?: number | null; previous?: number | null; changePercent?: number | null; sampleSize?: number | null;
+  lowSample: boolean; note?: string | null;
+}
+export interface MarketPoint { start: string; end: string; label: string; complete: boolean; snapshotDate?: string | null; values: Record<string, number> }
+export interface MarketGroup {
+  key: string; label: string; city?: string | null; active: number; askingMedian?: number | null; askingN: number; lowSample: boolean;
+  newListings: number; demand?: number | null; demandPerListing?: number | null; transactions: number;
+  transactionMedian?: number | null; transactionN: number;
+}
+export interface YieldRow {
+  suburb?: string | null; city?: string | null; rentMedian?: number | null; rentN: number; saleMedian?: number | null; saleN: number;
+  grossYield?: number | null; netYield?: number | null; note?: string | null;
+}
+export interface MarketDashboardData {
+  type: "RENT" | "SALE"; from: string; to: string; grain: MarketGrain; historyStartsAt?: string; snapshotDate?: string | null;
+  figuresCalculatedAt?: string; demandIncluded: boolean; kpis: MarketKpi[]; series: MarketPoint[];
+  bySuburb: MarketGroup[]; byCategory: MarketGroup[]; byBedrooms: MarketGroup[]; byPriceBand: MarketGroup[];
+  yields: { overall: YieldRow; bySuburb: YieldRow[]; costRatio: number; costRatioConfirmed: boolean; asOf?: string | null };
+  notes: string[];
+}
+export interface MarketListing {
+  id: number; title?: string; suburb?: string; city?: string; category?: string; bedrooms?: number; price?: number;
+  currency?: string; status?: string; verification?: string;
+}
+
+function marketQs(p: MarketParams) {
+  const q = new URLSearchParams();
+  Object.entries(p).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== "") q.set(k, String(v)); });
+  return q.toString();
+}
+
+export const marketDashboard = {
+  get: (token: string, type: MarketType, p: MarketParams) =>
+    request<MarketDashboardData>(`/admin/analytics/market/${type}?${marketQs(p)}`, {}, token),
+  listings: (token: string, type: MarketType, p: MarketParams) =>
+    request<MarketListing[]>(`/admin/analytics/market/${type}/listings?${marketQs(p)}`, {}, token),
+  setCostRatio: (token: string, ratio: number) =>
+    request<{ value: number; confirmed: boolean }>("/admin/analytics/market/settings/yield-cost-ratio",
+      { method: "PUT", body: JSON.stringify({ ratio }) }, token),
+};

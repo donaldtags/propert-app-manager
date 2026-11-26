@@ -358,10 +358,10 @@ public class OverviewService {
     static String label(Period p, ZoneId zone, boolean soFar) {
         var s = p.start().atZone(zone);
         String base = switch (p.grain()) {
-            case HOUR -> s.format(DateTimeFormatter.ofPattern("d MMM, HH:00", Locale.UK));
-            case DAY -> s.format(DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.UK));
-            case WEEK -> "Week of " + s.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.UK));
-            case MONTH -> s.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.UK));
+            case HOUR -> s.format(DateTimeFormatter.ofPattern("d MMM, HH:00", Locale.ENGLISH));
+            case DAY -> s.format(DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.ENGLISH));
+            case WEEK -> "Week of " + s.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH));
+            case MONTH -> s.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH));
             case QUARTER -> "Q" + ((s.getMonthValue() - 1) / 3 + 1) + " " + s.getYear();
             case YEAR -> String.valueOf(s.getYear());
         };
