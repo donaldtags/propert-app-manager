@@ -39,6 +39,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             AuthService authService,
+            com.example.estatex.analytics.capture.UserActivityRecorder activity,
             RateLimitingFilter rateLimitingFilter,
             RestAuthEntryPoint authEntryPoint,
             RestAccessDeniedHandler accessDeniedHandler
@@ -115,7 +116,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/messages/admin/**").hasAuthority("PERM_MESSAGES_ADMIN_VIEW")
                         .anyRequest().authenticated())
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new TokenAuthenticationFilter(authService), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new TokenAuthenticationFilter(authService, activity), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

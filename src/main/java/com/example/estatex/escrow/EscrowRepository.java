@@ -35,6 +35,8 @@ public interface EscrowRepository extends JpaRepository<EscrowTransaction, Long>
     @Query("select coalesce(sum(e.amount), 0) from EscrowTransaction e where e.status = :status and e.currency = :currency")
     java.math.BigDecimal sumAmountByStatusAndCurrency(@Param("status") EscrowStatus status, @Param("currency") String currency);
 
+    /** For the admin activity feed, which reads the property after the session has closed. */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "property")
     List<EscrowTransaction> findTop10ByStatusOrderByReleasedAtDesc(EscrowStatus status);
 
     @Query("select coalesce(sum(e.amount), 0) from EscrowTransaction e where e.beneficiary = :beneficiary and e.status = :status and e.currency = :currency")

@@ -21,7 +21,7 @@ import lombok.Setter;
  */
 @Entity
 @Table(name = "metric_values", indexes = {
-        @Index(name = "uq_metric_value", columnList = "metric_key, grain, period_start, dims_key", unique = true),
+        @Index(name = "uq_metric_value", columnList = "metric_key, grain, period_start, variant, dims_key", unique = true),
         @Index(name = "idx_metric_value_lookup", columnList = "metric_key, grain, dim_listing_type, period_start")
 })
 @Getter
@@ -46,6 +46,16 @@ public class MetricValue {
     private Instant asOf;
     @Column(nullable = false)
     private boolean complete;
+    /**
+     * FULL: the whole period (or up to now, if it's the current one). TO_DATE: an earlier period cut
+     * to the same length as the current, unfinished one, e.g. 1–26 October for comparison with
+     * 1–26 November.
+     */
+    @Column(nullable = false, length = 10)
+    private String variant = "FULL";
+    /** False when the period starts before its source began recording; such figures aren't comparable. */
+    @Column(name = "history_complete", nullable = false)
+    private boolean historyComplete = true;
 
     @Column(name = "dims_key", nullable = false, length = 400)
     private String dimsKey;

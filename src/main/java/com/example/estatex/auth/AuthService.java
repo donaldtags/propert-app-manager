@@ -110,8 +110,8 @@ public class AuthService {
 
     @Transactional
     public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request, String userAgent) {
-        if (request.roles().contains(UserRole.ADMIN)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Admin role requires approval and cannot be self-registered");
+        if (request.roles().stream().anyMatch(UserRole::isStaff)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "EstateX staff roles are granted by an administrator and cannot be self-registered");
         }
         PasswordPolicy.validate(request.password());
         AppUser user = users.create(new UserDtos.CreateUserRequest(

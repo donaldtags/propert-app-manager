@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A and B done (2026-11-26); Phase C (executive overview) next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A, B and C done (2026-11-26); Phase D (rental and sales dashboards) next, after your review.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -556,4 +556,107 @@ shows:
 
 **Not yet verified:** the engine against real Postgres and MariaDB. The first deploy should show
 an hourly run in the engine tab.
+
+### Phase C: Executive overview, staff roles and drill-down (DONE 2026-11-26)
+
+**Staff roles.**
+- `UserRole` has four new staff roles: FINANCE_ADMIN, MARKET_ANALYST, OPERATIONS_ADMIN and
+  VERIFICATION_OFFICER. `isStaff()` marks them and ADMIN.
+- Permissions are in `RolePermissions` (now built with `Map.ofEntries`, because there are more
+  than 10 entries). The mapping is in §5.
+- **Security fix:** sign-up and self-service "add role" used to block only ADMIN. They now block
+  every staff role.
+- Staff roles are granted only through `PUT /api/v1/admin/staff/{userId}`. That needs
+  `USER_MANAGE`, is audited as `STAFF_ROLES_CHANGED`, and won't let an admin remove their own
+  ADMIN role. `GET /api/v1/admin/staff` lists staff.
+- V7 drops the Postgres CHECK constraint on `app_user_roles`.
+
+**New capture.**
+- `user_activity_days` records each user once per day, from the token filter. Sessions couldn't
+  be used for active users because they're deleted at sign-out.
+- `analytics_capture_starts` (V8) records when each capture table began.
+
+**Metric changes:**
+- **Domains.** Each metric now has a domain (MARKET, DEMAND, PLATFORM or FINANCE), and each
+  domain has its own permission. That permission is checked on the overview, drill-down and
+  series endpoints.
+- **14 new metrics** (36 in total): VERIFIED_LISTINGS, UPDATED_LISTINGS, TOTAL_USERS,
+  NEW_REGISTRATIONS, NEW_AGENTS, NEW_LANDLORDS, NEW_DEVELOPERS, ACTIVE_USERS, PLATFORM_REVENUE,
+  REVENUE_SUBSCRIPTIONS, REVENUE_FEATURED_LISTINGS, PAYMENT_VOLUME (client money, never revenue),
+  PAYMENTS_SUCCESSFUL and PAYMENTS_FAILED.
+- **`history_complete`.** False when the period starts before the source began recording. The
+  overview then says the change isn't comparable instead of showing a fake "+400%".
+- **`variant` = TO_DATE.** For every unfinished period, the engine also stores the previous
+  period cut to the same length (for example 1–26 Oct alongside 1–26 Nov). That makes like-for-like
+  comparison possible. If the previous FULL period is missing, it is calculated once.
+- **Quarter and year** are now recalculated every hour.
+
+**Overview** (`GET /api/v1/admin/analytics/overview?grain=&compare=TO_DATE|FULL&city=&suburb=`).
+- It reads only published figures. Each KPI has:
+  - its value, the previous value and the absolute and percentage change;
+  - a direction (UP, DOWN, FLAT, NEW or NONE) and whether it is comparable, with a reason when
+    it isn't;
+  - n, a low-sample flag and a 12-period trend;
+  - whether the location filter applies, and whether drill-down is available.
+- Sections a role can't see are left out and marked restricted.
+- **Live KPIs** are read directly from the database and labelled live: approval queues, active
+  agencies, MRR and past-due subscriptions.
+- **Unavailable KPIs** state why rather than showing a zero: lead revenue, developer ads,
+  property management fees and agent responses.
+- Finance views are audited (`ANALYTICS_FINANCE_VIEWED`).
+
+**Drill-down** (`GET /api/v1/admin/analytics/records`).
+- It recalculates the period with tracing on and returns the source records (listings, leases,
+  sales, enquiries, viewings, applications, offers, users or payments), up to 500.
+- Views and searches are anonymous, so their drill-down explains that there are no individual
+  records to show.
+- Opening finance records is audited.
+
+**Frontend.**
+- `/admin` now opens on **Executive overview**
+  (`components/admin/analytics/ExecutiveOverview.tsx`). It has:
+  - a period switch (day to year) and a comparison mode (same point vs whole previous period);
+  - city and suburb filters;
+  - a freshness chip that links to the engine tab, and CSV export with period, comparison,
+    location and method notes;
+  - headline tiles followed by the Platform, Marketplace, Customer activity and Business sections;
+  - KPI tiles that show change with an arrow, a +/− sign and a word, not colour alone, plus the
+    previous value, a hover-able sparkline, n, a small-sample badge and a records drawer.
+- The old overview moved to an **Operations** tab, and a new **Staff Access** tab was added.
+- Staff without ADMIN see only the overview, plus the engine tab for operations and verification
+  staff. Admin-only data isn't requested for them.
+
+**Fixes found while checking against real MariaDB:**
+- `analytics_job_runs` failed to create on MariaDB because two 8,000-character VARCHAR columns
+  exceeded the row size limit. They are now long text (`LONG32VARCHAR`).
+- **The `/api/v1/dashboards/admin` 500 existed before this work.** The activity feed read the
+  payer, tenant and property outside the database session, so it failed as soon as any
+  successful payment existed. Fixed with entity graphs.
+- A calculated period with no rows for the chosen location now shows 0 instead of "no figure".
+
+**Tests** (10 new):
+- `ExecutiveOverviewTests`:
+  - staff roles can't be self-assigned and are granted only by an admin, with an audit entry;
+  - each role sees only its own sections;
+  - KPIs match published figures, the location filter and drill-down work, and a not-comparable
+    period shows no percentage;
+  - like-for-like vs whole-period change maths (+50%, −40%, NEW);
+  - revenue includes only EstateX products, reconciles with the payments table, and opening its
+    records is audited;
+  - the old dashboard works when payments exist;
+  - activity is recorded once per day.
+- `ToDatePeriodTest`.
+- `DrillDownMatchTest`.
+
+**Verification:**
+- Backend 172/172. Frontend: typecheck clean, lint 0 errors, vitest 50/50.
+- **On real MariaDB** (a scratch database on port 8090):
+  - all 8 migrations applied to a fresh database;
+  - the startup run succeeded;
+  - the overview, filters, drill-down, revenue, staff, run-now and old dashboard endpoints all
+    returned 200.
+- **In a browser** (`localhost:3000`, with its API calls routed to the scratch backend), I
+  clicked through the overview, the Harare filter, the records drawer and Staff Access. There
+  were no console or API errors.
+- **Not verified:** Postgres. Check it after the first deploy.
 

@@ -8,7 +8,12 @@ export type PropertyCategory =
   | "HOUSE" | "FLAT" | "TOWNHOUSE" | "COTTAGE" | "ROOM" | "STAND" | "COMMERCIAL" | "INDUSTRIAL" | "FARM" | "OTHER";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 export type WaterSource = "MUNICIPAL" | "BOREHOLE" | "WELL" | "TANKER" | "OTHER";
-export type UserRole = "TENANT" | "LANDLORD" | "AGENT" | "DIASPORA" | "INVESTOR" | "ADMIN" | "DEVELOPER" | "PRIVATE" | "SERVICE_PROVIDER";
+export type UserRole =
+  | "TENANT" | "LANDLORD" | "AGENT" | "DIASPORA" | "INVESTOR" | "ADMIN" | "DEVELOPER" | "PRIVATE" | "SERVICE_PROVIDER"
+  | "FINANCE_ADMIN" | "MARKET_ANALYST" | "OPERATIONS_ADMIN" | "VERIFICATION_OFFICER";
+
+/** EstateX staff roles: granted by an admin, never self-registered. */
+export const STAFF_ROLES: UserRole[] = ["ADMIN", "FINANCE_ADMIN", "MARKET_ANALYST", "OPERATIONS_ADMIN", "VERIFICATION_OFFICER"];
 export type LeaseStatus = "DRAFT" | "SENT" | "SIGNED" | "ACTIVE" | "ENDED" | "CANCELLED";
 export type EscrowStatus = "CREATED" | "FUNDED" | "RELEASED" | "DISPUTED" | "REFUNDED" | "CANCELLED";
 export type FundingMethod =

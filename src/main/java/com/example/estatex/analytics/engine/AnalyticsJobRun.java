@@ -63,11 +63,13 @@ public class AnalyticsJobRun {
     @Column(name = "step_retries", nullable = false)
     private int stepRetries;
 
-    /** JSON array of {name, status, ms, detail}. */
-    @Column(name = "steps_json", length = 8000)
+    /** JSON array of {name, status, ms, detail}. Long text: two 8,000-character VARCHARs overflow MariaDB's row limit. */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.LONG32VARCHAR)
+    @Column(name = "steps_json")
     private String stepsJson;
     /** JSON array of data-quality warnings. */
-    @Column(name = "warnings_json", length = 8000)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.LONG32VARCHAR)
+    @Column(name = "warnings_json")
     private String warningsJson;
     @Column(length = 2000)
     private String error;

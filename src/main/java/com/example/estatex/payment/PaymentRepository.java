@@ -47,6 +47,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             """)
     BigDecimal sumSuccessfulBetween(@Param("from") Instant from, @Param("to") Instant to, @Param("currency") String currency);
 
+    /** For the admin activity feed, which reads the payer's name after the session has closed. */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "payer")
     List<Payment> findTop10ByStatusOrderByPaidAtDesc(PaymentStatus status);
 
     @Query("""

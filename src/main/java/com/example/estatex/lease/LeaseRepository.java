@@ -32,5 +32,7 @@ public interface LeaseRepository extends JpaRepository<Lease, Long> {
 
     long countByStatus(LeaseStatus status);
 
+    /** For the admin activity feed, which reads the property and tenant after the session has closed. */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"property", "tenant"})
     List<Lease> findTop10ByStatusOrderBySignedAtDesc(LeaseStatus status);
 }

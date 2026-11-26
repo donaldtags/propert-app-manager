@@ -47,9 +47,9 @@ public class AnalyticsEngine {
     static final Duration MAX_CATCH_UP = Duration.ofHours(72);
     private static final Logger log = LoggerFactory.getLogger(AnalyticsEngine.class);
     private static final String METRIC_INSERT = "insert into metric_values (metric_key, definition_version, grain, period_start, "
-            + "period_end, as_of, complete, dims_key, dim_listing_type, dim_country, dim_city, dim_suburb, dim_category, "
+            + "period_end, as_of, complete, variant, history_complete, dims_key, dim_listing_type, dim_country, dim_city, dim_suburb, dim_category, "
             + "dim_bedrooms, metric_value, sample_size, median, p25, p75, mean, min_value, max_value, sum_value, excluded_count, "
-            + "coverage, low_sample, currency, computed_at, job_run_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            + "coverage, low_sample, currency, computed_at, job_run_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private final JobLock lock;
     private final JdbcTemplate jdbc;
@@ -170,16 +170,19 @@ public class AnalyticsEngine {
             });
 
             // 5–7. Figures for every affected period (read-only until publish).
-            List<Period> periods = periods(job, windowStart, windowEnd, now, zone);
+            List<Work> work = work(job, windowStart, windowEnd, now, zone);
             List<MetricValue> values = step(run, "calculate_metrics", () -> {
                 MarketMetricsCalculator.RunContext ctx = calculator.context();
                 List<MetricValue> out = new ArrayList<>();
-                for (Period p : periods) {
-                    out.addAll(calculator.compute(p, now, zone, ctx, runId));
+                for (Work w : work) {
+                    for (MetricValue v : calculator.compute(w.period(), now, zone, ctx, runId)) {
+                        v.setVariant(w.variant());
+                        out.add(v);
+                    }
                     lock.heartbeat(runId, now());
                 }
                 long suburbRows = out.stream().filter(v -> v.getDimSuburb() != null).count();
-                run.detail("calculate_metrics", out.size() + " figure(s) across " + periods.size() + " period(s), "
+                run.detail("calculate_metrics", out.size() + " figure(s) across " + work.size() + " period(s), "
                         + suburbRows + " at suburb level");
                 return out;
             });
@@ -205,9 +208,9 @@ public class AnalyticsEngine {
                             snap += snapshots.update(d, zone, now, changed, runId);
                         }
                     }
-                    for (Period p : periods) {
-                        jdbc.update("delete from metric_values where grain = ? and period_start = ?",
-                                p.grain().name(), Timestamp.from(p.start()));
+                    for (Work w : work) {
+                        jdbc.update("delete from metric_values where grain = ? and period_start = ? and variant = ?",
+                                w.period().grain().name(), Timestamp.from(w.period().start()), w.variant());
                     }
                     insert(values);
                     run.metricsWritten = values.size();
@@ -224,24 +227,45 @@ public class AnalyticsEngine {
         }
     }
 
-    private List<Period> periods(String job, Instant ws, Instant we, Instant now, ZoneId zone) {
-        List<Period> out = new ArrayList<>();
+    /** One period to calculate, and whether it is the whole period or the like-for-like cut of an earlier one. */
+    record Work(Period period, String variant) {
+    }
+
+    private static final List<Grain> CALENDAR = List.of(Grain.DAY, Grain.WEEK, Grain.MONTH, Grain.QUARTER, Grain.YEAR);
+
+    private List<Work> work(String job, Instant ws, Instant we, Instant now, ZoneId zone) {
+        List<Period> periods = new ArrayList<>();
         Instant through = now.plusMillis(1);
-        switch (job) {
-            case HOURLY -> {
-                out.addAll(Period.overlapping(Grain.HOUR, ws, we, zone));
-                for (Grain g : List.of(Grain.DAY, Grain.WEEK, Grain.MONTH)) out.addAll(Period.overlapping(g, ws, through, zone));
-            }
-            case NIGHTLY -> {
-                for (Grain g : List.of(Grain.DAY, Grain.WEEK, Grain.MONTH, Grain.QUARTER, Grain.YEAR)) {
-                    out.addAll(Period.overlapping(g, ws, through, zone));
-                }
-            }
-            default -> {
-                for (Grain g : Grain.values()) out.addAll(Period.overlapping(g, ws, we, zone));
-            }
+        if (REBUILD.equals(job)) {
+            for (Grain g : Grain.values()) periods.addAll(Period.overlapping(g, ws, we, zone));
+        } else {
+            if (HOURLY.equals(job)) periods.addAll(Period.overlapping(Grain.HOUR, ws, we, zone));
+            for (Grain g : CALENDAR) periods.addAll(Period.overlapping(g, ws, through, zone));
         }
-        return out.stream().distinct().filter(p -> p.start().isBefore(now)).toList();
+        List<Work> out = new ArrayList<>();
+        for (Period p : periods.stream().distinct().filter(p -> p.start().isBefore(now)).toList()) {
+            out.add(new Work(p, "FULL"));
+            if (p.grain() == Grain.HOUR) continue;
+            Period previous = p.previous(zone);
+            if (!p.isComplete(now)) {
+                // Like-for-like: the previous period cut to the same length as this one so far.
+                out.add(new Work(toDate(previous, p, now), "TO_DATE"));
+            }
+            if (!exists(previous)) out.add(new Work(previous, "FULL"));
+        }
+        return out.stream().distinct().toList();
+    }
+
+    /** {@code previous} cut to the time {@code current} has run so far (capped at its own end). */
+    static Period toDate(Period previous, Period current, Instant now) {
+        Instant cut = previous.start().plus(Duration.between(current.start(), current.asOf(now)));
+        return new Period(previous.grain(), previous.start(), cut.isAfter(previous.end()) ? previous.end() : cut);
+    }
+
+    private boolean exists(Period p) {
+        Integer n = jdbc.queryForObject("select count(*) from metric_values where metric_key = 'TOTAL_USERS' and grain = ? "
+                + "and period_start = ? and variant = 'FULL'", Integer.class, p.grain().name(), Timestamp.from(p.start()));
+        return n != null && n > 0;
     }
 
     private List<LocalDate> days(String job, Instant ws, Instant we, Instant now, ZoneId zone) {
@@ -277,7 +301,8 @@ public class AnalyticsEngine {
         List<Object[]> rows = new ArrayList<>(values.size());
         for (MetricValue v : values) {
             rows.add(new Object[]{v.getMetricKey(), v.getDefinitionVersion(), v.getGrain(), Timestamp.from(v.getPeriodStart()),
-                    Timestamp.from(v.getPeriodEnd()), Timestamp.from(v.getAsOf()), v.isComplete(), v.getDimsKey(),
+                    Timestamp.from(v.getPeriodEnd()), Timestamp.from(v.getAsOf()), v.isComplete(), v.getVariant(),
+                    v.isHistoryComplete(), v.getDimsKey(),
                     v.getDimListingType(), v.getDimCountry(), v.getDimCity(), v.getDimSuburb(), v.getDimCategory(),
                     v.getDimBedrooms(), v.getValue(), v.getSampleSize(), v.getMedian(), v.getP25(), v.getP75(), v.getMean(),
                     v.getMinValue(), v.getMaxValue(), v.getSumValue(), v.getExcludedCount(), v.getCoverage(), v.isLowSample(),

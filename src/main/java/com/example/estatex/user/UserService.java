@@ -137,8 +137,8 @@ public class UserService {
         if (request.role() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "role is required");
         }
-        if (request.role() == UserRole.ADMIN) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Admin role requires approval");
+        if (request.role().isStaff()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Staff roles are granted by an administrator");
         }
         AppUser user = require(id);
         if (request.password() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -158,6 +158,41 @@ public class UserService {
             });
             roleAssignments.save(new UserRoleAssignment(user.getId(), role.getId()));
         }
+    }
+
+    /**
+     * Sets which EstateX staff roles a user holds (ADMIN only, audited by the caller). Non-staff
+     * roles are left as they are. An admin can't remove their own ADMIN role, so the platform
+     * can't be left without one by accident.
+     */
+    @Transactional
+    public AppUser setStaffRoles(Long userId, java.util.Set<UserRole> staffRoles, AppUser admin) {
+        if (staffRoles.stream().anyMatch(r -> !r.isStaff())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only staff roles can be set here.");
+        }
+        AppUser user = require(userId);
+        if (user.getId().equals(admin.getId()) && user.getRoles().contains(UserRole.ADMIN)
+                && !staffRoles.contains(UserRole.ADMIN)) {
+            throw new ApiException(HttpStatus.CONFLICT, "You can't remove your own admin role.");
+        }
+        java.util.Set<UserRole> removed = new java.util.HashSet<>(user.getRoles());
+        removed.removeIf(r -> !r.isStaff() || staffRoles.contains(r));
+        user.getRoles().removeIf(UserRole::isStaff);
+        user.getRoles().addAll(staffRoles);
+        if (user.getRoles().isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A user needs at least one role.");
+        }
+        for (UserRole r : removed) {
+            roleLookups.findByName(r).ifPresent(lookup ->
+                    roleAssignments.deleteById(new UserRoleAssignmentId(user.getId(), lookup.getId())));
+        }
+        syncRoleAssignments(user);
+        return user;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppUser> staff() {
+        return users.findAll().stream().filter(u -> u.getRoles().stream().anyMatch(UserRole::isStaff)).toList();
     }
 
     @Transactional

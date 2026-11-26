@@ -21,6 +21,10 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   DEVELOPER: "List and manage property development projects",
   PRIVATE: "List your own property as a private seller or landlord",
   SERVICE_PROVIDER: "Offer moving, cleaning, repair, or other property services",
+  FINANCE_ADMIN: "EstateX staff: revenue and payment analytics",
+  MARKET_ANALYST: "EstateX staff: market and demand analytics",
+  OPERATIONS_ADMIN: "EstateX staff: operations, data quality and market analytics",
+  VERIFICATION_OFFICER: "EstateX staff: verifying listings and sales",
 };
 
 function SecuritySettingsPageInner() {

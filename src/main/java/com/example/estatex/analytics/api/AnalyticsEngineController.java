@@ -32,13 +32,89 @@ class AnalyticsEngineController {
     private final AnalyticsEngineStatusService status;
     private final MetricValueRepository values;
     private final AuditService audit;
+    private final OverviewService overview;
+    private final DrillDownService drillDown;
 
     AnalyticsEngineController(AnalyticsEngine engine, AnalyticsEngineStatusService status, MetricValueRepository values,
-                              AuditService audit) {
+                              AuditService audit, OverviewService overview, DrillDownService drillDown) {
         this.engine = engine;
         this.status = status;
         this.values = values;
         this.audit = audit;
+        this.overview = overview;
+        this.drillDown = drillDown;
+    }
+
+    /** The executive overview. Sections the user may not see are left out (and marked restricted). */
+    @GetMapping("/overview")
+    OverviewService.Overview overview(@RequestParam(defaultValue = "MONTH") String grain,
+                                      @RequestParam(defaultValue = "TO_DATE") String compare,
+                                      @RequestParam(required = false) String city,
+                                      @RequestParam(required = false) String suburb,
+                                      @AuthenticationPrincipal AppUser user) {
+        requireAny(user, Permission.ANALYTICS_MARKET_VIEW, Permission.ANALYTICS_DEMAND_VIEW,
+                Permission.ANALYTICS_FINANCE_VIEW, Permission.ANALYTICS_OPS_VIEW);
+        com.example.estatex.analytics.metrics.Grain g = parseGrain(grain);
+        if (g == com.example.estatex.analytics.metrics.Grain.HOUR) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Choose a day, week, month, quarter or year.");
+        }
+        OverviewService.Compare c;
+        try {
+            c = OverviewService.Compare.valueOf(compare.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "compare must be TO_DATE or FULL");
+        }
+        String cleanCity = blank(city);
+        String cleanSuburb = cleanCity == null ? null : blank(suburb);
+        if (user.hasPermission(Permission.ANALYTICS_FINANCE_VIEW)) {
+            audit.record(user, entry("ANALYTICS_FINANCE_VIEWED", "AnalyticsOverview", null)
+                    .metadata(Map.of("grain", g.name())));
+        }
+        return overview.overview(user, g, c, new OverviewService.Location(cleanCity, cleanSuburb));
+    }
+
+    /** The source records behind one figure. Same permissions as the figure itself; finance access is audited. */
+    @GetMapping("/records")
+    DrillDownService.Records records(@RequestParam String metric, @RequestParam String grain, @RequestParam Instant periodStart,
+                                     @RequestParam(required = false) String listingType,
+                                     @RequestParam(required = false) String city,
+                                     @RequestParam(required = false) String suburb,
+                                     @AuthenticationPrincipal AppUser user) {
+        MetricDefinition m = parseMetric(metric);
+        if (!OverviewService.canSee(user, m)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You don't have access to these analytics.");
+        }
+        if (m.domain() == MetricDefinition.Domain.FINANCE) {
+            audit.record(user, entry("ANALYTICS_FINANCE_RECORDS_VIEWED", "AnalyticsMetric", null)
+                    .metadata(Map.of("metric", m.name(), "periodStart", periodStart.toString())));
+        }
+        String type = blank(listingType);
+        if (type != null && !java.util.Set.of("RENT", "SALE", "SHORT_STAY").contains(type.toUpperCase(java.util.Locale.ROOT))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "listingType must be RENT, SALE or SHORT_STAY");
+        }
+        String cleanCity = blank(city);
+        return drillDown.records(m, parseGrain(grain), periodStart, type == null ? null : type.toUpperCase(java.util.Locale.ROOT),
+                cleanCity, cleanCity == null ? null : blank(suburb));
+    }
+
+    private static String blank(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
+    private static com.example.estatex.analytics.metrics.Grain parseGrain(String grain) {
+        try {
+            return com.example.estatex.analytics.metrics.Grain.valueOf(grain.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown period " + grain);
+        }
+    }
+
+    private static MetricDefinition parseMetric(String metric) {
+        try {
+            return MetricDefinition.valueOf(metric);
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown metric " + metric);
+        }
     }
 
     /** Freshness: anyone who can see any analytics needs this. */
@@ -76,14 +152,15 @@ class AnalyticsEngineController {
         return engine.rebuild(from, to);
     }
 
-    public record DefinitionView(String key, int version, String kind, String description, String source) {
+    public record DefinitionView(String key, int version, String kind, String domain, String description, String source) {
     }
 
     @GetMapping("/definitions")
     List<DefinitionView> definitions(@AuthenticationPrincipal AppUser user) {
-        requireAny(user, Permission.ANALYTICS_MARKET_VIEW, Permission.ANALYTICS_DEMAND_VIEW, Permission.ANALYTICS_OPS_VIEW);
+        requireAny(user, Permission.ANALYTICS_MARKET_VIEW, Permission.ANALYTICS_DEMAND_VIEW, Permission.ANALYTICS_OPS_VIEW,
+                Permission.ANALYTICS_FINANCE_VIEW);
         return Arrays.stream(MetricDefinition.values())
-                .map(m -> new DefinitionView(m.name(), m.version(), m.kind().name(), m.description(), m.source())).toList();
+                .map(m -> new DefinitionView(m.name(), m.version(), m.kind().name(), m.domain().name(), m.description(), m.source())).toList();
     }
 
     /**
@@ -95,11 +172,9 @@ class AnalyticsEngineController {
                              @RequestParam(defaultValue = "*|*|*|*|*|*") String dims,
                              @RequestParam Instant from, @RequestParam Instant to,
                              @AuthenticationPrincipal AppUser user) {
-        requireAny(user, Permission.ANALYTICS_MARKET_VIEW, Permission.ANALYTICS_DEMAND_VIEW);
-        try {
-            MetricDefinition.valueOf(metric);
-        } catch (IllegalArgumentException e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown metric " + metric);
+        MetricDefinition m = parseMetric(metric);
+        if (!OverviewService.canSee(user, m)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You don't have access to these analytics.");
         }
         return values.findByMetricKeyAndGrainAndDimsKeyAndPeriodStartGreaterThanEqualAndPeriodStartLessThanOrderByPeriodStart(
                 metric, grain.toUpperCase(java.util.Locale.ROOT), dims.toLowerCase(java.util.Locale.ROOT), from, to);

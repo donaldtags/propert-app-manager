@@ -1588,3 +1588,68 @@ export const analyticsEngine = {
   runs: (token: string, limit = 25) => request<AnalyticsRun[]>(`/admin/analytics/engine/runs?limit=${limit}`, {}, token),
   runNow: (token: string) => request<AnalyticsOutcome>("/admin/analytics/engine/run", { method: "POST" }, token),
 };
+
+// Executive overview, drill-down and staff access (admin). See docs/admin-analytics-plan.md Phase C.
+export type OverviewGrain = "DAY" | "WEEK" | "MONTH" | "QUARTER" | "YEAR";
+export interface OverviewPoint { start: string; value: number }
+export interface OverviewKpi {
+  key: string;
+  label: string;
+  help: string;
+  metric?: string;
+  listingType?: string;
+  domain?: string;
+  unit: "COUNT" | "USD" | "PERCENT";
+  better: "UP" | "DOWN" | "NEUTRAL";
+  value?: number | null;
+  previous?: number | null;
+  change?: number | null;
+  changePercent?: number | null;
+  direction: "UP" | "DOWN" | "FLAT" | "NEW" | "NONE";
+  comparable: boolean;
+  note?: string;
+  sampleSize?: number;
+  lowSample: boolean;
+  live: boolean;
+  available: boolean;
+  locationApplies: boolean;
+  drillable: boolean;
+  trend: OverviewPoint[];
+}
+export interface OverviewSection { key: string; title: string; subtitle?: string; restricted: boolean; kpis: OverviewKpi[] }
+export interface OverviewPeriod { grain: OverviewGrain; start: string; end: string; asOf?: string; complete: boolean; label: string }
+export interface ExecutiveOverviewData {
+  period: OverviewPeriod;
+  comparison: OverviewPeriod;
+  comparisonLabel: string;
+  location: { city?: string; suburb?: string };
+  freshness: AnalyticsEngineStatus;
+  sections: OverviewSection[];
+}
+export interface DrillRecord {
+  kind: string; id: number; title: string; detail?: string; amount?: number; currency?: string; at?: string; status?: string; href?: string;
+}
+export interface DrillRecords {
+  metric: string; periodStart: string; periodEnd: string; asOf: string; total: number; truncated: boolean; note?: string; records: DrillRecord[];
+}
+export type StaffRole = "ADMIN" | "FINANCE_ADMIN" | "MARKET_ANALYST" | "OPERATIONS_ADMIN" | "VERIFICATION_OFFICER";
+export interface StaffMember { id: number; fullName: string; email?: string; phone?: string; staffRoles: StaffRole[] }
+
+function qs(params: Record<string, string | undefined>) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => { if (v) q.set(k, v); });
+  return q.toString();
+}
+
+export const analyticsOverview = {
+  get: (token: string, p: { grain: OverviewGrain; compare: "TO_DATE" | "FULL"; city?: string; suburb?: string }) =>
+    request<ExecutiveOverviewData>(`/admin/analytics/overview?${qs(p)}`, {}, token),
+  records: (token: string, p: { metric: string; grain: OverviewGrain; periodStart: string; listingType?: string; city?: string; suburb?: string }) =>
+    request<DrillRecords>(`/admin/analytics/records?${qs(p)}`, {}, token),
+};
+
+export const staffAccess = {
+  list: (token: string) => request<StaffMember[]>("/admin/staff", {}, token),
+  set: (token: string, userId: number, roles: StaffRole[]) =>
+    request<StaffMember>(`/admin/staff/${userId}`, { method: "PUT", body: JSON.stringify({ roles }) }, token),
+};
