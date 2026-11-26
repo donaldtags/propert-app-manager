@@ -1703,3 +1703,39 @@ export const marketDashboard = {
     request<{ value: number; confirmed: boolean }>("/admin/analytics/market/settings/yield-cost-ratio",
       { method: "PUT", body: JSON.stringify({ ratio }) }, token),
 };
+
+// Market map and customer demand (admin). See docs/admin-analytics-plan.md Phase E.
+export interface GeoSuburb {
+  suburb: string; city: string; latitude?: number | null; longitude?: number | null; placedBy?: string | null;
+  active: number; askingMedian?: number | null; askingMean?: number | null; askingN: number; confidence: "HIGH" | "MEDIUM" | "LOW";
+  growthPercent?: number | null; newListings?: number | null; demand?: number | null; demandPerListing?: number | null;
+  searches?: number | null; transactions: number; grossYield?: number | null;
+}
+export interface GeoData {
+  type: "RENT" | "SALE"; snapshotDate?: string | null; comparedWith?: string | null; activityDays: number; demandIncluded: boolean;
+  coverage: { liveListings: number; withSuburb: number; placedOnMap: number; withoutSuburb: number; inUnplacedSuburbs: number; withOwnPin: number };
+  suburbs: GeoSuburb[]; points: { id: number; latitude: number; longitude: number; price?: number; suburb?: string }[]; notes: string[];
+}
+export interface DemandCount { key: string; label: string; city?: string | null; searches: number; noResults: number; liveListings?: number | null; searchesPerListing?: number | null }
+export interface DemandStep { key: string; label: string; count: number; fromPrevious?: number | null }
+export interface DemandListing { id: number; title: string; type?: string; suburb?: string; city?: string; price?: number; views: number; saves: number; enquiries: number }
+export interface DemandGap {
+  type: string; city?: string; category?: string; bedrooms?: number; searches: number; noResults: number; liveListings: number;
+  searchesPerListing?: number | null; lift?: number | null; explanation: string;
+}
+export interface DemandData {
+  from: string; to: string; figuresCalculatedAt?: string; searches: number; searchesAnyType: number; noResultsPercent?: number | null;
+  ledToViewPercent?: number | null; views: number; saves: number; funnels: { type: "RENT" | "SALE"; steps: DemandStep[] }[];
+  topSuburbs: DemandCount[]; topCategories: DemandCount[]; bedrooms: DemandCount[]; rentPriceBands: DemandCount[]; salePriceBands: DemandCount[];
+  mostViewed: DemandListing[]; mostSaved: DemandListing[];
+  responseTimes: { key: string; label: string; medianHours?: number | null; n: number; note?: string | null }[];
+  gaps: DemandGap[]; rentSearchesPerListing?: number | null; saleSearchesPerListing?: number | null; notes: string[];
+}
+
+export const geoAnalytics = {
+  get: (token: string, type: MarketType, p: MarketParams) => request<GeoData>(`/admin/analytics/geo/${type}?${marketQs(p)}`, {}, token),
+};
+export const demandAnalytics = {
+  get: (token: string, p: { from?: string; to?: string; city?: string }) =>
+    request<DemandData>(`/admin/analytics/demand?${marketQs(p)}`, {}, token),
+};

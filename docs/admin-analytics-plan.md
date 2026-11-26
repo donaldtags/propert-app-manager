@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A–D done (2026-11-26); Phase E (map and demand) next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A–E done (2026-11-26); Phase R (referral discount) next, after your review.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -760,4 +760,87 @@ test checks that a run started during another is skipped.
 - I fixed what that check found: the KPI comparison now names the actual period, empty count
   periods show 0 instead of a gap, axis labels no longer collide, count axes use whole numbers,
   and "Sept" now reads "Sep".
+
+### Phase E: Market map and customer demand (DONE 2026-11-26)
+
+**Map** (`GET /api/v1/admin/analytics/geo/{rent|sale}`, `analytics/market/GeoService`). Needs
+market permission; the demand layers need demand permission.
+
+**What each suburb gets.** From the latest snapshot, only listings with a suburb are aggregated.
+Each suburb gets:
+- live listings, median and mean asking price, n, and a confidence level (HIGH 20+, MEDIUM 5–19,
+  LOW under 5);
+- a 90-day price change, only where at least 5 listings existed at both dates;
+- estimated gross yield, with at least 5 rentals and 5 sales;
+- new listings, leases or verified sales, enquiries + viewings, and searches, all over 90 days.
+
+**Placement:**
+- A suburb is placed at its centre from the location data or, failing that, at the median of its
+  listings' own pins. The median is calculated at full precision: `Stats` rounds to cents, which
+  is about 1 km for a coordinate.
+- If neither exists, the suburb is counted but not drawn.
+- `coverage` reports live listings, how many are placed on the map, how many have no suburb,
+  how many are in suburbs that can't be placed, and how many have their own pin.
+
+**Gap found in the data.** None of the 436 suburbs in the location reference data has
+coordinates; only cities and towns do. So suburbs are placed only through their listings' pins
+for now. Adding suburb centres to the location data would place the rest. The map says this
+whenever it applies.
+
+**Demand** (`GET /api/v1/admin/analytics/demand?from&to&city`, `DemandService`). Needs demand
+permission. It provides:
+- searches, the share that found nothing, and abandonment (no listing opened by the same
+  anonymous browser within 30 minutes);
+- views and saves;
+- funnels for rent (searches → views → enquiries → viewings → applications → approved) and sale
+  (… → offers → accepted). These are volumes in the period, not the same people moving through,
+  and the page says so;
+- the most searched places, property types, bedrooms and price brackets, with live supply beside
+  each;
+- the most viewed and most saved listings;
+- response times for viewings confirmed, applications reviewed and offers decided. Enquiry
+  replies have no timestamp, so that one is shown as unavailable, with the reason.
+
+**Supply gaps.** A segment (type + place + category + bedrooms) is flagged only with at least 10
+searches, and only when nothing matching is live or its searches per live listing are at least
+twice the market's. The wording always says "interest, not confirmed demand".
+
+**Frontend.** Two new tabs, Market Map and Customer Demand.
+
+- **Market Map:**
+  - Leaflet with Esri tiles; circles sized by live listings and coloured by the chosen measure.
+  - Magnitudes use quantile classes on the validated blue ramp. Tied breaks are merged
+    (`lib/mapClasses.ts`, with a unit test).
+  - Price change uses a red ↔ grey ↔ blue diverging scale.
+  - "Not enough data" is a dashed hollow circle.
+  - A legend, hover labels, an optional clustered listing-pin layer, the coverage line, a suburb
+    side panel (figures, confidence, 12-month trend) and a full table, so the map is never the
+    only way to read the figures.
+- **Customer Demand:**
+  - KPI tiles and funnels with ordinal blue steps.
+  - Supply-gap list, ranked tables, most viewed and saved listings, and response times.
+
+**Tests:**
+- `GeoDemandTests` (4):
+  - placement, coverage, LOW confidence and median 600;
+  - a known centre is used when present;
+  - 13 searches with 92.3% finding nothing and 7.7% leading to a view;
+  - funnel conversion, the top suburb and the most viewed listing with its enquiry;
+  - a gap flagged at 12 searches with nothing live, and not flagged at 9;
+  - enquiry replies unavailable;
+  - permissions.
+- Frontend: `mapClasses.test.ts` (3).
+
+**Verification:**
+- Backend 192/192. Frontend: typecheck clean, lint 0 errors, vitest 53/53.
+- **On real MariaDB** (a scratch database, 112 listings over 7 suburbs with backdated history,
+  seeded searches, views and enquiries), checked in a browser:
+  - the map with tiles and circles, the price-change colouring, and the Belgravia panel (+14.7%,
+    7.93%);
+  - the demand page, with both gaps flagged;
+  - no console or API errors.
+- **Fixed during that check:**
+  - the map container showed no height on first render; it now uses an inline height;
+  - the legend repeated ranges when values tied;
+  - the table repeated a column.
 

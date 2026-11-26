@@ -60,6 +60,8 @@ import {
   Gauge,
   KeyRound,
   TrendingUp,
+  SearchCheck,
+  Map as MapIcon,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -73,10 +75,14 @@ import AdminWithdrawalsPanel from "@/components/admin/AdminWithdrawalsPanel";
 import AnalyticsEnginePanel from "@/components/admin/AnalyticsEnginePanel";
 import ExecutiveOverview from "@/components/admin/analytics/ExecutiveOverview";
 import MarketDashboard from "@/components/admin/analytics/MarketDashboard";
+import DemandAnalytics from "@/components/admin/analytics/DemandAnalytics";
+import dynamic from "next/dynamic";
+// Leaflet touches window, so the map only renders in the browser.
+const MarketMap = dynamic(() => import("@/components/admin/analytics/MarketMap"), { ssr: false });
 import StaffAccessPanel from "@/components/admin/StaffAccessPanel";
 import { STAFF_ROLES } from "@/lib/types";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -477,6 +483,8 @@ export default function AdminPortalPage() {
     ...(canSeeMarket ? [
       { key: "market-rent" as Tab, label: "Rental Market", icon: KeyRound },
       { key: "market-sale" as Tab, label: "Sales Market", icon: TrendingUp },
+      { key: "market-map" as Tab, label: "Market Map", icon: MapIcon },
+      { key: "demand" as Tab, label: "Customer Demand", icon: SearchCheck },
     ] : []),
     ...(canSeeEngine ? [{ key: "analytics-engine" as Tab, label: "Analytics Engine", icon: Activity }] : []),
   ];
@@ -520,6 +528,8 @@ export default function AdminPortalPage() {
       {tab === "staff" && isAdmin && <StaffAccessPanel />}
       {tab === "market-rent" && canSeeMarket && <MarketDashboard type="rent" canConfigure={!!isAdmin} />}
       {tab === "market-sale" && canSeeMarket && <MarketDashboard type="sale" canConfigure={!!isAdmin} />}
+      {tab === "market-map" && canSeeMarket && <MarketMap />}
+      {tab === "demand" && canSeeMarket && <DemandAnalytics />}
 
       {tab === "operations" && (
         <div>
