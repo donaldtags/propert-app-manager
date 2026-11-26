@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A–F and R done (2026-11-26); Phase G (insights and alerts) next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A–G and R done (2026-11-26); Phase H (reports and exports) next, after your review.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -321,7 +321,7 @@ empty state explaining what data is missing. Charts are never filled with sample
 | **E. Map and demand** | Suburb map with a side panel; funnels; analysis of under-supplied segments | Locations are aggregated only from rows with valid coordinates or a suburb, and the coverage is shown |
 | **R. Referral discount** | As in §7 | Tests cover the discount, the reward, self-referral blocking and refund reversal |
 | **F. Revenue** | The revenue classification in §4.4; MRR, ARR and churn; marketing spend entry; LTV; referral costs | Tests reconcile the revenue figures with the payments in a fixture |
-| **G. Insights and alerts** | Deterministic observations (Poisson or z-tests with minimum n); Claude interpretations limited to those observations; alert rules, thresholds, cooldowns and preferences | No insight is produced when n is below the minimum. If AI is turned off, observations are still shown. |
+| **G. Insights and alerts** (done) | Deterministic observations (Poisson or z-tests with minimum n); Claude interpretations limited to those observations; alert rules, thresholds, cooldowns and preferences | No insight is produced when n is below the minimum. If AI is turned off, observations are still shown. |
 | **H. Reports** | CSV, Excel and PDF reports with dates, coverage and method notes; scheduled email delivery; saved views | Tests cover report generation and the coverage notes |
 
 ## 9. Decisions (2026-11-26)
@@ -1023,4 +1023,137 @@ enter it by month and channel; it's audited. Table `marketing_spend`; its column
 of payments, featured listings and marketing spend, the Revenue tab showed no errors. That check
 found that listing fees, not only renewals, were self-confirmed (14 of the 16 uncollected
 charges), which led to the rename above.
+
+### Phase G: Insights and alerts (DONE 2026-11-26)
+
+**Engine.** The three steps skipped until now run after publish, so a failure in them never
+withdraws published figures. Each records its outcome, turns a failure into a run warning, and
+is retried on the next run (no backoff: they are cheap or, for AI, rate-sensitive).
+1. `significance_tests`: `ObservationService` regenerates the observations.
+2. `market_intelligence`: `MarketInsightService` asks Claude to interpret them.
+3. `alerts`: `AlertService` evaluates the alert rules.
+
+A failed run raises a JOB_FAILED alert, and a 15-minute scheduler check raises DATA_STALE, so
+staleness is noticed even when the engine itself has stopped.
+
+**Observations (deterministic, "Observed").** For both week and month, the latest completed
+period is compared with the one before. Table `market_observations`:
+- **Counts:** enquiries, viewing requests, listing views, saves, new listings, rental
+  applications and offers by slice; failed payments and subscription cancellations platform-wide.
+  - The test is a Poisson rate test, conditional binomial and exact up to 2,000 events, adjusted
+    for period length.
+  - Needs at least 20 events across the two periods, and a change of at least 10%.
+- **Medians:** asking price and agreed rent, per listing type (rents and sale prices are never
+  mixed).
+  - Approximate z-test using SE = 1.2533 × (IQR / 1.349) / √n.
+  - Needs at least 10 prices in each period and a change of at least 5%.
+  - Caveat: a listing can appear in both periods, so the samples overlap.
+- **Category demand vs supply,** within the latest period: a category's share of enquiries
+  against its share of listings (two-proportion z-test).
+  - Needs 30 enquiries and 20 listings for the listing type.
+  - Reported when the ratio is at least 1.5× (under-supplied) or at most 0.67× (over-supplied).
+- **Not significance tests, and labelled as such** (methods THRESHOLD and DESCRIPTIVE, with LOW
+  to MEDIUM confidence):
+  - supply (a stock): active listings, at least 20, with a change of at least 10%;
+  - indicative gross yield: median asking rent × 12 ÷ median asking sale price, at least 10 of
+    each, with a change of at least 0.5 points;
+  - the largest category by supply.
+- **One correction per run.** A single Benjamini–Hochberg correction covers every tested
+  comparison in the run, and only q ≤ 0.05 is kept. This is what keeps hundreds of suburb tests
+  from producing a steady stream of false findings.
+- **Never test across a gap in recording.** A comparison whose earlier period started before
+  its capture table did is not tested: a half-recorded period would look like growth.
+- **Coverage.** `observation_coverage` keeps, per grain, the number tested, reported, below the
+  minimum, and with incomplete history. It drives the explicit "No reliable conclusion can be
+  drawn: …" answers.
+- **Stable ids.** A fingerprint keeps each row's id across hourly reruns, and findings that stop
+  holding after a recalculation are deleted.
+- **Fields of each observation:** the statement, location, period and comparison period, metric,
+  both sample sizes, confidence, test, p and q, and its domain. The domain decides who may see it.
+
+**AI interpretation ("AI interpretation").** `MarketInsightService` calls Claude through the
+existing `AiAnthropicConfig` key:
+- **Model:** `app.analytics.ai-model`, default `claude-opus-5-5`.
+- **Request:** structured output (`Draft`: headline plus up to 8 items of CHANGE, OPPORTUNITY or
+  RISK, each with an interpretation, an implication and the observation ids it rests on).
+- **What it sees:** only market and demand observations (finance findings are never sent), up to
+  40, strongest first.
+- **Guard rails:**
+  - Items that cite no observation it was given are dropped server-side.
+  - The read API hides any item citing an observation the viewer's role can't see.
+  - The prompt forbids figures, places or periods not in the observations, and treats causes as
+    possibilities.
+- **Cost:** Claude is only called when the set of observations changes (a SHA-256 fingerprint);
+  a failure is retried after an hour.
+- **Status:** each attempt is recorded in `market_insights` as OK, REFUSED (Claude declined:
+  `stop_reason = refusal`) or FAILED, with token counts.
+- **Admin switch:** `PUT /insights/ai` (audited). When off, unavailable (no key), refused or
+  failed, observations are still served and the UI says why.
+
+**Alerts.** The 9 kinds in `AlertKind`, with editable defaults stored in `alert_rules` (a missing
+row means the defaults):
+- demand surge, supply drop, price jump, category under-supply;
+- possible duplicate listings (from the data-quality step);
+- cancellations up, payment failures up;
+- job failed, data stale.
+
+Noise control:
+- Market rules only see observations that passed their test, then apply their own threshold
+  (% change), minimum sample and maximum q.
+- A dedupe key (rule, place, period) means a finding is never raised twice.
+- A cooldown per rule and place, in hours.
+- At most 5 per rule per run, strongest first.
+
+Delivery and preferences:
+- **Recipients:** staff whose role can see the alert's domain. The notification is in-app (new
+  `NotificationType.MARKET_ALERT`; `notifications.type` is already a VARCHAR since V2) and/or
+  email.
+- **Preferences:** per user and rule, in `alert_preferences`. No row means in-app on, email off.
+
+**API** (all under `/api/v1/admin/analytics`; any analytics permission, filtered by domain):
+- `GET /insights?grain=WEEK|MONTH`: the observations, coverage, AI view, and the brief's ten
+  analyst questions, each answered with observation ids or with "No reliable conclusion…".
+- `GET /alerts?open=`, and `POST /alerts/{id}/acknowledge` (audited).
+- `GET /alert-rules`, and `PUT /alert-rules/{key}` (ANALYTICS_CONFIGURE; validated; audited with
+  the before and after values).
+- `GET /alert-preferences` and `PUT /alert-preferences/{key}`: only the viewer's own, and only
+  for domains they can see.
+
+**Frontend.** A new **Insights & Alerts** tab for all analytics staff. It contains:
+- **Header:** a week-on-week or month-on-month toggle and a coverage line.
+- **AI interpretation:** a card with a dashed indigo border and an "AI interpretation" label,
+  visibly unlike the observations. Its items are grouped as what changed, opportunities and
+  risks; each has "Based on observation #…" links that scroll to and highlight the evidence. It
+  shows the model and the time written, and an on/off switch for admins.
+- **Analyst questions:** each answered with evidence or an explicit "no reliable conclusion".
+- **Observation cards:** each labelled "Observed", with a signed change and an arrow (never colour
+  alone), location, period, comparison, n, confidence, and the test with q.
+- **Alert centre:** severity icon and label, an open-only filter, and acknowledge.
+- **Rules table:** editable by admins, read-only for other staff.
+- **Personal preferences:** in-app and email, per rule.
+
+**Fix along the way.** `NotificationBell` only knew 4 of the 8 existing notification types.
+Wallet, stay-booking, compliance and verification notifications had no icon, which crashed the
+dropdown. All 9 types now have an icon with a fallback, routes are optional, and MARKET_ALERT
+links to `/admin?tab=insights`.
+
+**Tests.**
+- **`SignificanceTest` (7):** exact binomial 0.002221; period-length adjustment; the normal
+  approximation with continuity correction; median z; two proportions; BH q-values; numeric
+  helpers.
+- **`InsightsTests` (8):** a fixture over the two latest completed weeks.
+  - Avondale rental enquiries 10 → 40 are reported, with the statement, q and domain;
+    Borrowdale 3 → 6 is below the minimum and not reported; 50 → 60 overall is not significant.
+  - Asking rent $500 → $600 (median test); cottages under-supplied (50% of demand vs 10% of
+    supply); houses are the top supply category.
+  - Ids are stable across reruns, and a finding is dropped when recalculated away.
+  - Per-role visibility: the analyst gets no finance findings, finance gets only finance
+    findings, a tenant gets 403. Questions are answered, or say "No reliable conclusion".
+  - The AI: an uncited item is dropped; finance findings are never sent; it isn't called again
+    for the same input; when off, it isn't called and observations remain; refused and failed
+    attempts are recorded; the real request builds with a structured-output schema.
+  - Alerts: recipients by role; dedupe; cooldown; threshold change (admin only, audited);
+    preference opt-out; finance preferences forbidden to an analyst.
+  - Operational: job failed (once per run), duplicates, staleness, acknowledgement, and alerts
+    hidden from roles without the domain.
 

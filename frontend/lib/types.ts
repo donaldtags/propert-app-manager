@@ -855,7 +855,9 @@ export interface LeaseActionRequest {
   resolvedAt?: string;
 }
 
-export type NotificationType = "RENT_REMINDER" | "LEASE_EXPIRY" | "MAINTENANCE_UPDATE" | "SECURITY_ALERT";
+export type NotificationType =
+  | "RENT_REMINDER" | "LEASE_EXPIRY" | "MAINTENANCE_UPDATE" | "SECURITY_ALERT" | "LISTING_COMPLIANCE" | "STAY_BOOKING"
+  | "ACCOUNT_VERIFICATION" | "WALLET" | "MARKET_ALERT";
 
 export interface AppNotification {
   id: number;

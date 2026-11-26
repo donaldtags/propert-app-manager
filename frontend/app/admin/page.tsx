@@ -37,6 +37,7 @@ import type {
 } from "@/lib/types";
 import {
   ShieldCheck,
+  Sparkles,
   Users,
   Building2,
   ScrollText,
@@ -80,13 +81,14 @@ import MarketDashboard from "@/components/admin/analytics/MarketDashboard";
 import DemandAnalytics from "@/components/admin/analytics/DemandAnalytics";
 import ReferralsPanel from "@/components/admin/ReferralsPanel";
 import RevenueDashboard from "@/components/admin/analytics/RevenueDashboard";
+import InsightsPanel from "@/components/admin/analytics/InsightsPanel";
 import dynamic from "next/dynamic";
 // Leaflet touches window, so the map only renders in the browser.
 const MarketMap = dynamic(() => import("@/components/admin/analytics/MarketMap"), { ssr: false });
 import StaffAccessPanel from "@/components/admin/StaffAccessPanel";
 import { STAFF_ROLES } from "@/lib/types";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand" | "referrals" | "revenue";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand" | "referrals" | "revenue" | "insights";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -116,7 +118,9 @@ export default function AdminPortalPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
 
-  const [tab, setTab] = useState<Tab>("overview");
+  // An alert notification links to ?tab=insights; every tab still checks permissions when rendering.
+  const [tab, setTab] = useState<Tab>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "insights" ? "insights" : "overview");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -495,6 +499,7 @@ export default function AdminPortalPage() {
       { key: "revenue" as Tab, label: "Revenue", icon: Wallet },
       { key: "referrals" as Tab, label: "Referrals", icon: Gift },
     ] : []),
+    { key: "insights", label: "Insights & Alerts", icon: Sparkles },
     ...(canSeeEngine ? [{ key: "analytics-engine" as Tab, label: "Analytics Engine", icon: Activity }] : []),
   ];
   const ADMIN_TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
@@ -541,6 +546,7 @@ export default function AdminPortalPage() {
       {tab === "demand" && canSeeMarket && <DemandAnalytics />}
       {tab === "referrals" && canSeeReferrals && <ReferralsPanel canEdit={!!isAdmin} />}
       {tab === "revenue" && canSeeReferrals && <RevenueDashboard canConfigure={!!isAdmin} />}
+      {tab === "insights" && <InsightsPanel canConfigure={!!isAdmin} />}
 
       {tab === "operations" && (
         <div>

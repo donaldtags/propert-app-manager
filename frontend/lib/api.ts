@@ -1791,3 +1791,53 @@ export const revenueAnalytics = {
   setCommissionShare: (token: string, percent: number) =>
     request<{ percent: number }>("/admin/analytics/revenue/commission-share", { method: "PUT", body: JSON.stringify({ percent }) }, token),
 };
+
+// Insights & alerts. See docs/admin-analytics-plan.md Phase G.
+export type ObservationMethod = "POISSON_RATE" | "MEDIAN_SHIFT" | "SHARE_GAP" | "THRESHOLD" | "DESCRIPTIVE";
+export interface MarketObservationView {
+  id: number; kind: string; metricKey: string; domain: string; method: ObservationMethod; grain: "WEEK" | "MONTH";
+  periodStart: string; periodEnd: string; comparisonStart?: string | null; comparisonEnd?: string | null;
+  listingType?: string | null; city?: string | null; suburb?: string | null; category?: string | null; location: string;
+  currentValue?: number | null; previousValue?: number | null; changePct?: number | null;
+  sampleCurrent: number; samplePrevious: number; statistic?: number | null; pValue?: number | null; qValue?: number | null;
+  confidence: "HIGH" | "MEDIUM" | "LOW"; statement: string; currency?: string | null; firstSeenAt: string;
+}
+export interface InsightCoverage {
+  grain: string; periodStart?: string | null; periodEnd?: string | null; comparisonStart?: string | null; comparisonEnd?: string | null;
+  tested: number; reported: number; belowMinimum: number; historyIncomplete: number; computedAt: string;
+}
+export interface AiInsightItem { section: "CHANGE" | "OPPORTUNITY" | "RISK"; title: string; interpretation: string; implication: string; observationIds: number[] }
+export interface AiInsightView {
+  status: "OK" | "OFF" | "UNAVAILABLE" | "NONE" | "FAILED" | "REFUSED"; enabled: boolean; available: boolean; model?: string | null;
+  createdAt?: string | null; headline?: string | null; items: AiInsightItem[]; outdated: boolean; hiddenItems: number; note?: string | null;
+}
+export interface InsightQuestion { key: string; question: string; observationIds: number[]; answer?: string | null }
+export interface InsightsData {
+  grain: "WEEK" | "MONTH"; coverage?: InsightCoverage | null; observations: MarketObservationView[]; ai: AiInsightView;
+  questions: InsightQuestion[]; minimums: { events: number; medianSample: number; stock: number; shareEvents: number; maxQValue: number };
+}
+export type AlertSeverity = "INFO" | "WARNING" | "CRITICAL";
+export interface AnalyticsAlertView {
+  id: number; ruleKey: string; ruleLabel: string; severity: AlertSeverity; domain: string; title: string; message: string;
+  observationId?: number | null; createdAt: string; acknowledgedAt?: string | null; acknowledgedByUserId?: number | null; recipients: number;
+}
+export interface AlertRuleView {
+  key: string; label: string; domain: string; unit: "PERCENT" | "COUNT" | "HOURS"; enabled: boolean; threshold: number; minSample: number;
+  maxQValue: number; cooldownHours: number; severity: AlertSeverity; customised: boolean; marketRule: boolean;
+}
+export interface AlertPreferenceView { key: string; label: string; domain: string; inApp: boolean; email: boolean }
+export const insightsApi = {
+  get: (token: string, grain: "WEEK" | "MONTH") => request<InsightsData>(`/admin/analytics/insights?grain=${grain}`, {}, token),
+  setAi: (token: string, enabled: boolean) =>
+    request<{ enabled: boolean }>("/admin/analytics/insights/ai", { method: "PUT", body: JSON.stringify({ enabled }) }, token),
+  alerts: (token: string, open: boolean) =>
+    request<{ alerts: AnalyticsAlertView[]; openCount: number }>(`/admin/analytics/alerts?open=${open}`, {}, token),
+  acknowledge: (token: string, id: number) =>
+    request<AnalyticsAlertView>(`/admin/analytics/alerts/${id}/acknowledge`, { method: "POST" }, token),
+  rules: (token: string) => request<{ rules: AlertRuleView[]; canEdit: boolean }>("/admin/analytics/alert-rules", {}, token),
+  saveRule: (token: string, key: string, r: Pick<AlertRuleView, "enabled" | "threshold" | "minSample" | "maxQValue" | "cooldownHours" | "severity">) =>
+    request<AlertRuleView>(`/admin/analytics/alert-rules/${key}`, { method: "PUT", body: JSON.stringify(r) }, token),
+  preferences: (token: string) => request<AlertPreferenceView[]>("/admin/analytics/alert-preferences", {}, token),
+  savePreference: (token: string, key: string, p: { inApp: boolean; email: boolean }) =>
+    request<AlertPreferenceView>(`/admin/analytics/alert-preferences/${key}`, { method: "PUT", body: JSON.stringify(p) }, token),
+};

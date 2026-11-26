@@ -1,5 +1,8 @@
 package com.example.estatex.analytics.engine;
 
+import com.example.estatex.analytics.alert.AlertService;
+import com.example.estatex.analytics.insight.MarketInsightService;
+import com.example.estatex.analytics.insight.ObservationService;
 import com.example.estatex.analytics.metrics.Grain;
 import com.example.estatex.analytics.metrics.MarketMetricsCalculator;
 import com.example.estatex.analytics.metrics.MetricValue;
@@ -57,6 +60,9 @@ public class AnalyticsEngine {
     private final MarketMetricsCalculator calculator;
     private final SnapshotWriter snapshots;
     private final DataQualityChecker quality;
+    private final ObservationService observations;
+    private final MarketInsightService insights;
+    private final AlertService alerts;
     private final BusinessTime time;
     private final ObjectMapper json;
     private final Duration staleAfter;
@@ -67,7 +73,8 @@ public class AnalyticsEngine {
     volatile Consumer<String> beforeStep = step -> { };
 
     public AnalyticsEngine(JobLock lock, JdbcTemplate jdbc, TransactionTemplate tx, MarketMetricsCalculator calculator,
-                           SnapshotWriter snapshots, DataQualityChecker quality, BusinessTime time, ObjectMapper json,
+                           SnapshotWriter snapshots, DataQualityChecker quality, ObservationService observations,
+                           MarketInsightService insights, AlertService alerts, BusinessTime time, ObjectMapper json,
                            @Value("${app.analytics.lock-stale-minutes:45}") long staleMinutes,
                            @Value("${app.analytics.retry-backoff-seconds:30,120,300}") String backoff) {
         this.lock = lock;
@@ -76,6 +83,9 @@ public class AnalyticsEngine {
         this.calculator = calculator;
         this.snapshots = snapshots;
         this.quality = quality;
+        this.observations = observations;
+        this.insights = insights;
+        this.alerts = alerts;
         this.time = time;
         this.json = json;
         this.staleAfter = Duration.ofMinutes(staleMinutes);
@@ -153,9 +163,15 @@ public class AnalyticsEngine {
         Optional<Long> acquired = lock.acquire(job, windowStart, windowEnd, now, staleAfter, triggeredBy, worker, allowRerun);
         if (acquired.isEmpty()) return Outcome.skipped("Another run holds this window, or it is already done");
         long runId = acquired.get();
+        // Stamp the real start: acquiring can wait (for a connection or a lock), and the run's history
+        // must show when it actually began.
+        Instant began = now();
+        jdbc.update("update analytics_job_runs set started_at = ?, heartbeat_at = ? where id = ?",
+                Timestamp.from(began), Timestamp.from(began), runId);
         RunLog run = new RunLog(runId);
         run.warnings.addAll(carriedWarnings.stream().map(w -> Map.<String, Object>of("code", "CATCH_UP_GAP", "message", w)).toList());
         ZoneId zone = zone();
+        int[] newDuplicatePairs = {0};
         try {
             // 1. What changed in the window.
             Set<Long> changed = step(run, "collect_changes", () -> {
@@ -171,6 +187,7 @@ public class AnalyticsEngine {
             step(run, "validate_and_deduplicate", () -> {
                 DataQualityChecker.Result q = quality.check(now);
                 run.recordsRejected = q.rejected();
+                newDuplicatePairs[0] = q.newDuplicatePairs();
                 q.warnings().forEach(w -> run.warnings.add(Map.of("code", w.code(), "message", w.message(),
                         "count", w.count(), "sampleIds", w.sampleIds())));
                 run.detail("validate_and_deduplicate", q.liveListings() + " live listing(s) checked; " + q.rejected()
@@ -207,10 +224,6 @@ public class AnalyticsEngine {
                         + suburbRows + " at suburb level");
                 return out;
             });
-            run.skip("significance_tests", "Added in Phase G");
-            run.skip("market_intelligence", "Added in Phase G");
-            run.skip("alerts", "Added in Phase G");
-
             // 8. Publish snapshots and figures together, or not at all.
             List<LocalDate> days = days(job, windowStart, windowEnd, now, zone);
             step(run, "publish", () -> {
@@ -239,11 +252,42 @@ public class AnalyticsEngine {
                 });
                 return null;
             });
+
+            // 9–11. Observations, AI interpretation and alerts, from the figures just published. These
+            // never undo a publish: a failure here is recorded as a warning and retried next run.
+            ObservationService.Result found = soft(run, "significance_tests", () -> {
+                ObservationService.Result r = observations.generate(now(), runId);
+                run.detail("significance_tests", r.tested() + " comparison(s) tested; " + r.observations().size()
+                        + " observation(s) current");
+                return r;
+            });
+            if (found != null) {
+                soft(run, "market_intelligence", () -> {
+                    MarketInsightService.Outcome o = insights.refresh(found.observations(), now(), runId);
+                    run.detail("market_intelligence", o.status() + ": " + o.detail());
+                    if ("FAILED".equals(o.status()) || "REFUSED".equals(o.status())) {
+                        run.warnings.add(Map.of("code", "AI_INTERPRETATION_" + o.status(), "message", o.detail()));
+                    }
+                    return null;
+                });
+            } else {
+                run.skip("market_intelligence", "No observations: significance tests did not complete");
+            }
+            soft(run, "alerts", () -> {
+                AlertService.Raised r = alerts.evaluate(found == null ? List.of() : found.observations(), newDuplicatePairs[0], runId, now());
+                run.detail("alerts", r.raised() + " alert(s) raised; " + r.suppressed() + " held back by dedupe, cooldown or the per-run cap");
+                return null;
+            });
             finish(run, "SUCCEEDED", null);
             return new Outcome("SUCCEEDED", runId, run.metricsWritten + " figure(s) published");
         } catch (Exception e) {
             log.error("Analytics run {} ({}) failed", runId, job, e);
             finish(run, "FAILED", e.getClass().getSimpleName() + ": " + e.getMessage());
+            try {
+                alerts.jobFailed(job, runId, e.getMessage(), now());
+            } catch (RuntimeException alertError) {
+                log.warn("Could not raise the job-failed alert for run {}", runId, alertError);
+            }
             return new Outcome("FAILED", runId, e.getMessage());
         }
     }
@@ -358,6 +402,24 @@ public class AnalyticsEngine {
         run.step(name, "FAILED", System.currentTimeMillis() - started);
         run.detail(name, last.getMessage());
         throw last;
+    }
+
+    /** A post-publish step: no retries, and a failure becomes a warning instead of failing the run. */
+    private <T> T soft(RunLog run, String name, Callable<T> body) {
+        long started = System.currentTimeMillis();
+        try {
+            beforeStep.accept(name);
+            T result = body.call();
+            run.step(name, "OK", System.currentTimeMillis() - started);
+            return result;
+        } catch (Exception e) {
+            log.warn("Analytics step {} failed in run {}: {}", name, run.id, e.getMessage(), e);
+            run.step(name, "FAILED", System.currentTimeMillis() - started);
+            run.detail(name, e.getMessage());
+            run.warnings.add(Map.of("code", "STEP_FAILED", "message", "Step " + name + " failed: " + e.getMessage()
+                    + ". Figures were still published; it is retried next run."));
+            return null;
+        }
     }
 
     private void finish(RunLog run, String status, String error) {

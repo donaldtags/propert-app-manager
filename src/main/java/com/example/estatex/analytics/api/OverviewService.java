@@ -79,11 +79,16 @@ public class OverviewService {
     }
 
     public Overview overview(AppUser user, Grain grain, Compare compare, Location location) {
+        return overview(user, grain, compare, location, null);
+    }
+
+    /** As above, for the period containing {@code at} (reports pick a completed period); null means the latest. */
+    public Overview overview(AppUser user, Grain grain, Compare compare, Location location, Instant at) {
         ZoneId zone = time.zone();
         AnalyticsEngineStatusService.Status freshness = engineStatus.status();
         Instant now = time.clock().instant();
         // Show the period the published figures belong to: the one containing the last successful update.
-        Instant reference = freshness.lastSuccessAt() != null ? freshness.lastSuccessAt() : now;
+        Instant reference = at != null ? at : freshness.lastSuccessAt() != null ? freshness.lastSuccessAt() : now;
         Period current = Period.containing(grain, reference, zone);
         Period previous = current.previous(zone);
         Instant currentAsOf = asOfOf(current, "FULL");
@@ -358,7 +363,7 @@ public class OverviewService {
         };
     }
 
-    static String label(Period p, ZoneId zone, boolean soFar) {
+    public static String label(Period p, ZoneId zone, boolean soFar) {
         var s = p.start().atZone(zone);
         String base = switch (p.grain()) {
             case HOUR -> s.format(DateTimeFormatter.ofPattern("d MMM, HH:00", Locale.ENGLISH));

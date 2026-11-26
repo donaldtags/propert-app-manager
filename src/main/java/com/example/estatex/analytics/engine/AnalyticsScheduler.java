@@ -1,6 +1,9 @@
 package com.example.estatex.analytics.engine;
 
+import com.example.estatex.analytics.alert.AlertService;
+import com.example.estatex.common.BusinessTime;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,9 +28,23 @@ class AnalyticsScheduler {
     private static final Logger log = LoggerFactory.getLogger(AnalyticsScheduler.class);
 
     private final AnalyticsEngine engine;
+    private final AlertService alerts;
+    private final BusinessTime time;
 
-    AnalyticsScheduler(AnalyticsEngine engine) {
+    AnalyticsScheduler(AnalyticsEngine engine, AlertService alerts, BusinessTime time) {
         this.engine = engine;
+        this.alerts = alerts;
+        this.time = time;
+    }
+
+    /** Stale data is noticed even when the engine itself has stopped running. */
+    @Scheduled(fixedDelay = 15, initialDelay = 20, timeUnit = TimeUnit.MINUTES)
+    void staleCheck() {
+        try {
+            alerts.checkStale(time.clock().instant());
+        } catch (RuntimeException e) {
+            log.warn("Stale-data check failed: {}", e.getMessage());
+        }
     }
 
     @Scheduled(cron = HOURLY_CRON, zone = "Africa/Harare")
