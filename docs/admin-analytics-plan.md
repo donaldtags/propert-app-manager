@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A–E done (2026-11-26); Phase R (referral discount) next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A–E and R done (2026-11-26); Phase F (revenue) next, after your review.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -843,4 +843,89 @@ twice the market's. The wording always says "interest, not confirmed demand".
   - the map container showed no height on first render; it now uses an inline height;
   - the legend repeated ranges when values tied;
   - the table repeated a column.
+
+### Phase R: Referral discount (DONE 2026-11-26)
+
+**How it works** (`referral` package):
+- Every user has a code. Codes are 8 characters from an alphabet without 0/O or 1/I, and are
+  created the first time the user opens Invite friends. The link is `/r/CODE`.
+- Sign-up accepts `referralCode`. A code that doesn't exist is rejected with 400 before the
+  account is created, so it can be fixed.
+- The referee's first subscription checkout is discounted by the programme's percentage. The
+  discount is recorded on the payment's metadata (`referralId`, `discountPercent`,
+  `discountCents`), so revenue figures are net cash.
+- When the gateway confirms that payment, the referrer gets wallet credit from the
+  `MARKETING_EXPENSE` system account (wallet entry `REFERRAL_REWARD`). The credit is paid once
+  (idempotency key) and up to `monthlyCap` rewards per calendar month; above the cap the status
+  is CAPPED.
+- Only the first ever successful subscription payment is discounted. Renewals and later upgrades
+  are full price.
+
+**Anti-abuse:**
+- A self-referral is marked BLOCKED (no discount, no reward), checked at sign-up and again at
+  the first payment. It's caught by any of:
+  - the same browser (a salted device-id hash kept only for this check, in
+    `referral_device_marks`);
+  - the same national ID number;
+  - the same email address, ignoring dots and +tags for Gmail and +tags elsewhere.
+- **Reversals.** EstateX has no in-app refund flow; nothing sets REFUNDED. So
+  `PaymentRefundedEvent` is ready for when one is built, and staff can reverse a reward from the
+  admin panel. The reversal debits the wallet if it can cover it. Otherwise the status is
+  REVERSAL_PENDING, for follow-up, without blocking the refund.
+- Every step is audited: REFERRAL_REGISTERED, BLOCKED, REWARDED, CAPPED, REVERSED and
+  SETTINGS_CHANGED.
+
+**Settings.**
+- On/off, discount 0–90%, reward $0–$1,000, and monthly cap.
+- **The programme is OFF by default**, with suggested values of 20%, $10 and 10 a month, until an
+  administrator switches it on.
+- Codes and attribution work even while the programme is off.
+
+**Endpoints:**
+
+| Endpoint | Access |
+|---|---|
+| `GET /api/v1/referrals/code/{code}` | Public; reveals nothing about the referrer |
+| `GET /api/v1/referrals/mine` | Signed-in user |
+| `GET /api/v1/admin/referrals` | Finance or admin |
+| `PUT /api/v1/admin/referrals/settings` | `ANALYTICS_CONFIGURE` |
+| `POST /api/v1/admin/referrals/{id}/reverse` | `ANALYTICS_CONFIGURE` |
+
+**Analytics.** New metrics REFERRAL_SIGNUPS (platform), REFERRAL_DISCOUNTS and REFERRAL_REWARDS
+(finance), shown on the overview with drill-down to the users and payments behind them.
+
+**Frontend:**
+- `/r/[code]` redirects to sign-up with the code filled in, and the sign-up form shows the offer.
+- `/referrals` (Invite friends, in the profile menu): the link, copy and WhatsApp share, and the
+  user's stats.
+- The subscription page shows a discount note.
+- An admin **Referrals** tab with settings, totals, and a table of referrals with reasons and a
+  Reverse action.
+
+**Tests** (`ReferralTests`, 9):
+- the discount (GROWTH $15 → $12) and the referrer credited exactly once, even when the webhook
+  repeats;
+- the second payment at full price;
+- the costs appear in the overview;
+- a mistyped code is rejected;
+- self-referral from the same browser is blocked;
+- the monthly cap;
+- refund reversal, and the pending case when the wallet can't cover it;
+- nothing is discounted while the programme is off;
+- admin-only settings;
+- email aliases are treated as the same person;
+- 4 simultaneous first requests get the same code.
+
+Frontend: `referralCode.test.ts`.
+
+**Verification:**
+- Backend 201/201. Frontend: typecheck clean, lint 0 errors, vitest 54/54.
+- In a browser on a scratch MariaDB database: link → sign-up with the offer shown → subscription
+  page discount note → Invite friends page → admin panel.
+- **Bug found and fixed.** The subscription page asked for `/referrals/mine` twice at once (React
+  dev mode). Both requests tried to create the same code; one failed with 409, and the page then
+  hid the discount. Code creation now runs in its own transaction and reads back the winner's
+  code, and the page no longer clears a result it already has. Covered by the concurrency test.
+- **Not verified:** a real Paynow or Stripe payment completing a discounted checkout. Tests use a
+  fake gateway.
 

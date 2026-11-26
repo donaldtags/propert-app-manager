@@ -33,6 +33,7 @@ interface AuthContextValue extends AuthState {
     password: string;
     country?: string;
     roles?: string[];
+    referralCode?: string;
   }) => Promise<User>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -131,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: string;
       country?: string;
       roles?: string[];
+      referralCode?: string;
     }) => {
       const { token, user } = await auth.register({ ...data, deviceId: getDeviceId() });
       localStorage.setItem(TOKEN_KEY, token);

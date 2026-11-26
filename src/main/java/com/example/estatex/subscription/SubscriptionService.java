@@ -42,13 +42,17 @@ public class SubscriptionService {
     private final PaymentService payments;
     private final PlatformAccountService platformAccountService;
 
+    private final com.example.estatex.referral.ReferralService referralService;
+
     public SubscriptionService(
             LandlordSubscriptionRepository subscriptions,
             SubscriptionPlanSettingsRepository planSettings,
             PropertyService properties,
             PaymentService payments,
-            PlatformAccountService platformAccountService
+            PlatformAccountService platformAccountService,
+            com.example.estatex.referral.ReferralService referralService
     ) {
+        this.referralService = referralService;
         this.subscriptions = subscriptions;
         this.planSettings = planSettings;
         this.properties = properties;
@@ -137,19 +141,26 @@ public class SubscriptionService {
         }
         SubscriptionPlanSettings settings = planSettings(targetPlan);
         AppUser platformAccount = platformAccountService.billingAccount();
+        // A friend's referral: a discount on the very first subscription payment only.
+        java.util.Optional<com.example.estatex.referral.ReferralService.Discount> discount =
+                referralService.discountFor(user, settings.getMonthlyPrice());
+        java.math.BigDecimal amount = discount.map(com.example.estatex.referral.ReferralService.Discount::payable)
+                .orElse(settings.getMonthlyPrice());
+        String metadata = "plan=" + targetPlan + discount.map(d -> ",referralId=" + d.referralId() + ",discountPercent=" + d.percent()
+                + ",discountCents=" + d.amount().movePointRight(2).longValueExact()).orElse("");
         Payment payment = payments.create(
                 new PaymentDtos.CreatePaymentRequest(
                         platformAccount.getId(),
                         null,
                         null,
-                        settings.getMonthlyPrice(),
+                        amount,
                         settings.getCurrency(),
                         provider,
-                        "Subscription: " + targetPlan + " plan"
+                        "Subscription: " + targetPlan + " plan" + discount.map(d -> " (" + d.percent() + "% referral discount)").orElse("")
                 ),
                 user,
                 PaymentPurpose.SUBSCRIPTION,
-                "plan=" + targetPlan,
+                metadata,
                 null
         );
         return payments.initiateCheckout(payment.getId(), provider, user);

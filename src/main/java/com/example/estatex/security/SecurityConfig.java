@@ -67,6 +67,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/reports").permitAll()
                         // Anonymous view/search counts for demand analytics (no personal data stored).
                         .requestMatchers(HttpMethod.POST, "/api/v1/marketplace-events").permitAll()
+                        // What a referral link offers (no details about the referrer).
+                        .requestMatchers(HttpMethod.GET, "/api/v1/referrals/code/*").permitAll()
                         // Didit's result callback: authenticated by its HMAC signature, not a session.
                         .requestMatchers(HttpMethod.POST, "/api/v1/kyc/webhooks/didit").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties", "/api/v1/properties/*", "/api/v1/properties/*/passport").permitAll()

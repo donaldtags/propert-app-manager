@@ -30,11 +30,13 @@ import org.springframework.stereotype.Component;
 public class MarketMetricsCalculator {
     private static final Set<MetricDefinition> MONEY = Set.of(MetricDefinition.ASKING_PRICE, MetricDefinition.ASKING_PRICE_PER_M2,
             MetricDefinition.CONTRACTED_RENT, MetricDefinition.VERIFIED_SALES, MetricDefinition.PLATFORM_REVENUE,
+            MetricDefinition.REFERRAL_DISCOUNTS, MetricDefinition.REFERRAL_REWARDS,
             MetricDefinition.REVENUE_SUBSCRIPTIONS, MetricDefinition.REVENUE_FEATURED_LISTINGS, MetricDefinition.PAYMENT_VOLUME);
     /** Distributions whose headline value is the count, not the median. */
     private static final Set<MetricDefinition> COUNT_HEADLINE = Set.of(MetricDefinition.PRICE_REDUCTIONS, MetricDefinition.VERIFIED_SALES);
     /** Distributions whose headline value is the total. */
     private static final Set<MetricDefinition> SUM_HEADLINE = Set.of(MetricDefinition.PLATFORM_REVENUE,
+            MetricDefinition.REFERRAL_DISCOUNTS, MetricDefinition.REFERRAL_REWARDS,
             MetricDefinition.REVENUE_SUBSCRIPTIONS, MetricDefinition.REVENUE_FEATURED_LISTINGS, MetricDefinition.PAYMENT_VOLUME);
     private static final Map<String, MetricDefinition> STATUS_METRICS = Map.of(
             "WITHDRAWN", MetricDefinition.WITHDRAWN_LISTINGS,
@@ -132,6 +134,7 @@ public class MarketMetricsCalculator {
         activity(p, asOf, end, acc);
         platform(p, asOf, zone, hourly, acc);
         payments(p, asOf, acc);
+        referrals(p, asOf, acc);
         List<MetricValue> rows = acc.rows(p, now, runId);
         for (MetricValue v : rows) {
             String source = MetricDefinition.valueOf(v.getMetricKey()).captureSource();
@@ -298,6 +301,25 @@ public class MarketMetricsCalculator {
                 acc.value(MetricDefinition.PAYMENT_VOLUME, Dims.ALL, amount, true, ref);
             }
         }, from, to, from, to);
+    }
+
+    private void referrals(Period p, Instant asOf, Acc acc) {
+        Timestamp from = Timestamp.from(p.start());
+        Timestamp to = Timestamp.from(asOf);
+        jdbc.query("select referee_user_id from referrals where registered_at >= ? and registered_at < ? and status <> 'BLOCKED'",
+                rs -> { acc.count(MetricDefinition.REFERRAL_SIGNUPS, Dims.ALL, true, "user:" + rs.getLong(1)); }, from, to);
+        jdbc.query("select qualifying_payment_id, discount_cents, currency from referrals where qualified_at >= ? and qualified_at < ? "
+                + "and status <> 'BLOCKED' and discount_cents is not null", rs -> {
+            if ("USD".equalsIgnoreCase(rs.getString("currency"))) {
+                acc.value(MetricDefinition.REFERRAL_DISCOUNTS, Dims.ALL, BigDecimal.valueOf(rs.getLong("discount_cents"), 2), true,
+                        "payment:" + rs.getLong("qualifying_payment_id"));
+            }
+        }, from, to);
+        jdbc.query("select referrer_user_id, reward_cents from referrals where rewarded_at >= ? and rewarded_at < ? "
+                + "and status in ('REWARDED', 'REVERSAL_PENDING') and reward_cents is not null", rs -> {
+            acc.value(MetricDefinition.REFERRAL_REWARDS, Dims.ALL, BigDecimal.valueOf(rs.getLong("reward_cents"), 2), true,
+                    "user:" + rs.getLong("referrer_user_id"));
+        }, from, to);
     }
 
     private void perProperty(String sql, MetricDefinition m, String kind, Timestamp from, Timestamp to,

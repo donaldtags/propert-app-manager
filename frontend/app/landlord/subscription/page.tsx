@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { subscriptions as subscriptionsApi } from "@/lib/api";
+import { subscriptions as subscriptionsApi, referralsApi } from "@/lib/api";
 import type { PlanSettings, SubscriptionInfo, SubscriptionFeature, SubscriptionPlan, CheckoutProvider } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import PaymentProviderPicker from "@/components/PaymentProviderPicker";
@@ -60,6 +60,8 @@ export default function SubscriptionPage() {
   const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null);
   const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // A friend's referral discount on the first paid subscription, if any.
+  const [referralDiscount, setReferralDiscount] = useState<number | null>(null);
   const [success, setSuccess] = useState("");
 
   const hasBusinessRole = (roles: string[] | undefined) =>
@@ -82,6 +84,9 @@ export default function SubscriptionPage() {
     subscriptionsApi.plans().then(setPlans).catch(() => {});
     if (token) {
       subscriptionsApi.mine(token).then(setMine).catch(() => {}).finally(() => setDataLoading(false));
+      referralsApi.mine(token)
+        .then((r) => setReferralDiscount(r.referredBy?.discountAvailable ? r.referredBy.discountPercent ?? null : null))
+        .catch(() => {}); // a failed check never hides a discount already shown
     }
   };
 
@@ -148,6 +153,13 @@ export default function SubscriptionPage() {
         </h1>
         <p className="text-gray-500 mt-1">Choose the plan that fits your portfolio. Prices are set by EstateX.</p>
       </div>
+
+      {referralDiscount != null && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl px-5 py-3 mb-6 text-sm" role="status">
+          <strong>{referralDiscount}% off your first payment.</strong> A friend invited you to EstateX, so your first paid plan is
+          discounted at checkout. Later months are at the normal price.
+        </div>
+      )}
 
       {mine && (
         <div className="bg-brand-50 border border-brand-100 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3">

@@ -116,6 +116,7 @@ public class OverviewService {
                 new Spec("new_agents", "New agents", MetricDefinition.NEW_AGENTS, null, "COUNT", "UP"),
                 new Spec("new_landlords", "New landlords", MetricDefinition.NEW_LANDLORDS, null, "COUNT", "UP"),
                 new Spec("new_developers", "New developers", MetricDefinition.NEW_DEVELOPERS, null, "COUNT", "UP"),
+                new Spec("referral_signups", "Referred sign-ups", MetricDefinition.REFERRAL_SIGNUPS, null, "COUNT", "UP"),
                 new Spec("verified_listings", "Verified live listings", MetricDefinition.VERIFIED_LISTINGS, null, "COUNT", "UP")), false));
         sections.add(section(c, "marketplace", "Marketplace", "Supply and transactions", List.of(
                 new Spec("sale_listings", "For sale", MetricDefinition.ACTIVE_LISTINGS, "SALE", "COUNT", "UP"),
@@ -144,7 +145,9 @@ public class OverviewService {
                 new Spec("revenue_featured", "Featured listings", MetricDefinition.REVENUE_FEATURED_LISTINGS, null, "USD", "UP"),
                 new Spec("payments_ok", "Successful payments", MetricDefinition.PAYMENTS_SUCCESSFUL, null, "COUNT", "UP"),
                 new Spec("payments_failed", "Failed payments", MetricDefinition.PAYMENTS_FAILED, null, "COUNT", "DOWN"),
-                new Spec("payment_volume", "Client money handled", MetricDefinition.PAYMENT_VOLUME, null, "USD", "NEUTRAL")), false));
+                new Spec("payment_volume", "Client money handled", MetricDefinition.PAYMENT_VOLUME, null, "USD", "NEUTRAL"),
+                new Spec("referral_discounts", "Referral discounts given", MetricDefinition.REFERRAL_DISCOUNTS, null, "USD", "NEUTRAL"),
+                new Spec("referral_rewards", "Referral rewards paid", MetricDefinition.REFERRAL_REWARDS, null, "USD", "NEUTRAL")), false));
 
         addLive(c, sections);
         return new Overview(pv, cv, comparisonLabel, location, freshness, sections);

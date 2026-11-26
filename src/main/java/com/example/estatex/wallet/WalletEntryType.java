@@ -11,6 +11,10 @@ public final class WalletEntryType {
     public static final String WITHDRAWAL_PAID = "WITHDRAWAL_PAID";
     public static final String FEE = "FEE";
     public static final String ADJUSTMENT = "ADJUSTMENT";
+    /** Credit to a referrer when a friend they invited first pays for a subscription. */
+    public static final String REFERRAL_REWARD = "REFERRAL_REWARD";
+    /** A referral reward taken back (refund or staff decision). */
+    public static final String REFERRAL_REVERSAL = "REFERRAL_REVERSAL";
 
     private WalletEntryType() {}
 }

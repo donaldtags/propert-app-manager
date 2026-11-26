@@ -22,7 +22,9 @@ public final class AuthDtos {
             @Size(max = 100) String country,
             @NotEmpty Set<UserRole> roles,
             /** Random id the browser keeps, so later sign-ins from other devices can be spotted. */
-            @Size(max = 100) String deviceId
+            @Size(max = 100) String deviceId,
+            /** A friend's referral code (optional): a discount on the first subscription payment. */
+            @Size(max = 20) String referralCode
     ) {
     }
 

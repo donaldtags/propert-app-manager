@@ -164,6 +164,8 @@ export const auth = {
     country?: string;
     roles?: string[];
     deviceId?: string;
+    /** A friend's referral code: a discount on the first subscription payment. */
+    referralCode?: string;
   }) => request<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(data) }),
 
   /** A session, or a two-step challenge to answer with verifyTwoFactor. */
@@ -1738,4 +1740,30 @@ export const geoAnalytics = {
 export const demandAnalytics = {
   get: (token: string, p: { from?: string; to?: string; city?: string }) =>
     request<DemandData>(`/admin/analytics/demand?${marketQs(p)}`, {}, token),
+};
+
+// Referral programme. See docs/admin-analytics-plan.md Phase R.
+export interface ReferralSettings { enabled: boolean; discountPercent: number; rewardCents: number; monthlyCap: number; currency: string }
+export interface MyReferrals {
+  code: string; programme: ReferralSettings; invited: number; subscribed: number; earnedCents: number; pending: number;
+  referredBy?: { status: string; discountPercent?: number | null; discountAvailable: boolean } | null;
+}
+export interface ReferralAdminRow {
+  id: number; code: string; referrerUserId: number; referrerName?: string; refereeUserId: number; refereeName?: string; status: string;
+  blockReason?: string; discountCents?: number; rewardCents?: number; registeredAt: string; qualifiedAt?: string; rewardedAt?: string;
+  reversalReason?: string;
+}
+export interface ReferralAdminView {
+  settings: ReferralSettings; total: number; blocked: number; rewarded: number; rewardsPaidCents: number; discountsGivenCents: number;
+  pendingReversals: number; recent: ReferralAdminRow[];
+}
+export const referralsApi = {
+  code: (code: string) => request<{ valid: boolean; programmeActive: boolean; discountPercent?: number | null }>(
+    `/referrals/code/${encodeURIComponent(code)}`),
+  mine: (token: string) => request<MyReferrals>("/referrals/mine", {}, token),
+  admin: (token: string) => request<ReferralAdminView>("/admin/referrals", {}, token),
+  saveSettings: (token: string, s: Omit<ReferralSettings, "currency">) =>
+    request<ReferralSettings>("/admin/referrals/settings", { method: "PUT", body: JSON.stringify(s) }, token),
+  reverse: (token: string, id: number, reason: string) =>
+    request<ReferralAdminView>(`/admin/referrals/${id}/reverse`, { method: "POST", body: JSON.stringify({ reason }) }, token),
 };

@@ -79,7 +79,14 @@ public enum MetricDefinition {
             "Client money that passed through EstateX (rent, deposits, escrow, bookings, wallet top-ups, investments), "
                     + "USD. Not EstateX revenue."),
     PAYMENTS_SUCCESSFUL(1, Kind.COUNT, Domain.FINANCE, null, "Payments that succeeded during the period (all purposes)."),
-    PAYMENTS_FAILED(1, Kind.COUNT, Domain.FINANCE, null, "Payments started during the period that failed.");
+    PAYMENTS_FAILED(1, Kind.COUNT, Domain.FINANCE, null, "Payments started during the period that failed."),
+    REFERRAL_SIGNUPS(1, Kind.COUNT, Domain.PLATFORM, null,
+            "New accounts that signed up with a friend's referral code (self-referrals excluded)."),
+    REFERRAL_DISCOUNTS(1, Kind.DISTRIBUTION, Domain.FINANCE, null,
+            "Referral discounts given on first subscription payments that succeeded (USD). Already taken off the "
+                    + "revenue figure; shown so the programme's cost is visible."),
+    REFERRAL_REWARDS(1, Kind.DISTRIBUTION, Domain.FINANCE, null,
+            "Wallet credit paid to referrers (USD), less rewards taken back. A marketing cost, not a refund.");
 
     public enum Kind { COUNT, DISTRIBUTION }
 
@@ -130,6 +137,7 @@ public enum MetricDefinition {
             case RENTAL_APPLICATIONS -> "rental_applications";
             case OFFERS -> "offers";
             case TOTAL_USERS, NEW_REGISTRATIONS, NEW_AGENTS, NEW_LANDLORDS, NEW_DEVELOPERS -> "users";
+            case REFERRAL_SIGNUPS, REFERRAL_DISCOUNTS, REFERRAL_REWARDS -> "referrals";
             default -> "payments";
         };
     }
