@@ -38,6 +38,7 @@ import type {
 import {
   ShieldCheck,
   Sparkles,
+  FileDown,
   Users,
   Building2,
   ScrollText,
@@ -82,13 +83,14 @@ import DemandAnalytics from "@/components/admin/analytics/DemandAnalytics";
 import ReferralsPanel from "@/components/admin/ReferralsPanel";
 import RevenueDashboard from "@/components/admin/analytics/RevenueDashboard";
 import InsightsPanel from "@/components/admin/analytics/InsightsPanel";
+import ReportsPanel from "@/components/admin/analytics/ReportsPanel";
 import dynamic from "next/dynamic";
 // Leaflet touches window, so the map only renders in the browser.
 const MarketMap = dynamic(() => import("@/components/admin/analytics/MarketMap"), { ssr: false });
 import StaffAccessPanel from "@/components/admin/StaffAccessPanel";
 import { STAFF_ROLES } from "@/lib/types";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand" | "referrals" | "revenue" | "insights";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand" | "referrals" | "revenue" | "insights" | "reports-export";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -310,6 +312,8 @@ export default function AdminPortalPage() {
   const canSeeEngine = isAdmin || !!user?.roles?.some((r) => r === "OPERATIONS_ADMIN" || r === "VERIFICATION_OFFICER");
   const canSeeMarket = isAdmin || !!user?.roles?.some((r) => r === "MARKET_ANALYST" || r === "OPERATIONS_ADMIN");
   const canSeeReferrals = isAdmin || !!user?.roles?.includes("FINANCE_ADMIN");
+  // Mirrors REPORTS_EXPORT on the server (admins, finance admins and market analysts).
+  const canExport = isAdmin || !!user?.roles?.some((r) => r === "FINANCE_ADMIN" || r === "MARKET_ANALYST");
 
   useEffect(() => {
     // Signed out: ask them to sign in like every other protected page. Signed in without a
@@ -500,6 +504,7 @@ export default function AdminPortalPage() {
       { key: "referrals" as Tab, label: "Referrals", icon: Gift },
     ] : []),
     { key: "insights", label: "Insights & Alerts", icon: Sparkles },
+    ...(canExport ? [{ key: "reports-export" as Tab, label: "Reports", icon: FileDown }] : []),
     ...(canSeeEngine ? [{ key: "analytics-engine" as Tab, label: "Analytics Engine", icon: Activity }] : []),
   ];
   const ADMIN_TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
@@ -547,6 +552,7 @@ export default function AdminPortalPage() {
       {tab === "referrals" && canSeeReferrals && <ReferralsPanel canEdit={!!isAdmin} />}
       {tab === "revenue" && canSeeReferrals && <RevenueDashboard canConfigure={!!isAdmin} />}
       {tab === "insights" && <InsightsPanel canConfigure={!!isAdmin} />}
+      {tab === "reports-export" && canExport && <ReportsPanel />}
 
       {tab === "operations" && (
         <div>

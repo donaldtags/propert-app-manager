@@ -136,9 +136,10 @@ public class InsightsService {
         }
         boolean outdated = !good.getInputFingerprint().equals(MarketInsightService.fingerprint(MarketInsightService.input(all)));
         String note = outdated ? "Written for an earlier set of observations; an update is due on the next hourly run." : null;
-        if (!"OK".equals(status) && latest != null) {
-            note = "The latest attempt " + ("REFUSED".equals(latest.getStatus()) ? "was declined" : "failed")
-                    + "; showing the last good interpretation.";
+        if ("UNAVAILABLE".equals(status)) {
+            note = "No Claude API key is configured now, so this won't be updated; showing the last interpretation written.";
+        } else if ("FAILED".equals(status) || "REFUSED".equals(status)) {
+            note = "The latest attempt " + ("REFUSED".equals(status) ? "was declined" : "failed") + "; showing the last good interpretation.";
         }
         return new AiView(status, true, available, good.getModel(), good.getCreatedAt(), good.getHeadline(), items, outdated, hidden, note);
     }

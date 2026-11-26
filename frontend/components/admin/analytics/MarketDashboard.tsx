@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import SavedViews from "./SavedViews";
 import Link from "next/link";
 import { AlertTriangle, Download, Info, Loader2, MapPin, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -130,10 +131,19 @@ export default function MarketDashboard({ type, canConfigure }: { type: MarketTy
             {data?.figuresCalculatedAt && <span className="text-gray-400"> · figures from the update at {new Date(data.figuresCalculatedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>}
           </p>
         </div>
-        <button type="button" onClick={exportCsv} disabled={!data}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-200 hover:border-gray-300 bg-white rounded-lg px-3 py-2 disabled:opacity-50">
-          <Download className="w-4 h-4" aria-hidden /> Export
-        </button>
+        <div className="flex items-center gap-2">
+          <SavedViews page={rent ? "market-rent" : "market-sale"}
+            current={{ range, grain, city, suburb, category, bedrooms, minPrice, maxPrice }}
+            onApply={(f) => {
+              const str = (k: string) => (typeof f[k] === "string" || typeof f[k] === "number" ? String(f[k]) : "");
+              setRange(RANGES.some((x) => x.key === str("range")) ? str("range") : "12m"); setGrain(str("grain") as MarketGrain | ""); setCity(str("city")); setSuburb(str("suburb"));
+              setCategory(str("category")); setBedrooms(str("bedrooms")); setMinPrice(str("minPrice")); setMaxPrice(str("maxPrice"));
+            }} />
+          <button type="button" onClick={exportCsv} disabled={!data}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-200 hover:border-gray-300 bg-white rounded-lg px-3 py-2 disabled:opacity-50">
+            <Download className="w-4 h-4" aria-hidden /> Export
+          </button>
+        </div>
       </div>
 
       {/* One row of filters, above everything they affect. */}

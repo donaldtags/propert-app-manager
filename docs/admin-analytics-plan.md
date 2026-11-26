@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A–G and R done (2026-11-26); Phase H (reports and exports) next, after your review.** Branch: `feature/admin-analytics`.
+Status: **Phases A–H and R done (2026-11-26). Module 21's planned phases are complete; open items are listed at the end of the Phase H entry.** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -322,7 +322,7 @@ empty state explaining what data is missing. Charts are never filled with sample
 | **R. Referral discount** | As in §7 | Tests cover the discount, the reward, self-referral blocking and refund reversal |
 | **F. Revenue** | The revenue classification in §4.4; MRR, ARR and churn; marketing spend entry; LTV; referral costs | Tests reconcile the revenue figures with the payments in a fixture |
 | **G. Insights and alerts** (done) | Deterministic observations (Poisson or z-tests with minimum n); Claude interpretations limited to those observations; alert rules, thresholds, cooldowns and preferences | No insight is produced when n is below the minimum. If AI is turned off, observations are still shown. |
-| **H. Reports** | CSV, Excel and PDF reports with dates, coverage and method notes; scheduled email delivery; saved views | Tests cover report generation and the coverage notes |
+| **H. Reports** (done) | CSV, Excel and PDF reports with dates, coverage and method notes; scheduled email delivery; saved views | Tests cover report generation and the coverage notes |
 
 ## 9. Decisions (2026-11-26)
 - **D1 Referral:** subscriptions, both sides. The new user gets a percentage off their first
@@ -1156,4 +1156,133 @@ links to `/admin?tab=insights`.
     preference opt-out; finance preferences forbidden to an analyst.
   - Operational: job failed (once per run), duplicates, staleness, acknowledgement, and alerts
     hidden from roles without the domain.
+
+### Phase H: Reports, scheduled delivery and saved views (DONE 2026-11-26)
+
+**Reports** (package `analytics/report`). There are ten types in `ReportType`, one for each item
+in brief §11:
+- daily platform;
+- weekly rental market; monthly sales; annual market (rentals and sales by month);
+- quarterly market intelligence;
+- geographic;
+- revenue;
+- agent performance; developer performance;
+- investment intelligence.
+
+**Where the figures come from.** `ReportBuilder` builds each report from the same services as
+the dashboards, so a report matches the screen for the same period and filters:
+- `OverviewService`, which now takes a reference date so the daily report covers yesterday, a
+  complete day;
+- `MarketDashboardService`, `GeoService` and `RevenueService`;
+- Phase G's observations, AI interpretations and alerts.
+
+Only three reports read source tables directly, because no dashboard covers them yet:
+- **Agent performance:** a listing counts for its agent; if it has none, for its owner when the
+  owner is an agent.
+- **Developer performance:** listing owners with the developer role, plus their construction
+  projects.
+- **Investment intelligence:** REIT offerings and their take-up, alongside indicative rental
+  yields by suburb.
+
+**Every report carries its context:**
+- when it was generated and by whom (or by which schedule);
+- the period, as dates and a label; the default is the last completed day, week, month, quarter
+  or year for that report;
+- the filters applied (city, suburb, category);
+- data coverage, for example snapshot dates, when history starts, map coverage, and sections
+  left out because of the viewer's role;
+- methodology (definitions, tests, thresholds) and notes.
+
+A blank cell always means "no data", never zero. Names appear in reports; contact details don't.
+
+**Formats** (`ReportRenderer`), with no new dependencies:
+- **PDF:** XHTML rendered with the existing openhtmltopdf. Page numbers, repeating table headers,
+  and landscape for wide tables. Symbols the built-in Helvetica lacks are swapped for plain text.
+- **Excel (.xlsx):** OOXML written directly. A Summary sheet, then one sheet per table with typed
+  numeric cells (money, whole numbers and one decimal), a frozen header row and column widths.
+- **CSV:** UTF-8 with a BOM. Cells beginning with = + - @ are defused against formula injection;
+  numbers are written as numbers, including negatives.
+
+**Permissions:**
+- **Downloading** needs `REPORTS_EXPORT` (admins, finance admins and market analysts) plus each
+  report's domains. Revenue needs finance; investment needs market and finance; the daily report
+  filters its own sections by role.
+- **Recording:** every download is audited (`REPORT_EXPORTED`) and recorded in `report_runs`.
+
+**Scheduled delivery** (`report_schedules`, `ReportScheduler` every 10 minutes):
+- Managing schedules needs `REPORTS_SCHEDULE` (admins).
+- Each delivery covers the period that has just ended and is sent at 06:00 Harare after it.
+- A schedule runs with its owner's permissions; whoever last edited it becomes the owner.
+- **Recipients must be staff accounts allowed to see that report.** Arbitrary email addresses
+  are not accepted. Both the owner and the recipients are checked again at every delivery, so a
+  revoked role stops the email (the run is recorded as SKIPPED).
+- Due schedules are claimed with a conditional update, so two servers can't send the same report.
+- Attachments go out through the new `EmailService.sendWithAttachment`. Over 10 MB, the email
+  links to the dashboard instead.
+- "Send now", and a run history of outcome, recipient count and errors.
+- Create, change and delete are audited.
+
+**Saved views** (`analytics_saved_views`):
+- Named filter sets per dashboard page, personal by default and optionally shared with other
+  staff. Shared views can be applied by others, but only changed by their owner.
+- Filters must be flat values (at most 30 keys, 2,000 characters) and the page must be a known
+  one. At most 100 views per person.
+- A **Saved views** menu is wired into the rental and sales dashboards (all eight filters).
+
+**API** (under `/api/v1/admin/analytics`):
+- `GET /reports` (the catalogue for this role, with default periods);
+- `GET /reports/{type}?format=PDF|XLSX|CSV&from&to&city&suburb&category`;
+- `GET /reports/runs`;
+- `GET|POST /report-schedules`, `PUT|DELETE /report-schedules/{id}`,
+  `POST /report-schedules/{id}/send-now`;
+- `GET /report-recipients?type=`;
+- `GET|POST /saved-views?page=`, `PUT|DELETE /saved-views/{id}`.
+
+**Frontend.** A **Reports** tab with:
+- the report picker;
+- dates (single day for the daily report), city, suburb and category;
+- PDF, Excel and CSV download buttons;
+- a scheduled-delivery manager: report, frequency with plain-English timing, format, filters,
+  and recipients chosen only from eligible staff; pause, send now, edit and delete;
+- the recent reports list.
+
+**Tests.**
+- **`ReportRendererTest` (4):**
+  - CSV context, the formula guard, and negatives not defused;
+  - the .xlsx parts are well-formed XML with numeric cells, escaping and a frozen header;
+  - the PDF text extracts back with money formatting, notes and page numbers;
+  - cell references, display formats and file names.
+- **`ReportTests` (7):**
+  - the catalogue per role: admin 10; analyst without finance reports; finance gets daily and
+    revenue; operations and tenants get 403;
+  - every report as CSV, and four as PDF and Excel, all carrying coverage and methodology;
+    downloads audited and recorded;
+  - validation of format, dates, range, category and unknown types;
+  - agent attribution, with 3 enquiries counted and no contact details;
+  - schedules: recipients restricted; next run on Monday at 06:00; one delivery when two servers
+    race; a PDF attached; nothing sent after the recipient loses the role;
+  - the delivery period maths;
+  - saved views: personal, shared, owner-only changes, flat filters only.
+
+**Verification** (2026-11-26, Phases G and H together).
+- **Setup:** a scratch MariaDB database with 38 rental listings across 7 suburbs and 538 real
+  enquiries over September to November, rebuilt by the engine from source.
+- **End-to-end result:** Avondale rental enquiries 10 → 38 (+280%, q = 0.0014) and Hatfield
+  28 → 9 (weekly) and 70 → 35 (monthly) were reported. A DEMAND_SURGE alert reached the 3
+  eligible staff, and the bell showed it. Of the 23 comparisons tested, the rest were correctly
+  held back.
+- **UI check:** with no API key locally, one interpretation was inserted by hand (labelled as
+  such) to check the AI card.
+- **Browser check** (Insights, Reports and saved views): no console or API errors. PDF, Excel
+  and CSV downloads worked, and a saved view was created.
+- **Two bugs found and fixed:**
+  - CORS didn't expose `Content-Disposition`, so every download was named `estatex-report.*`.
+  - With no API key, the AI card wrongly said "the latest attempt failed".
+- **Not verified:** a live Claude call (no key locally; the request is unit-checked to build
+  with its structured-output schema), real SMTP delivery (tests capture the email), and Postgres.
+
+**Open items for the owner:**
+- Set `ANTHROPIC_API_KEY` (and optionally `ANALYTICS_AI_MODEL`) for AI interpretations.
+- Configure SMTP (`spring.mail.*`) for alert and report emails.
+- Decide on the self-confirmed billing charges found in Phase F.
 

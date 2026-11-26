@@ -1841,3 +1841,68 @@ export const insightsApi = {
   savePreference: (token: string, key: string, p: { inApp: boolean; email: boolean }) =>
     request<AlertPreferenceView>(`/admin/analytics/alert-preferences/${key}`, { method: "PUT", body: JSON.stringify(p) }, token),
 };
+
+// Reports, scheduled delivery and saved views. See docs/admin-analytics-plan.md Phase H.
+export type ReportFormat = "PDF" | "XLSX" | "CSV";
+export type ReportFrequency = "DAY" | "WEEK" | "MONTH" | "QUARTER" | "YEAR";
+export interface ReportTypeView { key: string; label: string; description: string; grain: string; defaultFrom: string; defaultTo: string }
+export interface ReportFilters { from?: string; to?: string; city?: string; suburb?: string; category?: string }
+export interface ReportRunView {
+  id: number; scheduleId?: number | null; reportType: string; reportLabel: string; format: ReportFormat; trigger: "DOWNLOAD" | "SEND_NOW" | "SCHEDULE";
+  requestedByUserId?: number | null; requestedBy?: string | null; generatedAt: string; periodFrom?: string | null; periodTo?: string | null;
+  status: "OK" | "FAILED" | "SKIPPED"; sizeBytes?: number | null; recipients: number; error?: string | null;
+}
+export interface ReportRecipient { id: number; name: string; email: string }
+export interface ReportScheduleView {
+  id: number; name: string; reportType: string; reportLabel: string; format: ReportFormat; frequency: ReportFrequency; city?: string | null;
+  suburb?: string | null; category?: string | null; recipients: ReportRecipient[]; enabled: boolean; nextRunAt: string; lastRunAt?: string | null;
+  lastStatus?: string | null; lastError?: string | null; ownerUserId: number; owner: string;
+}
+export interface ReportScheduleInput {
+  name: string; reportType: string; format: ReportFormat; frequency: ReportFrequency; city?: string; suburb?: string; category?: string;
+  recipientIds: number[]; enabled: boolean;
+}
+export type SavedViewFilters = Record<string, string | number | boolean | null>;
+export interface SavedViewDto { id: number; name: string; page: string; filters: SavedViewFilters; shared: boolean; mine: boolean; owner: string; updatedAt: string }
+
+function reportQs(format: ReportFormat, f: ReportFilters) {
+  const q = new URLSearchParams({ format });
+  for (const [k, v] of Object.entries(f)) if (v) q.set(k, v);
+  return q.toString();
+}
+
+export const reportsApi = {
+  catalogue: (token: string) => request<{ types: ReportTypeView[]; canSchedule: boolean; formats: ReportFormat[] }>("/admin/analytics/reports", {}, token),
+  /** Downloads a report file; resolves with its name and content. */
+  download: async (token: string, type: string, format: ReportFormat, f: ReportFilters) => {
+    const res = await fetch(`${BASE}/admin/analytics/reports/${type}?${reportQs(format, f)}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      let message = res.statusText;
+      try { const body = await res.json(); message = body.message ?? body.error ?? message; } catch {}
+      throw new ApiError(res.status, message);
+    }
+    const cd = res.headers.get("content-disposition") ?? "";
+    const name = /filename\*=UTF-8''([^;]+)/i.exec(cd)?.[1] ?? /filename="?([^";]+)"?/i.exec(cd)?.[1] ?? `estatex-report.${format.toLowerCase()}`;
+    return { name: decodeURIComponent(name), blob: await res.blob() };
+  },
+  runs: (token: string) => request<ReportRunView[]>("/admin/analytics/reports/runs", {}, token),
+  schedules: (token: string) => request<ReportScheduleView[]>("/admin/analytics/report-schedules", {}, token),
+  recipients: (token: string, type: string) => request<ReportRecipient[]>(`/admin/analytics/report-recipients?type=${type}`, {}, token),
+  createSchedule: (token: string, s: ReportScheduleInput) =>
+    request<ReportScheduleView>("/admin/analytics/report-schedules", { method: "POST", body: JSON.stringify(s) }, token),
+  updateSchedule: (token: string, id: number, s: ReportScheduleInput) =>
+    request<ReportScheduleView>(`/admin/analytics/report-schedules/${id}`, { method: "PUT", body: JSON.stringify(s) }, token),
+  deleteSchedule: (token: string, id: number) =>
+    request<{ deleted: boolean }>(`/admin/analytics/report-schedules/${id}`, { method: "DELETE" }, token),
+  sendNow: (token: string, id: number) =>
+    request<{ status: string; recipients: number; detail?: string | null }>(`/admin/analytics/report-schedules/${id}/send-now`, { method: "POST" }, token),
+};
+
+export const savedViewsApi = {
+  list: (token: string, page: string) => request<SavedViewDto[]>(`/admin/analytics/saved-views?page=${page}`, {}, token),
+  create: (token: string, v: { name: string; page: string; filters: SavedViewFilters; shared: boolean }) =>
+    request<SavedViewDto>("/admin/analytics/saved-views", { method: "POST", body: JSON.stringify(v) }, token),
+  update: (token: string, id: number, v: { name: string; page: string; filters: SavedViewFilters; shared: boolean }) =>
+    request<SavedViewDto>(`/admin/analytics/saved-views/${id}`, { method: "PUT", body: JSON.stringify(v) }, token),
+  remove: (token: string, id: number) => request<{ deleted: boolean }>(`/admin/analytics/saved-views/${id}`, { method: "DELETE" }, token),
+};

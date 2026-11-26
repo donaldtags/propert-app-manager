@@ -56,7 +56,7 @@ import org.springframework.stereotype.Service;
 public class MarketDashboardService {
     static final String COST_RATIO_KEY = "yield_cost_ratio";
     static final BigDecimal DEFAULT_COST_RATIO = new BigDecimal("0.25");
-    static final int MIN_SAMPLE = 5;
+    public static final int MIN_SAMPLE = 5;
     private static final int MAX_GROUPS = 25;
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
     /** Sale price bands, in USD; the last is open-ended. */

@@ -37,6 +37,26 @@ public class EmailService {
         }
     }
 
+    /**
+     * An email with one attachment (scheduled reports). Unlike {@link #send}, a failure is thrown,
+     * so the caller can record that the delivery didn't happen.
+     */
+    public void sendWithAttachment(String toEmail, String subject, String text, String fileName, byte[] content, String contentType) {
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper =
+                    new org.springframework.mail.javamail.MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(text);
+            helper.addAttachment(fileName, new org.springframework.core.io.ByteArrayResource(content), contentType);
+            mailSender.send(message);
+        } catch (jakarta.mail.MessagingException e) {
+            throw new IllegalStateException("Could not build the email: " + e.getMessage(), e);
+        }
+    }
+
     public void sendPasswordReset(String toEmail, String resetLink) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
