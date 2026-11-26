@@ -145,7 +145,8 @@ class AnalyticsEngineTests {
         assertThat(jdbc.queryForObject("select count(*) from metric_values", Integer.class)).isEqualTo(rowsBefore);
     }
 
-    @Test
+    /** Repeated, because a race shows up only some of the time (it once let two workers through). */
+    @org.junit.jupiter.api.RepeatedTest(5)
     @Order(3)
     void onlyOneWorkerProcessesAWindow() throws Exception {
         String job = "locktest" + System.nanoTime();
@@ -203,6 +204,20 @@ class AnalyticsEngineTests {
                 .andExpect(jsonPath("$.lastSuccess.status").value("SUCCEEDED"));
     }
 
+    /** Different windows of the same job starting together (a manual run and the scheduled one): still only one runs. */
+    @org.junit.jupiter.api.RepeatedTest(5)
+    @Order(4)
+    void onlyOneWindowOfAJobRunsAtATime() throws Exception {
+        String job = "overlaptest" + System.nanoTime();
+        Instant end = Instant.now();
+        engine.beforeStep = step -> sleep(300);
+        CompletableFuture<AnalyticsEngine.Outcome> a = CompletableFuture.supplyAsync(
+                () -> engine.process(job, end.minus(Duration.ofHours(2)), end, "SCHEDULE", false, List.of()));
+        CompletableFuture<AnalyticsEngine.Outcome> b = CompletableFuture.supplyAsync(
+                () -> engine.process(job, end.minus(Duration.ofHours(1)), end, "MANUAL", false, List.of()));
+        assertThat(List.of(a.get().status(), b.get().status())).containsExactlyInAnyOrder("SUCCEEDED", "SKIPPED");
+    }
+
     @Test
     @Order(6)
     void aCrashedRunsLockIsTakenOver() {
@@ -220,6 +235,20 @@ class AnalyticsEngineTests {
         assertThat(lock.acquire(job, now.minus(Duration.ofHours(1)), now, now, Duration.ofMinutes(45), "T", "w", false)).isPresent();
         assertThat(jdbc.queryForObject("select status from analytics_job_runs where job_name = ? and attempt = 1 and window_start < ?",
                 String.class, job, Timestamp.from(now.minus(Duration.ofMinutes(150))))).isEqualTo("ABANDONED");
+    }
+
+    @Test
+    @Order(6)
+    void aNormalShutdownReleasesItsRunsAtOnce() {
+        String job = "shutdowntest" + System.nanoTime();
+        Instant now = Instant.now();
+        jdbc.update("insert into analytics_job_runs (job_name, window_start, window_end, attempt, status, worker, started_at, "
+                        + "heartbeat_at, records_read, records_rejected, metrics_written, step_retries) values (?, ?, ?, 1, 'RUNNING', ?, ?, ?, 0, 0, 0, 0)",
+                job, Timestamp.from(now.minusSeconds(3600)), Timestamp.from(now), engine.worker(), Timestamp.from(now), Timestamp.from(now));
+        engine.releaseOnShutdown();
+        assertThat(jdbc.queryForObject("select status from analytics_job_runs where job_name = ?", String.class, job)).isEqualTo("ABANDONED");
+        // The next start can take the window straight away instead of waiting 45 minutes.
+        assertThat(lock.acquire(job, now.minusSeconds(3600), now, now, Duration.ofMinutes(45), "T", "w", false)).isPresent();
     }
 
     @Test

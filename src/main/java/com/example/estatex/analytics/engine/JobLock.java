@@ -50,7 +50,10 @@ public class JobLock {
                 job, Timestamp.from(windowStart));
         int attempt = 1;
         if (!previous.isEmpty()) {
-            if ("SUCCEEDED".equals(previous.get(0).get("status")) && !allowRerun) return Optional.empty();
+            Object latest = previous.get(0).get("status");
+            // Someone started this window since the check above (stale runs were already released there).
+            if ("RUNNING".equals(latest)) return Optional.empty();
+            if ("SUCCEEDED".equals(latest) && !allowRerun) return Optional.empty();
             attempt = ((Number) previous.get(0).get("attempt")).intValue() + 1;
         }
         try {
@@ -62,9 +65,17 @@ public class JobLock {
         } catch (DataIntegrityViolationException lostRace) {
             return Optional.empty();
         }
-        return Optional.ofNullable(jdbc.queryForObject(
-                "select id from analytics_job_runs where job_name = ? and window_start = ? and attempt = ?",
-                Long.class, job, Timestamp.from(windowStart), attempt));
+        Long id = jdbc.queryForObject("select id from analytics_job_runs where job_name = ? and window_start = ? and attempt = ?",
+                Long.class, job, Timestamp.from(windowStart), attempt);
+        // Two workers can pass the first check at the same moment with different windows (e.g. a manual
+        // run and the scheduled one). The younger row steps aside, so exactly one of them runs.
+        Integer older = jdbc.queryForObject("select count(*) from analytics_job_runs where job_name = ? and status = 'RUNNING' "
+                + "and id < ? and heartbeat_at >= ?", Integer.class, job, id, staleCutoff);
+        if (older != null && older > 0) {
+            jdbc.update("delete from analytics_job_runs where id = ? and status = 'RUNNING'", id);
+            return Optional.empty();
+        }
+        return Optional.ofNullable(id);
     }
 
     /** Drivers differ: Postgres and MariaDB return Timestamp, H2 returns OffsetDateTime for zoned columns. */

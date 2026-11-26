@@ -82,6 +82,27 @@ public class AnalyticsEngine {
         this.backoffSeconds = Arrays.stream(backoff.split(",")).map(String::trim).mapToLong(Long::parseLong).toArray();
     }
 
+    /**
+     * On a normal shutdown (a deploy or restart sends SIGTERM), give up this server's unfinished
+     * runs at once, so the next start doesn't wait out the 45-minute stale-lock timeout. A crash
+     * skips this; the timeout covers that case.
+     */
+    @jakarta.annotation.PreDestroy
+    public void releaseOnShutdown() {
+        try {
+            int released = jdbc.update("update analytics_job_runs set status = 'ABANDONED', finished_at = ?, "
+                            + "error = 'Server shut down during the run; the next run picks up the same window.' "
+                            + "where status = 'RUNNING' and worker = ?", Timestamp.from(now()), worker);
+            if (released > 0) log.info("Released {} unfinished analytics run(s) on shutdown", released);
+        } catch (RuntimeException e) {
+            log.warn("Could not release analytics runs on shutdown: {}", e.getMessage());
+        }
+    }
+
+    String worker() {
+        return worker;
+    }
+
     public record Outcome(String status, Long runId, String detail) {
         static Outcome skipped(String why) {
             return new Outcome("SKIPPED", null, why);

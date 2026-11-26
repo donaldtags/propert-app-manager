@@ -660,3 +660,19 @@ an hourly run in the engine tab.
   were no console or API errors.
 - **Not verified:** Postgres. Check it after the first deploy.
 
+**Fixes after Phase C (2026-11-26), found while running on the local MariaDB:**
+- **V9.** The unique key on `metric_values` must include `variant`. A database that ran Phase B
+  kept the old key, because ddl-auto never changes an existing index, so it rejected the
+  like-for-like rows. V9 rebuilds the index, and is safe on a fresh database.
+- **Lock race.** The concurrency test caught two workers processing the same window. A worker
+  that saw the other's RUNNING attempt treated it as a retry. Now a RUNNING attempt blocks the
+  window, and after inserting, a worker steps aside if an older run of the same job is running.
+  Both concurrency tests now run 5 times each.
+- **Release on shutdown.** On a normal shutdown (deploy or restart), the server marks its own
+  unfinished runs ABANDONED (`@PreDestroy`). Before this, every restart blocked the engine for 45
+  minutes until the stale-lock timeout. A crash still relies on that timeout.
+- **Verification:**
+  - Backend 183/183.
+  - The local backend was restarted on the new code. On the real local data, the startup
+    catch-up succeeded (1,524 figures) and every public endpoint returned 200.
+
