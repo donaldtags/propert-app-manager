@@ -41,12 +41,19 @@ public class JobLock {
     /** @return the new run's id, or empty if the window is done or held by someone else. */
     public Optional<Long> acquire(String job, Instant windowStart, Instant windowEnd, Instant now, Duration staleAfter,
                                   String triggeredBy, String worker, boolean allowRerun) {
+        // Databases keep microseconds; Linux clocks give nanoseconds. Round first, or the run row we
+        // insert can't be found again by its window start (and duplicate checks miss it).
+        Instant start = micros(windowStart), end = micros(windowEnd), at = micros(now);
         ensureLockRow(job);
         return tx.execute(status -> {
             // Blocks until any other worker deciding for this job has committed its decision.
             jdbc.queryForList("select job_name from analytics_job_locks where job_name = ? for update", job);
-            return decide(job, windowStart, windowEnd, now, staleAfter, triggeredBy, worker, allowRerun, status);
+            return decide(job, start, end, at, staleAfter, triggeredBy, worker, allowRerun, status);
         });
+    }
+
+    static Instant micros(Instant i) {
+        return i == null ? null : i.truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     }
 
     /** Created on first use, in its own statement: a duplicate-key error inside the locking transaction would abort it on Postgres. */

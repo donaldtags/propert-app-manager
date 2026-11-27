@@ -206,6 +206,19 @@ class AnalyticsEngineTests {
     }
 
     /**
+     * Linux clocks give nanoseconds; the database keeps microseconds. A window starting at a
+     * nanosecond instant must still be found again after it's inserted (CI on Linux failed here
+     * while macOS, whose clock only gives microseconds, passed).
+     */
+    @Test
+    @Order(4)
+    void windowsWithNanosecondTimestampsStillRun() {
+        Instant end = Instant.parse("2026-11-27T08:15:30.123456789Z");
+        AnalyticsEngine.Outcome outcome = engine.process("nanos" + System.nanoTime(), end.minus(Duration.ofHours(1)), end, "MANUAL", false, List.of());
+        assertThat(outcome.status()).isEqualTo("SUCCEEDED");
+    }
+
+    /**
      * QA finding F-4: six runs of one job (different windows) released at the same instant. No two
      * that ran may overlap. Before the per-job lock row, a run's id was allocated before its row
      * was visible, so simultaneous starts could each miss the other and both run.
