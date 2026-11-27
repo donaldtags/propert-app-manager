@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
+import PayBill from "@/components/PayBill";
 import { subscriptions as subscriptionsApi, referralsApi } from "@/lib/api";
 import type { PlanSettings, SubscriptionInfo, SubscriptionFeature, SubscriptionPlan, CheckoutProvider } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
@@ -172,8 +173,13 @@ export default function SubscriptionPage() {
               {mine.currentPeriodEnd && (
                 <p className="text-xs text-brand-700 mt-0.5">
                   Renews on {formatDate(mine.currentPeriodEnd)} · status {mine.status}
-                  {mine.status === "PAST_DUE" && " — renewal failed, will downgrade if not resolved"}
+                  {mine.status === "PAST_DUE" && " — renewal unpaid: pay within 3 days of the due date to keep your plan"}
                 </p>
+              )}
+              {mine.pendingPaymentId && (
+                <div className="mt-2">
+                  <PayBill paymentId={mine.pendingPaymentId} amountLabel="renewal" label="Pay renewal" />
+                </div>
               )}
             </div>
           </div>

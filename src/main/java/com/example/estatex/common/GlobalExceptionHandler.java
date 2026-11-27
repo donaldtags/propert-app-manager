@@ -61,8 +61,23 @@ public class GlobalExceptionHandler {
                 .body(error(HttpStatus.CONFLICT, "Request could not be completed because it conflicts with existing data"));
     }
 
+    /**
+     * Spring's own request errors (wrong Content-Type, unknown URL, wrong HTTP method, a missing
+     * upload part, a non-multipart request to an upload endpoint) are the caller's mistake: answer
+     * with the 4xx status Spring already assigned instead of a 500.
+     */
+    @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+    ResponseEntity<Map<String, Object>> handleNotMultipart(org.springframework.web.multipart.MultipartException ex) {
+        return ResponseEntity.badRequest().body(error(HttpStatus.BAD_REQUEST, "This endpoint expects a file upload (multipart/form-data)"));
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) {
+        if (ex instanceof org.springframework.web.ErrorResponse framework && framework.getStatusCode().is4xxClientError()) {
+            HttpStatus status = HttpStatus.valueOf(framework.getStatusCode().value());
+            String detail = framework.getBody().getDetail();
+            return ResponseEntity.status(status).body(error(status, detail != null ? detail : status.getReasonPhrase()));
+        }
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(error(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again."));

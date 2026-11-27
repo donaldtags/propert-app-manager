@@ -101,10 +101,10 @@ public class PropertyService {
         property.setTitle(request.title());
         property.setDescription(request.description());
         property.setListingType(request.listingType());
-        // Agency listings go live via the workspace publish step; an agent's own listings wait as
-        // drafts until EstateX has approved their Estate Agents Council licence.
-        property.setStatus(organisationListing || com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(landlord)
-                ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
+        // Agency listings go live through the workspace publish step. A private listing waits
+        // unpublished until its first month's listing fee is paid (PropertyBillingService), and an
+        // agent's own listings also wait for their licence.
+        property.setStatus(PropertyStatus.DRAFT);
         property.setOrganisationId(organisationId);
         property.setTitleType(titleType);
         property.setCity(request.city());
@@ -162,6 +162,13 @@ public class PropertyService {
                 && com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(property.getLandlord())) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Your listings go live once EstateX approves your agent licence. Upload it from your profile.");
+        }
+        if (!property.isOrganisationListing() && request.status() == PropertyStatus.AVAILABLE
+                && property.getStatus() != PropertyStatus.AVAILABLE
+                && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)
+                && !billing.feesAllowLive(property)) {
+            throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
+                    "This listing goes live once its listing fee is paid. Pay it from the listing's edit page or Payments.");
         }
         if (request.status() == PropertyStatus.EXPIRED) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
@@ -349,6 +356,7 @@ public class PropertyService {
     private static final int INTERNAL_SEARCH_LIMIT = 50;
     private static final int MAX_PAGE_SIZE = 500;
 
+    @Transactional(readOnly = true)
     public List<Property> search(
             ListingType listingType,
             String city,
@@ -363,6 +371,7 @@ public class PropertyService {
                 null, null, null, null, null, null, null, null, null, null);
     }
 
+    @Transactional(readOnly = true)
     public List<Property> search(
             ListingType listingType,
             String city,

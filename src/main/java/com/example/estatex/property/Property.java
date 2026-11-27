@@ -68,7 +68,10 @@ public class Property {
     private int bathrooms;
     private BigDecimal price;
     private String currency = "USD";
+    /** 7 decimal places (~1 cm). Before V12 (2026-11-27) the column kept only 2 (~1 km). */
+    @Column(precision = 10, scale = 7)
     private BigDecimal latitude;
+    @Column(precision = 10, scale = 7)
     private BigDecimal longitude;
     private boolean diasporaFriendly;
     private boolean escrowRequired = true;

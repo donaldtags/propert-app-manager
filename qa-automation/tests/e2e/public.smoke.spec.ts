@@ -15,7 +15,7 @@ test.describe("Public site @smoke", () => {
 
   test("property search renders results or an empty state @smoke", async ({ page }) => {
     await page.goto("/properties");
-    await expect(page.getByRole("heading", { name: /rentals|homes|properties/i }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /rentals?|homes?|propert(y|ies)/i }).first()).toBeVisible();
   });
 
   test("login page is reachable @smoke", async ({ page }) => {

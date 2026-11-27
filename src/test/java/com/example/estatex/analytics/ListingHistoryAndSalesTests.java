@@ -36,6 +36,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ListingHistoryAndSalesTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -65,17 +66,21 @@ class ListingHistoryAndSalesTests {
         call(patch("/api/v1/properties/" + id), owner, "{\"bedrooms\": 4, \"category\": \"HOUSE\"}").andExpect(status().isOk());
 
         List<PropertyEvent> history = propertyEvents.findByPropertyIdOrderByOccurredAtAscIdAsc(id);
+        // Created as a draft, published when the first listing fee was paid, then the owner's changes.
         assertThat(history).extracting(PropertyEvent::getEventType)
-                .containsExactly("CREATED", "PRICE_CHANGED", "STATUS_CHANGED", "CHARACTERISTICS_CHANGED");
+                .containsExactly("CREATED", "STATUS_CHANGED", "PRICE_CHANGED", "STATUS_CHANGED", "CHARACTERISTICS_CHANGED");
         assertThat(history.get(0).getPrice()).isEqualByComparingTo("120000");
-        assertThat(history.get(1).getPreviousPrice()).isEqualByComparingTo("120000");
-        assertThat(history.get(1).getPrice()).isEqualByComparingTo("110000");
-        assertThat(history.get(2).getPreviousStatus()).isEqualTo("AVAILABLE");
-        assertThat(history.get(2).getStatus()).isEqualTo("WITHDRAWN");
-        assertThat(history.get(3).getCategory()).isEqualTo("HOUSE");
-        assertThat(history.get(3).getChangeSummary()).contains("bedrooms 3→4");
+        assertThat(history.get(0).getStatus()).isEqualTo("DRAFT");
+        assertThat(history.get(1).getPreviousStatus()).isEqualTo("DRAFT");
+        assertThat(history.get(1).getStatus()).isEqualTo("AVAILABLE");
+        assertThat(history.get(2).getPreviousPrice()).isEqualByComparingTo("120000");
+        assertThat(history.get(2).getPrice()).isEqualByComparingTo("110000");
+        assertThat(history.get(3).getPreviousStatus()).isEqualTo("AVAILABLE");
+        assertThat(history.get(3).getStatus()).isEqualTo("WITHDRAWN");
+        assertThat(history.get(4).getCategory()).isEqualTo("HOUSE");
+        assertThat(history.get(4).getChangeSummary()).contains("bedrooms 3→4");
         assertThat(history).allSatisfy(e -> assertThat(e.getSource()).isEqualTo("APP"));
-        assertThat(history.get(1).getActorUserId()).isEqualTo(owner.id());
+        assertThat(history.get(2).getActorUserId()).isEqualTo(owner.id());
     }
 
     @Test
@@ -162,7 +167,7 @@ class ListingHistoryAndSalesTests {
         String created = call(post("/api/v1/properties"), owner, body).andExpect(status().isOk())
                 .andExpect(jsonPath("$.floorAreaM2").value(180))
                 .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(created).get("id").asLong();
+        return fees.paid(objectMapper.readTree(created).get("id").asLong());
     }
 
     private ResultActions track(String body, Account who, String userAgent) throws Exception {

@@ -1,5 +1,6 @@
 "use client";
 
+import PayBill from "@/components/PayBill";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -222,22 +223,31 @@ export default function EditPropertyPage() {
 
       {billing && (
         <div
-          className={`text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2 border ${
+          className={`text-sm px-4 py-3 rounded-xl mb-5 flex flex-wrap items-center gap-2 border ${
             billing.status === "PAST_DUE"
               ? "bg-red-50 border-red-200 text-red-700"
-              : "bg-gray-50 border-gray-200 text-gray-600"
+              : billing.status === "AWAITING_PAYMENT"
+                ? "bg-amber-50 border-amber-200 text-amber-800"
+                : "bg-gray-50 border-gray-200 text-gray-600"
           }`}
         >
-          {billing.status === "PAST_DUE" ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
-          {billing.status === "PAST_DUE" ? (
-            <span>
-              Payment failed for this listing&apos;s ${billing.monthlyFee.toFixed(2)}/month fee. It will be deactivated if not resolved soon.
+          {billing.status === "ACTIVE" ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+          {billing.status === "AWAITING_PAYMENT" ? (
+            <span className="flex-1">
+              Not published yet: pay the first month&apos;s listing fee (${billing.monthlyFee.toFixed(2)}) and it goes live straight away.
+            </span>
+          ) : billing.status === "PAST_DUE" ? (
+            <span className="flex-1">
+              This month&apos;s ${billing.monthlyFee.toFixed(2)} listing fee is unpaid. The listing is taken off the market 3 days after it falls due; paying puts it back.
             </span>
           ) : (
             <span>
               Listing fee: ${billing.monthlyFee.toFixed(2)}/month
-              {billing.currentPeriodEnd && ` · next charge ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`}
+              {billing.currentPeriodEnd && ` · paid until ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`}
             </span>
+          )}
+          {billing.pendingPaymentId && (
+            <PayBill paymentId={billing.pendingPaymentId} amountLabel={`$${billing.monthlyFee.toFixed(2)}`} />
           )}
         </div>
       )}

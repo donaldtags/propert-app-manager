@@ -34,6 +34,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class GeoDemandTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -127,14 +128,31 @@ class GeoDemandTests {
         assertThat(gap.path("liveListings").asInt()).isZero();
         assertThat(gap.path("explanation").asString()).contains("2+ bedroom cottages to rent in Alpha").contains("no matching listing");
 
-        JsonNode enquiryReplies = d.path("responseTimes").get(0);
-        assertThat(enquiryReplies.path("medianHours").isNull() || enquiryReplies.path("medianHours").isMissingNode()).isTrue();
-        assertThat(enquiryReplies.path("note").asString()).contains("aren't time-stamped");
+        // No agency enquiry has been answered in this city.
+        assertThat(d.path("responseTimes").get(0).path("label").asString()).isEqualTo("Enquiries first answered");
+        assertThat(d.path("responseTimes").get(0).path("n").asInt()).isZero();
 
         // Demand layers on the map appear with demand permission.
         JsonNode g = json(call(get("/api/v1/admin/analytics/geo/rent?city=" + city), admin));
         assertThat(suburb(g, "Alpha").path("searches").asInt()).isEqualTo(12);
         assertThat(suburb(g, "Alpha").path("demand").asInt()).isEqualTo(1);
+    }
+
+    /** Enquiry response time = from when it came in to when the agency first moved it on from NEW. */
+    @Test
+    void enquiryResponseTimeIsMeasuredToTheFirstAnswer() throws Exception {
+        // Two agency enquiries on an Alpha listing, first answered 1 h and 3 h after they came in.
+        java.time.Instant now = java.time.Instant.now();
+        for (int hours : new int[]{1, 3}) {
+            jdbc.update("insert into enquiries (organisation_id, property_id, channel, status, name, captured_at, created_at, first_responded_at) "
+                            + "values (?, ?, 'PHONE', 'CONTACTED', 'Caller', ?, ?, ?)", 1L, alpha.get(0),
+                    java.sql.Timestamp.from(now.minus(java.time.Duration.ofHours(hours + 1))), java.sql.Timestamp.from(now),
+                    java.sql.Timestamp.from(now.minus(java.time.Duration.ofHours(1))));
+        }
+        JsonNode answered = json(call(get("/api/v1/admin/analytics/demand?city=" + city), admin).andExpect(status().isOk()))
+                .path("responseTimes").get(0);
+        assertThat(answered.path("n").asInt()).isEqualTo(2);
+        assertThat(answered.path("medianHours").decimalValue()).isEqualByComparingTo("2.0");
     }
 
     @Test
@@ -177,8 +195,8 @@ class GeoDemandTests {
                 {"title": "Geo %s", "listingType": "RENT", "city": "%s", "suburb": "%s", "bedrooms": 2, "bathrooms": 1, %s
                  "price": %d, "currency": "USD", "escrowRequired": false, "landlordId": %d, "category": "FLAT"}
                 """.formatted(System.nanoTime(), city, suburb, pin, price, owner.id());
-        return json(mvc.perform(post("/api/v1/properties").header(HttpHeaders.AUTHORIZATION, admin.bearer())
-                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk())).path("id").asLong();
+        return fees.paid(json(mvc.perform(post("/api/v1/properties").header(HttpHeaders.AUTHORIZATION, admin.bearer())
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk())).path("id").asLong());
     }
 
     private void listingIn(String c, String suburb, int price) throws Exception {
@@ -186,8 +204,8 @@ class GeoDemandTests {
                 {"title": "Geo %s", "listingType": "RENT", "city": "%s", "suburb": "%s", "bedrooms": 2, "bathrooms": 1,
                  "price": %d, "currency": "USD", "escrowRequired": false, "landlordId": %d, "category": "FLAT"}
                 """.formatted(System.nanoTime(), c, suburb, price, owner.id());
-        mvc.perform(post("/api/v1/properties").header(HttpHeaders.AUTHORIZATION, admin.bearer())
-                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk());
+        fees.paid(json(mvc.perform(post("/api/v1/properties").header(HttpHeaders.AUTHORIZATION, admin.bearer())
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk())).path("id").asLong());
     }
 
     private void track(String body) throws Exception {

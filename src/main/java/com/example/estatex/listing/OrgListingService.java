@@ -135,7 +135,7 @@ public class OrgListingService {
                 r.bedrooms(), r.bathrooms(), BigDecimal.valueOf(r.priceCents(), 2), currency,
                 null, null,
                 false, true, false, false, null, false, false, false, false, false,
-                negotiatorId, null, null, null, null, null);
+                negotiatorId, null, null, null, null, null, null, r.floorAreaM2());
         Property property = propertyService.create(request, org.getId(), r.titleType());
 
         ListingCompliance c = new ListingCompliance();

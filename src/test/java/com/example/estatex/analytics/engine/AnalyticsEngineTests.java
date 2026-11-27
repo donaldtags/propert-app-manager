@@ -52,6 +52,7 @@ import tools.jackson.databind.ObjectMapper;
 @ActiveProfiles("test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AnalyticsEngineTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -202,6 +203,40 @@ class AnalyticsEngineTests {
                 .andExpect(jsonPath("$.state").value("FAILED"))
                 .andExpect(jsonPath("$.lastRun.error").value("IllegalStateException: disk full"))
                 .andExpect(jsonPath("$.lastSuccess.status").value("SUCCEEDED"));
+    }
+
+    /**
+     * QA finding F-4: six runs of one job (different windows) released at the same instant. No two
+     * that ran may overlap. Before the per-job lock row, a run's id was allocated before its row
+     * was visible, so simultaneous starts could each miss the other and both run.
+     */
+    @org.junit.jupiter.api.RepeatedTest(30)
+    @Order(4)
+    void simultaneousStartsOfAJobNeverOverlap() throws Exception {
+        String job = "stampede" + System.nanoTime();
+        Instant end = Instant.now();
+        engine.beforeStep = step -> sleep(5);
+        java.util.concurrent.CountDownLatch go = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(12);
+        try {
+            List<java.util.concurrent.Future<AnalyticsEngine.Outcome>> runs = new java.util.ArrayList<>();
+            for (int i = 1; i <= 12; i++) {
+                Instant start = end.minus(Duration.ofHours(i));
+                runs.add(pool.submit(() -> { go.await(); return engine.process(job, start, end, "MANUAL", false, List.of()); }));
+            }
+            go.countDown();
+            for (var r : runs) r.get();
+        } finally {
+            pool.shutdownNow();
+        }
+        List<java.util.Map<String, Object>> done = jdbc.queryForList(
+                "select started_at, finished_at from analytics_job_runs where job_name = ? and status = 'SUCCEEDED' order by started_at", job);
+        assertThat(done).isNotEmpty();
+        for (int i = 1; i < done.size(); i++) {
+            assertThat(JobLock.instant(done.get(i).get("started_at")))
+                    .as("run %d started only after run %d finished", i + 1, i)
+                    .isAfterOrEqualTo(JobLock.instant(done.get(i - 1).get("finished_at")));
+        }
     }
 
     /**
@@ -411,7 +446,7 @@ class AnalyticsEngineTests {
                 area == null ? "" : "\"floorAreaM2\": " + area + ",", category);
         String created = call(post("/api/v1/properties"), admin, body).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(created).get("id").asLong();
+        return fees.paid(objectMapper.readTree(created).get("id").asLong());
     }
 
     private ResultActions call(MockHttpServletRequestBuilder req, Account who, String body) throws Exception {

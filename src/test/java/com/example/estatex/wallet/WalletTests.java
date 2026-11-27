@@ -58,6 +58,7 @@ import tools.jackson.databind.ObjectMapper;
 @ActiveProfiles("test")
 @Import(WalletTests.FakeGatewayConfig.class)
 class WalletTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -305,7 +306,7 @@ class WalletTests {
                  "suburb": "Avondale", "bedrooms": 1, "bathrooms": 1, "price": 80, "currency": "USD",
                  "escrowRequired": false, "landlordId": %d, "photoUrls": ["https://images.unsplash.com/photo-1?w=1200"]}
                 """.formatted(System.nanoTime(), host.id());
-        long stayId = json(call(post("/api/v1/properties"), host, listing).andExpect(status().isOk())).path("id").asLong();
+        long stayId = fees.paid(json(call(post("/api/v1/properties"), host, listing).andExpect(status().isOk())).path("id").asLong());
         call(put("/api/v1/stays/" + stayId + "/settings"), host, """
                 {"maxGuests": 2, "minNights": 1, "maxNights": 14, "cleaningFee": 25, "checkInTime": "14:00",
                  "checkOutTime": "10:00", "instantBook": false}""").andExpect(status().isOk());

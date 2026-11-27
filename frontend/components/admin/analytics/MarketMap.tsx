@@ -12,6 +12,16 @@ import AlertBanner from "@/components/AlertBanner";
 import LineChart from "./charts/LineChart";
 import { formatValue } from "./format";
 import { breaks, rampFor } from "@/lib/mapClasses";
+import { approximateAreas, loadBoundaryFile, suburbKey, type LngLat } from "@/lib/suburbAreas";
+import MarketMap3D, { type Area3D } from "./MarketMap3D";
+
+type View = "circles" | "areas" | "3d";
+const VIEWS: { key: View; label: string }[] = [
+  { key: "circles", label: "Circles" },
+  { key: "areas", label: "Areas" },
+  { key: "3d", label: "3D" },
+];
+const areaId = (s: GeoSuburb) => `${s.suburb}|${s.city}`;
 
 /** Diverging for price change: red (falling) – grey (flat) – blue (rising). */
 const DIV = [
@@ -36,9 +46,14 @@ const MEASURES: { key: Measure; label: string; unit: "COUNT" | "USD" | "PERCENT"
 const value = (s: GeoSuburb, m: Measure) => (s[m] ?? null) as number | null;
 
 /**
- * The market by suburb on a map. Suburbs are circles at their centre (no boundary data is on
- * file); size = live listings, colour = the chosen measure. Colour is never the only signal: the
- * legend, hover labels, side panel and the table below all carry the numbers.
+ * The market by suburb on a map, in three views:
+ *  - Circles at each suburb's centre (size = live listings, colour = the chosen measure).
+ *  - Areas: shaded suburb areas. Real boundaries if a GeoJSON file is on the server
+ *    (public/geo/suburb-boundaries.geojson); otherwise approximate areas drawn from the suburb
+ *    centres, labelled as approximate.
+ *  - 3D: the same areas raised in proportion to the measure (MapLibre).
+ * Colour is never the only signal: the legend, hover labels, side panel and the table below all
+ * carry the numbers.
  */
 export default function MarketMap() {
   const { token } = useAuth();
@@ -49,6 +64,8 @@ export default function MarketMap() {
   const [bedrooms, setBedrooms] = useState("");
   const [measure, setMeasure] = useState<Measure>("active");
   const [showPins, setShowPins] = useState(false);
+  const [view, setView] = useState<View>("circles");
+  const [boundaries, setBoundaries] = useState<Map<string, LngLat[]> | null>(null);
   const [data, setData] = useState<GeoData | null>(null);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<GeoSuburb | null>(null);
@@ -76,6 +93,21 @@ export default function MarketMap() {
     while (i < cuts.length && v > cuts[i]) i++;
     return rampFor(cuts.length + 1)[i];
   }, [measure, cuts]);
+
+  // Real suburb boundaries, if a file has been supplied; otherwise areas are approximate.
+  useEffect(() => { loadBoundaryFile().then(setBoundaries); }, []);
+  const placedSuburbs = useMemo(() => (data?.suburbs ?? []).filter((s) => s.latitude != null && s.longitude != null), [data]);
+  const approx = useMemo(() => approximateAreas(placedSuburbs.map((s) => ({ key: areaId(s), lat: s.latitude!, lng: s.longitude! }))), [placedSuburbs]);
+  const ringFor = useCallback((s: GeoSuburb) => boundaries?.get(suburbKey(s.suburb)) ?? approx.get(areaId(s)) ?? null, [boundaries, approx]);
+  const usingRealBoundaries = !!boundaries && placedSuburbs.some((s) => boundaries.has(suburbKey(s.suburb)));
+  const tooltip = useCallback((s: GeoSuburb) => {
+    const v = value(s, measure);
+    return `<strong>${s.suburb}</strong><br>${m.label}: ${v == null ? "not enough data" : formatValue(v, m.unit)}<br>${s.active} live listing${s.active === 1 ? "" : "s"}`;
+  }, [measure, m]);
+  const areas3d: Area3D[] = useMemo(() => placedSuburbs.flatMap((s) => {
+    const ring = ringFor(s);
+    return ring ? [{ id: areaId(s), suburb: s.suburb, ring, value: value(s, measure), color: colorFor(value(s, measure)), label: tooltip(s) }] : [];
+  }), [placedSuburbs, ringFor, measure, colorFor, tooltip]);
 
   // Create the map once.
   useEffect(() => {
@@ -106,20 +138,25 @@ export default function MarketMap() {
     const map = mapRef.current;
     if (!L || !map || !layerRef.current || !data) return;
     layerRef.current.clearLayers();
-    const placed = data.suburbs.filter((s) => s.latitude != null && s.longitude != null);
+    const placed = placedSuburbs;
     const maxActive = Math.max(1, ...placed.map((s) => s.active));
     placed.forEach((s) => {
       const v = value(s, measure);
       const fill = colorFor(v);
-      const radius = 7 + 21 * Math.sqrt(s.active / maxActive);
-      const circle = L.circleMarker([s.latitude!, s.longitude!], {
-        radius, weight: 2, color: "#ffffff", fillColor: fill ?? "#ffffff", fillOpacity: fill ? 0.85 : 0.6,
-        dashArray: fill ? undefined : "3 3",
-      });
-      if (!fill) circle.setStyle({ color: "#6b7280" });
-      circle.bindTooltip(`<strong>${s.suburb}</strong><br>${m.label}: ${v == null ? "not enough data" : formatValue(v, m.unit)}<br>${s.active} live listing${s.active === 1 ? "" : "s"}`, { direction: "top" });
-      circle.on("click", () => setSelected(s));
-      circle.addTo(layerRef.current!);
+      const ring = view === "areas" ? ringFor(s) : null;
+      const shape = ring
+        ? L.polygon(ring.map(([lng, lat]) => [lat, lng] as [number, number]), {
+          weight: 1.5, color: "#ffffff", fillColor: fill ?? "#e5e7eb", fillOpacity: fill ? 0.7 : 0.45,
+          dashArray: fill ? undefined : "3 3",
+        })
+        : L.circleMarker([s.latitude!, s.longitude!], {
+          radius: 7 + 21 * Math.sqrt(s.active / maxActive), weight: 2, color: "#ffffff", fillColor: fill ?? "#ffffff",
+          fillOpacity: fill ? 0.85 : 0.6, dashArray: fill ? undefined : "3 3",
+        });
+      if (!fill) shape.setStyle({ color: "#6b7280" });
+      shape.bindTooltip(tooltip(s), { direction: "top", sticky: !!ring });
+      shape.on("click", () => setSelected(s));
+      shape.addTo(layerRef.current!);
     });
     if (pinsRef.current) { map.removeLayer(pinsRef.current); pinsRef.current = null; }
     if (showPins) {
@@ -133,7 +170,12 @@ export default function MarketMap() {
     if (placed.length > 0) {
       map.fitBounds(L.latLngBounds(placed.map((s) => [s.latitude!, s.longitude!] as [number, number])).pad(0.25), { maxZoom: 13 });
     }
-  }, [data, measure, colorFor, showPins, m]);
+  }, [data, measure, colorFor, showPins, m, view, placedSuburbs, ringFor, tooltip]);
+
+  // Leaflet needs to re-measure its box when it's shown again after the 3D view.
+  useEffect(() => {
+    if (view !== "3d") setTimeout(() => mapRef.current?.invalidateSize(), 0);
+  }, [view]);
 
   const legend = measure === "growthPercent"
     ? DIV.map((d) => ({ color: d.color, label: d.label }))
@@ -157,6 +199,14 @@ export default function MarketMap() {
             <button key={t} type="button" role="radio" aria-checked={type === t} onClick={() => { setType(t); setSelected(null); }}
               className={`px-3 py-1.5 text-sm rounded-md ${type === t ? "bg-white shadow-sm font-medium text-gray-900" : "text-gray-600"}`}>
               {t === "rent" ? "Rentals" : "Sales"}
+            </button>
+          ))}
+        </div>
+        <div role="radiogroup" aria-label="Map view" className="flex rounded-lg bg-gray-100 p-0.5">
+          {VIEWS.map((v) => (
+            <button key={v.key} type="button" role="radio" aria-checked={view === v.key} onClick={() => setView(v.key)}
+              className={`px-3 py-1.5 text-sm rounded-md ${view === v.key ? "bg-white shadow-sm font-medium text-gray-900" : "text-gray-600"}`}>
+              {v.label}
             </button>
           ))}
         </div>
@@ -199,14 +249,25 @@ export default function MarketMap() {
       )}
 
       <div className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <div ref={mapEl} className="w-full" style={{ height: 520 }} role="region" aria-label="Market map. The same figures are in the table below." />
+        <div ref={mapEl} className="w-full" style={{ height: 520, display: view === "3d" ? "none" : undefined }} role="region" aria-label="Market map. The same figures are in the table below." />
+        {view === "3d" && (
+          <MarketMap3D areas={areas3d} onPick={(id) => setSelected(placedSuburbs.find((s) => areaId(s) === id) ?? null)} />
+        )}
         <div style={{ zIndex: 500 }} className="absolute left-3 bottom-3 bg-white/95 rounded-xl shadow border border-gray-200 px-3 py-2 text-xs text-gray-700 max-w-60">
           <p className="font-semibold mb-1">{m.label}</p>
           <ul className="space-y-0.5">
             {legend.map((l, i) => <li key={i} className="flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ background: l.color }} aria-hidden />{l.label}</li>)}
             <li className="flex items-center gap-2"><span className="w-3 h-3 rounded-full border border-dashed border-gray-500" aria-hidden />Not enough data</li>
           </ul>
-          <p className="mt-1 text-gray-500">Circle size = live listings</p>
+          {view === "circles" && <p className="mt-1 text-gray-500">Circle size = live listings</p>}
+          {view === "3d" && <p className="mt-1 text-gray-500">Height = {measure === "growthPercent" ? "size of the change" : "the measure"}, relative to the highest suburb shown. Right-drag to tilt and turn.</p>}
+          {view !== "circles" && (
+            <p className={`mt-1 ${usingRealBoundaries ? "text-gray-500" : "text-amber-800"}`}>
+              {usingRealBoundaries
+                ? "Suburb boundaries from the boundary file."
+                : "Approximate areas: drawn around each suburb's centre (within 2 km), not official boundaries."}
+            </p>
+          )}
         </div>
         {selected && <SuburbPanel s={selected} type={type} onClose={() => setSelected(null)} filters={{ category, bedrooms }} />}
       </div>

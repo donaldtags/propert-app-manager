@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import PayBill from "@/components/PayBill";
 import { payments as paymentsApi, properties as propertiesApi, leases as leasesApi } from "@/lib/api";
 import type { Payment, Property, Lease } from "@/lib/types";
 import { DollarSign, AlertCircle, CheckCircle, Plus, Download, Landmark, CreditCard } from "lucide-react";
@@ -320,6 +321,9 @@ export default function PaymentsPage() {
                   >
                     <Download className="w-3.5 h-3.5" /> Receipt
                   </button>
+                )}
+                {p.status === "INITIATED" && p.payerId === user?.id && p.provider === "platform" && (
+                  <PayBill paymentId={p.id} amountLabel={`$${p.amount}`} />
                 )}
                 {p.status === "INITIATED" && p.payeeId === user?.id && p.provider === "manual" && (
                   <button

@@ -30,6 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 class PublicExposureTests {
     private static final String ADDRESS = "4 Lunar Road";
 
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -110,7 +111,7 @@ class PublicExposureTests {
                 """.formatted(System.nanoTime(), type, ADDRESS, owner.id());
         String created = call(post("/api/v1/properties"), owner, body).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(created).get("id").asLong();
+        return fees.paid(objectMapper.readTree(created).get("id").asLong());
     }
 
     private ResultActions call(MockHttpServletRequestBuilder req, Account who, String body) throws Exception {

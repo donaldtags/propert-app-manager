@@ -1,6 +1,6 @@
 # Module 21: Admin Analytics, Market Intelligence and Hourly Engine (plan)
 
-Status: **Phases A–H and R done (2026-11-26). Module 21's planned phases are complete; open items are listed at the end of the Phase H entry.** Branch: `feature/admin-analytics`.
+Status: **Phases A–H and R done (2026-11-26); open items completed 2026-11-27 (see the last entry).** Branch: `feature/admin-analytics`.
 The brief calls the product "AfricaProp AI". The codebase and the UI call it **EstateX**, so this
 plan uses EstateX.
 
@@ -1286,3 +1286,32 @@ A blank cell always means "no data", never zero. Names appear in reports; contac
 - Configure SMTP (`spring.mail.*`) for alert and report emails.
 - Decide on the self-confirmed billing charges found in Phase F.
 
+
+### Completion of open items (2026-11-27)
+
+Done after Phase H, at the owner's request ("finish all these"):
+- **Billing (owner decision: charge properly).** Listing fees and plan renewals are real bills
+  (`PaymentPurpose.LISTING_FEE`, renewal `SUBSCRIPTION` payments) paid through Paynow, card or the
+  wallet. A new private listing stays a draft (`AWAITING_PAYMENT`) until its first month is paid;
+  renewals go `PAST_DUE` with 3 days' grace, then the listing is deactivated or the plan drops to
+  Starter, and paying restores it. Owners can't switch an unpaid listing on (402). "Pay now" on the
+  new-listing screen, the edit page, Payments and Subscription. Older self-confirmed charges stay
+  reported as "charges recorded without payment". V11 widens `property_billings.status`.
+- **Enquiry response time.** `enquiries.first_responded_at` is set when an agency first moves an
+  enquiry on from NEW; Customer Demand shows "Enquiries first answered" (from 2026-11-27 on).
+- **Floor area.** Agency listings take an optional floor area, and a saved inspection's floor area
+  fills in the listing's when it has none, so more listings count towards price per m².
+- **Map.** Market Map has Circles / Areas / 3D views. Areas are approximate (Voronoi cells around
+  suburb centres, capped at 2 km) and labelled so; a GeoJSON file at
+  `frontend/public/geo/suburb-boundaries.geojson` (features with `name` or `suburb`) replaces them
+  with real boundaries automatically. 3D uses MapLibre GL 4.7.1 (height + colour = the measure).
+- **Map pins were rounded to ~1 km** (QA finding F-6): `properties.latitude/longitude` now keep 7
+  decimals (V12). Values saved before can't be recovered.
+- **Postgres.** First run on Postgres 16 found V9 failing on a fresh database (F-8); fixed before
+  it ever ran on Render. Full QA suite: 60/60 on Postgres and on MariaDB.
+- **Email.** Checked end to end with Mailpit (local SMTP catcher): scheduled report with its PDF
+  and sign-in alerts arrive. A real SMTP server is still to be configured on Render.
+- **AI interpretation** is still only tested with a stub (no API key locally).
+
+**Still open for the owner:** set `ANTHROPIC_API_KEY` and SMTP (`SMTP_HOST`, …) on Render; real
+Paynow/Stripe keys so listing fees can be paid online; optionally a suburb boundary GeoJSON.

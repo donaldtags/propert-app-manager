@@ -274,8 +274,9 @@ public class DemandService {
                 .map(e -> interest(e.getKey(), listingInfo, viewsByListing, currentlySaved, enquiriesByListing)).toList();
 
         List<ResponseTime> responses = List.of(
-                new ResponseTime("enquiries", "Enquiry replies", null, 0,
-                        "Replies to enquiries aren't time-stamped yet, so response times can't be measured."),
+                // First response = the agency moved the enquiry on from NEW (recorded from 2026-11-27).
+                responseTime("enquiries", "Enquiries first answered", "select captured_at a, first_responded_at b, property_id from enquiries "
+                        + "where captured_at >= ? and captured_at < ? and first_responded_at is not null", ts, te, listingInfo, cityFilter),
                 responseTime("viewings", "Viewing requests confirmed", "select created_at a, confirmed_at b, property_id from viewing_requests "
                         + "where created_at >= ? and created_at < ? and confirmed_at is not null", ts, te, listingInfo, cityFilter),
                 responseTime("applications", "Rental applications reviewed", "select submitted_at a, reviewed_at b, property_id from "

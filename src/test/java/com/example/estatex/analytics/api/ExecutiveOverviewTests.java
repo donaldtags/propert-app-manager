@@ -44,6 +44,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ExecutiveOverviewTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -282,7 +283,7 @@ class ExecutiveOverviewTests {
                  "escrowRequired": false, "landlordId": %d, "category": "FLAT",
                  "photoUrls": ["https://images.unsplash.com/photo-1?w=1200"]}
                 """.formatted(System.nanoTime(), type, city, suburb, price, owner.id());
-        return json(call(post("/api/v1/properties"), admin, body).andExpect(status().isOk())).path("id").asLong();
+        return fees.paid(json(call(post("/api/v1/properties"), admin, body).andExpect(status().isOk())).path("id").asLong());
     }
 
     private JsonNode overview(Account who, String query) throws Exception {

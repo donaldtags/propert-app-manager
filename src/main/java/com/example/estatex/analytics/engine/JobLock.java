@@ -9,6 +9,8 @@ import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Database-backed job lock. Plain auto-committed statements, so the lock row is visible to other
@@ -20,19 +22,47 @@ import org.springframework.stereotype.Component;
  *   <li>A RUNNING row whose heartbeat is older than {@code staleAfter} came from a crashed
  *       worker; it is marked ABANDONED by exactly one taker (conditional update).</li>
  *   <li>Two workers racing for the same window both insert attempt N; the unique key lets one win.</li>
+ *   <li>The whole start-or-skip decision runs while holding the job's row in
+ *       {@code analytics_job_locks} ({@code SELECT ... FOR UPDATE}), so workers decide one at a
+ *       time and each sees the other's committed RUNNING row. (A run's id is allocated before its
+ *       row is visible, so without this two simultaneous starts could each miss the other.)</li>
  * </ul>
  */
 @Component
 public class JobLock {
     private final JdbcTemplate jdbc;
+    private final TransactionTemplate tx;
 
-    public JobLock(JdbcTemplate jdbc) {
+    public JobLock(JdbcTemplate jdbc, PlatformTransactionManager transactions) {
         this.jdbc = jdbc;
+        this.tx = new TransactionTemplate(transactions);
     }
 
     /** @return the new run's id, or empty if the window is done or held by someone else. */
     public Optional<Long> acquire(String job, Instant windowStart, Instant windowEnd, Instant now, Duration staleAfter,
                                   String triggeredBy, String worker, boolean allowRerun) {
+        ensureLockRow(job);
+        return tx.execute(status -> {
+            // Blocks until any other worker deciding for this job has committed its decision.
+            jdbc.queryForList("select job_name from analytics_job_locks where job_name = ? for update", job);
+            return decide(job, windowStart, windowEnd, now, staleAfter, triggeredBy, worker, allowRerun, status);
+        });
+    }
+
+    /** Created on first use, in its own statement: a duplicate-key error inside the locking transaction would abort it on Postgres. */
+    private void ensureLockRow(String job) {
+        Integer exists = jdbc.queryForObject("select count(*) from analytics_job_locks where job_name = ?", Integer.class, job);
+        if (exists != null && exists > 0) return;
+        try {
+            jdbc.update("insert into analytics_job_locks (job_name) values (?)", job);
+        } catch (DataIntegrityViolationException createdByAnotherWorker) {
+            // fine: it exists now
+        }
+    }
+
+    private Optional<Long> decide(String job, Instant windowStart, Instant windowEnd, Instant now, Duration staleAfter,
+                                  String triggeredBy, String worker, boolean allowRerun,
+                                  org.springframework.transaction.TransactionStatus status) {
         Timestamp staleCutoff = Timestamp.from(now.minus(staleAfter));
         List<Map<String, Object>> running = jdbc.queryForList(
                 "select id, heartbeat_at from analytics_job_runs where job_name = ? and status = 'RUNNING'", job);
@@ -63,6 +93,7 @@ public class JobLock {
                     job, Timestamp.from(windowStart), Timestamp.from(windowEnd), attempt, triggeredBy, worker,
                     Timestamp.from(now), Timestamp.from(now));
         } catch (DataIntegrityViolationException lostRace) {
+            status.setRollbackOnly(); // Postgres aborts the transaction on a failed insert
             return Optional.empty();
         }
         Long id = jdbc.queryForObject("select id from analytics_job_runs where job_name = ? and window_start = ? and attempt = ?",

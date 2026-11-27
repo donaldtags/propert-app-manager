@@ -97,6 +97,8 @@ public class IntakeService {
         i.setItemsJson(json.writeValueAsString(r.items()));
         i.setStandSizeM2(r.standSizeM2());
         i.setFloorAreaM2(r.floorAreaM2());
+        // The measured floor area fills in the listing's own (used for price per m2) unless one was entered.
+        if (r.floorAreaM2() != null && r.floorAreaM2() > 0 && p.getFloorAreaM2() == null) p.setFloorAreaM2(r.floorAreaM2());
         i.setNotes(r.notes());
         i.setInspectedOn(r.inspectedOn() == null ? time.today() : r.inspectedOn());
         i.setInspectedByUserId(user.getId());

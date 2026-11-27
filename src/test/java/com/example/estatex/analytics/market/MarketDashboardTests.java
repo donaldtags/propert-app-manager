@@ -42,6 +42,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class MarketDashboardTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -208,7 +209,7 @@ class MarketDashboardTests {
                 {"title": "%s %s", "listingType": "%s", "city": "%s", "suburb": "%s", "bedrooms": %d, "bathrooms": 1,
                  "price": %d, "currency": "USD", "escrowRequired": false, "landlordId": %d, "category": "%s", "floorAreaM2": %d}
                 """.formatted(category, System.nanoTime(), type, city, suburb, beds, price, owner.id(), category, area);
-        return json(call(post("/api/v1/properties"), admin, body).andExpect(status().isOk())).path("id").asLong();
+        return fees.paid(json(call(post("/api/v1/properties"), admin, body).andExpect(status().isOk())).path("id").asLong());
     }
 
     private JsonNode rent(String extra) throws Exception {

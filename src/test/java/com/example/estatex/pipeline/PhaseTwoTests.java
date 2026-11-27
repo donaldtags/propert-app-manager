@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,6 +44,8 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class PhaseTwoTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
+    @Autowired private com.example.estatex.enquiry.EnquiryRepository enquiries;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -78,9 +81,18 @@ class PhaseTwoTests {
                 {"channel": "WHATSAPP", "intent": "BUY", "name": "Rudo M", "phone": "263772123456", "message": "3 bed?"}
                 """).andExpect(status().isOk()).andExpect(jsonPath("$.contactId").value(rudo));
         // Unknown number creates a new contact with the source and type from the enquiry.
-        long newId = f.json(f.call(post(base + "/enquiries"), negotiator, """
+        tools.jackson.databind.JsonNode enquiry = f.json(f.call(post(base + "/enquiries"), negotiator, """
                 {"channel": "INSTAGRAM", "intent": "RENT", "name": "Tafadzwa N", "phone": "0773 999 000"}
-                """)).path("contactId").asLong();
+                """));
+        long newId = enquiry.path("contactId").asLong();
+        // The first move on from NEW records when the agency first answered (for response times);
+        // later moves don't change it.
+        long enquiryId = enquiry.path("id").asLong();
+        f.call(patch(base + "/enquiries/" + enquiryId + "/status"), negotiator, "{\"status\": \"CONTACTED\"}").andExpect(status().isOk());
+        java.time.Instant firstAnswer = enquiries.findById(enquiryId).orElseThrow().getFirstRespondedAt();
+        org.assertj.core.api.Assertions.assertThat(firstAnswer).isNotNull();
+        f.call(patch(base + "/enquiries/" + enquiryId + "/status"), negotiator, "{\"status\": \"QUALIFIED\"}").andExpect(status().isOk());
+        org.assertj.core.api.Assertions.assertThat(enquiries.findById(enquiryId).orElseThrow().getFirstRespondedAt()).isEqualTo(firstAnswer);
         f.call(get(base + "/contacts/" + newId), negotiator, null)
                 .andExpect(jsonPath("$.contact.source").value("INSTAGRAM"))
                 .andExpect(jsonPath("$.contact.types", hasItem("TENANT")))
@@ -152,10 +164,10 @@ class PhaseTwoTests {
         // One landlord per comparable: independent landlords' free plan limits how many they can list.
         for (int price : new int[]{150_000, 180_000, 200_000, 400_000}) {
             Account landlord = f.accounts.register("Independent Landlord " + price, UserRole.LANDLORD);
-            f.call(post("/api/v1/properties"), landlord, """
+            fees.paid(objectMapper.readTree(f.call(post("/api/v1/properties"), landlord, """
                     {"title": "Comp %d", "listingType": "SALE", "city": "Harare", "suburb": "Mabelreign",
                      "bedrooms": 3, "bathrooms": 2, "price": %d, "currency": "USD", "landlordId": %d}
-                    """.formatted(price, price, landlord.id())).andExpect(status().isOk());
+                    """.formatted(price, price, landlord.id())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("id").asLong());
         }
         long id = f.draftListing("Subject", "Mabelreign", 3, 19_000_000);
         f.call(get(base + "/listings/" + id + "/pricing"), negotiator, null)

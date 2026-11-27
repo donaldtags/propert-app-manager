@@ -37,6 +37,8 @@ public class LandlordSubscription {
     /** Null for STARTER (free, never expires). Set for paid plans; renewed by the billing sweep. */
     private Instant currentPeriodEnd;
 
+    /** The open renewal bill to pay (checkout or wallet), or null when nothing is due. */
+    private Long pendingPaymentId;
     private Instant pastDueSince;
     private Instant createdAt = Instant.now();
     private Instant updatedAt = Instant.now();

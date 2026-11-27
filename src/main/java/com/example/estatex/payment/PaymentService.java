@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentService {
     private static final java.util.Set<PaymentPurpose> WALLET_PAYABLE = java.util.EnumSet.of(
             PaymentPurpose.RENT, PaymentPurpose.STAY_BOOKING, PaymentPurpose.INVESTMENT,
-            PaymentPurpose.SUBSCRIPTION, PaymentPurpose.FEATURED_LISTING);
+            PaymentPurpose.SUBSCRIPTION, PaymentPurpose.FEATURED_LISTING, PaymentPurpose.LISTING_FEE);
 
     private final PaymentRepository payments;
     private final UserService users;

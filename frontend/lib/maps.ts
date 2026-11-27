@@ -8,7 +8,7 @@ export const ARCGIS_API_KEY = process.env.NEXT_PUBLIC_ARCGIS_API_KEY;
 // Default center: Harare, Zimbabwe
 export const DEFAULT_CENTER: [number, number] = [-17.8252, 31.0335];
 
-const ESRI_ATTRIBUTION = 'Powered by <a href="https://www.esri.com">Esri</a> | Esri, HERE, Garmin, USGS, FAO, NOAA';
+export const ESRI_ATTRIBUTION = 'Powered by <a href="https://www.esri.com">Esri</a> | Esri, HERE, Garmin, USGS, FAO, NOAA';
 
 export const LEAFLET_STYLESHEETS = [
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
@@ -24,7 +24,7 @@ export function ensureStylesheets(hrefs: string[] = LEAFLET_STYLESHEETS) {
   });
 }
 
-function esriTileUrl(service: string) {
+export function esriTileUrl(service: string) {
   const url = `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/tile/{z}/{y}/{x}`;
   return ARCGIS_API_KEY ? `${url}?token=${ARCGIS_API_KEY}` : url;
 }

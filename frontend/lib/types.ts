@@ -154,13 +154,17 @@ export interface SubscriptionInfo {
   maxProperties: number | null;
   activePropertyCount: number;
   enabledFeatures: SubscriptionFeature[];
+  /** The open renewal bill to pay, or null when nothing is due. */
+  pendingPaymentId: number | null;
 }
 
 export interface PropertyBilling {
-  status: "ACTIVE" | "PAST_DUE";
+  status: "AWAITING_PAYMENT" | "ACTIVE" | "PAST_DUE";
   currentPeriodEnd: string | null;
   monthlyFee: number;
   currency: string;
+  /** The open listing-fee bill to pay, or null when nothing is due. */
+  pendingPaymentId: number | null;
 }
 
 export interface CheckoutResponse {
@@ -1269,6 +1273,8 @@ export interface CreateOrgListingRequest {
   priceCents: number;
   currency?: "USD" | "ZWG";
   titleType?: TitleType;
+  /** Optional; used for price per m². The inspection's measured floor area fills it in if left out. */
+  floorAreaM2?: number;
 }
 
 export interface CreateMandateRequest {

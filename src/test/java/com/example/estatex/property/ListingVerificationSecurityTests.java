@@ -35,6 +35,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ListingVerificationSecurityTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -159,7 +160,7 @@ class ListingVerificationSecurityTests {
                  "escrowRequired": false, "landlordId": %d,
                  "photoUrls": ["https://images.unsplash.com/photo-1?w=1200"]}
                 """.formatted(System.nanoTime(), owner.id());
-        return json(call(post("/api/v1/properties"), owner, body).andExpect(status().isOk())).get("id").asLong();
+        return fees.paid(json(call(post("/api/v1/properties"), owner, body).andExpect(status().isOk())).get("id").asLong());
     }
 
     private String badge(long id) throws Exception {
