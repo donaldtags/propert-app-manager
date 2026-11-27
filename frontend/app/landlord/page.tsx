@@ -46,9 +46,11 @@ function workspaceTitle(roles: string[] | undefined): { title: string; subtitle:
 const OCCUPANCY_COLORS: Partial<Record<PropertyStatus, string>> = {
   DRAFT: "bg-gray-300",
   AVAILABLE: "bg-brand-500",
-  RESERVED: "bg-amber-500",
+  UNDER_OFFER: "bg-amber-500",
   OCCUPIED: "bg-brand-600",
-  SOLD: "bg-purple-500",
+  REPORTED_SOLD: "bg-purple-500",
+  WITHDRAWN: "bg-gray-400",
+  EXPIRED: "bg-gray-400",
   INACTIVE: "bg-gray-400",
 };
 

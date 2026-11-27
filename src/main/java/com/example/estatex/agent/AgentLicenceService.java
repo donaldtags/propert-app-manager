@@ -49,10 +49,12 @@ public class AgentLicenceService {
     private final AuditService audit;
     private final NotificationService notifications;
     private final Path storageRoot;
+    private final com.example.estatex.property.PropertyBillingService listingFees;
 
     public AgentLicenceService(AgentLicenceRepository licences, UserService users, PropertyRepository properties,
                                ObjectStorageService objectStorage, AuditService audit, NotificationService notifications,
-                               @Value("${app.storage.agent-licences:storage/agent-licences}") String storageRoot) {
+                               @Value("${app.storage.agent-licences:storage/agent-licences}") String storageRoot,
+                               @org.springframework.context.annotation.Lazy com.example.estatex.property.PropertyBillingService listingFees) {
         this.licences = licences;
         this.users = users;
         this.properties = properties;
@@ -60,6 +62,7 @@ public class AgentLicenceService {
         this.audit = audit;
         this.notifications = notifications;
         this.storageRoot = Path.of(storageRoot).toAbsolutePath().normalize();
+        this.listingFees = listingFees;
     }
 
     /** True when this user's own listings must wait for licence approval before going public. */
@@ -152,8 +155,10 @@ public class AgentLicenceService {
         agent.setLicensedAgent(approved);
         int published = 0;
         if (approved) {
-            // Everything they listed while waiting goes live now.
+            // Everything they listed while waiting goes live now, if its listing fee is paid
+            // (unpaid ones go live when paid; see PropertyBillingService).
             for (Property draft : properties.findByLandlord_IdAndStatusAndOrganisationIdIsNull(agent.getId(), PropertyStatus.DRAFT)) {
+                if (!listingFees.feesAllowLive(draft)) continue;
                 draft.setStatus(PropertyStatus.AVAILABLE);
                 published++;
             }

@@ -37,6 +37,8 @@ import type {
 } from "@/lib/types";
 import {
   ShieldCheck,
+  Sparkles,
+  FileDown,
   Users,
   Building2,
   ScrollText,
@@ -56,6 +58,14 @@ import {
   CreditCard,
   DollarSign,
   Banknote,
+  Activity,
+  Gauge,
+  KeyRound,
+  TrendingUp,
+  SearchCheck,
+  Map as MapIcon,
+  Gift,
+  Wallet,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -66,8 +76,21 @@ import EmptyState from "@/components/EmptyState";
 import StatTile from "@/components/StatTile";
 import AlertBanner from "@/components/AlertBanner";
 import AdminWithdrawalsPanel from "@/components/admin/AdminWithdrawalsPanel";
+import AnalyticsEnginePanel from "@/components/admin/AnalyticsEnginePanel";
+import ExecutiveOverview from "@/components/admin/analytics/ExecutiveOverview";
+import MarketDashboard from "@/components/admin/analytics/MarketDashboard";
+import DemandAnalytics from "@/components/admin/analytics/DemandAnalytics";
+import ReferralsPanel from "@/components/admin/ReferralsPanel";
+import RevenueDashboard from "@/components/admin/analytics/RevenueDashboard";
+import InsightsPanel from "@/components/admin/analytics/InsightsPanel";
+import ReportsPanel from "@/components/admin/analytics/ReportsPanel";
+import dynamic from "next/dynamic";
+// Leaflet touches window, so the map only renders in the browser.
+const MarketMap = dynamic(() => import("@/components/admin/analytics/MarketMap"), { ssr: false });
+import StaffAccessPanel from "@/components/admin/StaffAccessPanel";
+import { STAFF_ROLES } from "@/lib/types";
 
-type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions";
+type Tab = "overview" | "users" | "requests" | "kyc" | "properties" | "agents" | "companies" | "reports" | "escrows" | "withdrawals" | "messages" | "fraud" | "neighbourhoods" | "vendors" | "pricing" | "subscriptions" | "analytics-engine" | "operations" | "staff" | "market-rent" | "market-sale" | "market-map" | "demand" | "referrals" | "revenue" | "insights" | "reports-export";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
   "MOVING", "CLEANING", "PLUMBING", "ELECTRICAL", "INSURANCE", "LEGAL", "SOLAR", "UTILITIES", "FURNITURE", "OTHER",
@@ -97,7 +120,9 @@ export default function AdminPortalPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
 
-  const [tab, setTab] = useState<Tab>("overview");
+  // An alert notification links to ?tab=insights; every tab still checks permissions when rendering.
+  const [tab, setTab] = useState<Tab>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "insights" ? "insights" : "overview");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -282,13 +307,20 @@ export default function AdminPortalPage() {
   const [adminConversationsLoading, setAdminConversationsLoading] = useState(true);
 
   const isAdmin = user?.roles?.includes("ADMIN");
+  // Specialist staff (finance, analysts, operations, verification) see the analytics, not the admin tools.
+  const isStaff = !!user?.roles?.some((r) => STAFF_ROLES.includes(r));
+  const canSeeEngine = isAdmin || !!user?.roles?.some((r) => r === "OPERATIONS_ADMIN" || r === "VERIFICATION_OFFICER");
+  const canSeeMarket = isAdmin || !!user?.roles?.some((r) => r === "MARKET_ANALYST" || r === "OPERATIONS_ADMIN");
+  const canSeeReferrals = isAdmin || !!user?.roles?.includes("FINANCE_ADMIN");
+  // Mirrors REPORTS_EXPORT on the server (admins, finance admins and market analysts).
+  const canExport = isAdmin || !!user?.roles?.some((r) => r === "FINANCE_ADMIN" || r === "MARKET_ANALYST");
 
   useEffect(() => {
-    // Signed out: ask them to sign in like every other protected page. Signed in without the
-    // admin role: there is nothing for them here, so go home.
+    // Signed out: ask them to sign in like every other protected page. Signed in without a
+    // staff role: there is nothing for them here, so go home.
     if (!loading && !user) router.push("/login?redirect=%2Fadmin");
-    else if (!loading && !isAdmin) router.push("/");
-  }, [user, loading, isAdmin, router]);
+    else if (!loading && !isStaff) router.push("/");
+  }, [user, loading, isStaff, router]);
 
   // Loading flags start true, so the first load shows skeletons; refreshes after an action keep the
   // current rows on screen until the new ones arrive instead of flashing back to a skeleton.
@@ -457,10 +489,26 @@ export default function AdminPortalPage() {
     }
   };
 
-  if (loading || !isAdmin) return <PageLoader />;
+  if (loading || !isStaff) return <PageLoader />;
 
-  const TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
-    { key: "overview", label: "Overview", icon: LayoutDashboard },
+  const ANALYTICS_TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
+    { key: "overview", label: "Executive Overview", icon: LayoutDashboard },
+    ...(canSeeMarket ? [
+      { key: "market-rent" as Tab, label: "Rental Market", icon: KeyRound },
+      { key: "market-sale" as Tab, label: "Sales Market", icon: TrendingUp },
+      { key: "market-map" as Tab, label: "Market Map", icon: MapIcon },
+      { key: "demand" as Tab, label: "Customer Demand", icon: SearchCheck },
+    ] : []),
+    ...(canSeeReferrals ? [
+      { key: "revenue" as Tab, label: "Revenue", icon: Wallet },
+      { key: "referrals" as Tab, label: "Referrals", icon: Gift },
+    ] : []),
+    { key: "insights", label: "Insights & Alerts", icon: Sparkles },
+    ...(canExport ? [{ key: "reports-export" as Tab, label: "Reports", icon: FileDown }] : []),
+    ...(canSeeEngine ? [{ key: "analytics-engine" as Tab, label: "Analytics Engine", icon: Activity }] : []),
+  ];
+  const ADMIN_TABS: { key: Tab; label: string; icon: typeof Users; count?: number }[] = [
+    { key: "operations", label: "Operations", icon: Gauge },
     { key: "users", label: "Users", icon: Users, count: allUsers.length },
     { key: "requests", label: "Admin Requests", icon: UserCog, count: pendingRequests.length },
     { key: "kyc", label: "Verification Queue", icon: IdCard, count: pendingKyc.length },
@@ -476,7 +524,9 @@ export default function AdminPortalPage() {
     { key: "vendors", label: "Service Vendors", icon: Wrench, count: vendorList.length },
     { key: "pricing", label: "Featured Listing Pricing", icon: Star },
     { key: "subscriptions", label: "Subscription Plans", icon: CreditCard },
+    { key: "staff", label: "Staff Access", icon: ShieldCheck },
   ];
+  const TABS = isAdmin ? [...ANALYTICS_TABS, ...ADMIN_TABS] : ANALYTICS_TABS;
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-80px)]">
@@ -493,7 +543,18 @@ export default function AdminPortalPage() {
           {error && <AlertBanner variant="error" className="mb-5">{error}</AlertBanner>}
           {success && <AlertBanner variant="success" className="mb-5">{success}</AlertBanner>}
 
-      {tab === "overview" && (
+      {tab === "overview" && <ExecutiveOverview onOpenEngine={canSeeEngine ? () => setTab("analytics-engine") : undefined} />}
+      {tab === "staff" && isAdmin && <StaffAccessPanel />}
+      {tab === "market-rent" && canSeeMarket && <MarketDashboard type="rent" canConfigure={!!isAdmin} />}
+      {tab === "market-sale" && canSeeMarket && <MarketDashboard type="sale" canConfigure={!!isAdmin} />}
+      {tab === "market-map" && canSeeMarket && <MarketMap />}
+      {tab === "demand" && canSeeMarket && <DemandAnalytics />}
+      {tab === "referrals" && canSeeReferrals && <ReferralsPanel canEdit={!!isAdmin} />}
+      {tab === "revenue" && canSeeReferrals && <RevenueDashboard canConfigure={!!isAdmin} />}
+      {tab === "insights" && <InsightsPanel canConfigure={!!isAdmin} />}
+      {tab === "reports-export" && canExport && <ReportsPanel />}
+
+      {tab === "operations" && (
         <div>
           {overviewLoading ? (
             <div>
@@ -854,6 +915,7 @@ export default function AdminPortalPage() {
       )}
 
       {tab === "withdrawals" && <AdminWithdrawalsPanel />}
+      {tab === "analytics-engine" && canSeeEngine && <AnalyticsEnginePanel />}
 
       {tab === "escrows" && (
         <div>

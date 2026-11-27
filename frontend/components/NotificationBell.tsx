@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, DollarSign, FileText, Wrench, ShieldAlert } from "lucide-react";
+import { Bell, BadgeCheck, BarChart3, CalendarDays, DollarSign, FileText, ShieldAlert, Wallet, Wrench } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { notifications as notificationsApi } from "@/lib/api";
 import type { AppNotification, NotificationType } from "@/lib/types";
@@ -12,13 +12,23 @@ const TYPE_ICONS: Record<NotificationType, typeof Bell> = {
   LEASE_EXPIRY: FileText,
   MAINTENANCE_UPDATE: Wrench,
   SECURITY_ALERT: ShieldAlert,
+  LISTING_COMPLIANCE: ShieldAlert,
+  STAY_BOOKING: CalendarDays,
+  ACCOUNT_VERIFICATION: BadgeCheck,
+  WALLET: Wallet,
+  MARKET_ALERT: BarChart3,
 };
 
-const TYPE_ROUTES: Record<NotificationType, string> = {
+/** Where a notification leads. Types without a page just get marked read. */
+const TYPE_ROUTES: Partial<Record<NotificationType, string>> = {
   RENT_REMINDER: "/payments",
   LEASE_EXPIRY: "/leases",
   MAINTENANCE_UPDATE: "/maintenance",
   SECURITY_ALERT: "/verification",
+  STAY_BOOKING: "/trips",
+  ACCOUNT_VERIFICATION: "/verification",
+  WALLET: "/wallet",
+  MARKET_ALERT: "/admin?tab=insights",
 };
 
 const POLL_INTERVAL_MS = 60_000;
@@ -59,7 +69,8 @@ export default function NotificationBell() {
       } catch {}
     }
     setOpen(false);
-    router.push(TYPE_ROUTES[n.type]);
+    const route = TYPE_ROUTES[n.type];
+    if (route) router.push(route);
   };
 
   const handleMarkAllRead = async () => {
@@ -102,7 +113,7 @@ export default function NotificationBell() {
             <p className="text-sm text-gray-400 text-center py-8">You&apos;re all caught up.</p>
           ) : (
             items.map((n) => {
-              const Icon = TYPE_ICONS[n.type];
+              const Icon = TYPE_ICONS[n.type] ?? Bell; // a type added on the server before this list
               return (
                 <button
                   key={n.id}

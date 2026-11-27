@@ -9,6 +9,7 @@ import type { Property, ListingType } from "@/lib/types";
 import PropertyCard from "@/components/PropertyCard";
 import CompareBar from "@/components/CompareBar";
 import { useZimbabweLocations, locationFilters } from "@/lib/locations";
+import { trackSearch } from "@/lib/marketplaceEvents";
 
 const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
   ssr: false,
@@ -311,6 +312,10 @@ function PropertiesContent() {
       .then(({ items, totalCount: count }) => {
         setResults((prev) => (append ? [...prev, ...items] : items));
         setTotalCount(count);
+        // Count a search once (the first page), not every "Load more".
+        if (!append) {
+          trackSearch({ listingType, city: city || undefined, suburb: suburb || undefined, bedrooms, minPrice, maxPrice }, count);
+        }
         setPage(pageToLoad);
         setError("");
       })

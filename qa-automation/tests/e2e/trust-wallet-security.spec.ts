@@ -127,6 +127,9 @@ test.describe("Trust, agencies, wallet and sign-in security", () => {
       },
     });
     expect(listing.status).toBe("DRAFT");
+    // Paying the listing fee isn't enough on its own: it still waits for the licence.
+    await api.payListingFee(listing.id, agent);
+    expect((await api.call("GET", `/properties/${listing.id}`)).status()).toBe(404);
 
     await signIn(page, agent);
     await page.goto("/profile");

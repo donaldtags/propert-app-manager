@@ -87,7 +87,8 @@ public class FeaturedListingService {
                 ),
                 currentUser,
                 PaymentPurpose.FEATURED_LISTING,
-                null,
+                // Recorded so revenue can be recognised over the featured period actually bought.
+                "durationDays=" + settings.getDurationDays(),
                 null
         );
         return payments.initiateCheckout(payment.getId(), provider, currentUser);

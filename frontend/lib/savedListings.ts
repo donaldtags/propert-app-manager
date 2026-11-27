@@ -1,4 +1,5 @@
 import { readMigrated } from "./storageKeys";
+import { request } from "./api";
 
 const STORAGE_KEY = "estatex_saved_properties";
 const LEGACY_KEY = "primenest_saved_properties";
@@ -21,17 +22,22 @@ export function isSaved(propertyId: number): boolean {
   return readIds().includes(propertyId);
 }
 
-export function toggleSaved(propertyId: number): boolean {
+/**
+ * Saves or unsaves on this device, and also on the account when signed in, so saved homes follow
+ * the person across devices and count towards "most saved" in market analytics. The account
+ * copy is best effort: an offline save still works locally.
+ */
+export function toggleSaved(propertyId: number, token?: string | null): boolean {
   const ids = readIds();
   const index = ids.indexOf(propertyId);
-  if (index === -1) {
-    ids.push(propertyId);
-    writeIds(ids);
-    return true;
-  }
-  ids.splice(index, 1);
+  const nowSaved = index === -1;
+  if (nowSaved) ids.push(propertyId);
+  else ids.splice(index, 1);
   writeIds(ids);
-  return false;
+  if (token) {
+    request(`/saved-properties/${propertyId}`, { method: nowSaved ? "PUT" : "DELETE" }, token).catch(() => {});
+  }
+  return nowSaved;
 }
 
 export function getSavedIds(): number[] {

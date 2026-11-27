@@ -46,7 +46,7 @@ public class IntakeService {
     private static final Set<String> PHOTO_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_PHOTO_BYTES = 10L * 1024 * 1024;
     private static final List<PropertyStatus> COMPARABLE_STATUSES = List.of(
-            PropertyStatus.AVAILABLE, PropertyStatus.RESERVED, PropertyStatus.SOLD, PropertyStatus.OCCUPIED);
+            PropertyStatus.AVAILABLE, PropertyStatus.UNDER_OFFER, PropertyStatus.REPORTED_SOLD, PropertyStatus.OCCUPIED);
 
     private final OrgAccessService access;
     private final PropertyRepository properties;
@@ -97,6 +97,8 @@ public class IntakeService {
         i.setItemsJson(json.writeValueAsString(r.items()));
         i.setStandSizeM2(r.standSizeM2());
         i.setFloorAreaM2(r.floorAreaM2());
+        // The measured floor area fills in the listing's own (used for price per m2) unless one was entered.
+        if (r.floorAreaM2() != null && r.floorAreaM2() > 0 && p.getFloorAreaM2() == null) p.setFloorAreaM2(r.floorAreaM2());
         i.setNotes(r.notes());
         i.setInspectedOn(r.inspectedOn() == null ? time.today() : r.inspectedOn());
         i.setInspectedByUserId(user.getId());

@@ -1,5 +1,6 @@
 "use client";
 
+import PayBill from "@/components/PayBill";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,6 +10,8 @@ import { Home, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X } from "l
 import type { Property, PropertyBilling } from "@/lib/types";
 import { useZimbabweLocations } from "@/lib/locations";
 import LocationPicker from "@/components/LocationPicker";
+import { CATEGORY_OPTIONS } from "@/components/workspace/listingLabels";
+import type { PropertyCategory } from "@/lib/types";
 
 export default function EditPropertyPage() {
   const { cities: ZIMBABWE_CITIES, suburbs: ZIMBABWE_SUBURBS } = useZimbabweLocations();
@@ -31,6 +34,8 @@ export default function EditPropertyPage() {
     longitude: null as number | null,
     bedrooms: 0,
     bathrooms: 0,
+    category: "" as PropertyCategory | "",
+    floorAreaM2: "",
     price: "",
     currency: "USD",
     diasporaFriendly: false,
@@ -78,6 +83,8 @@ export default function EditPropertyPage() {
           longitude: prop.longitude ?? null,
           bedrooms: prop.bedrooms,
           bathrooms: prop.bathrooms,
+          category: prop.category ?? "",
+          floorAreaM2: prop.floorAreaM2 ? String(prop.floorAreaM2) : "",
           price: String(prop.price),
           currency: prop.currency,
           diasporaFriendly: prop.diasporaFriendly,
@@ -154,6 +161,8 @@ export default function EditPropertyPage() {
           longitude: form.longitude ?? undefined,
           bedrooms: form.bedrooms,
           bathrooms: form.bathrooms,
+          category: form.category || undefined,
+          floorAreaM2: form.floorAreaM2 ? Number(form.floorAreaM2) : undefined,
           price: Number(form.price),
           currency: form.currency,
           diasporaFriendly: form.diasporaFriendly,
@@ -214,22 +223,31 @@ export default function EditPropertyPage() {
 
       {billing && (
         <div
-          className={`text-sm px-4 py-3 rounded-xl mb-5 flex items-center gap-2 border ${
+          className={`text-sm px-4 py-3 rounded-xl mb-5 flex flex-wrap items-center gap-2 border ${
             billing.status === "PAST_DUE"
               ? "bg-red-50 border-red-200 text-red-700"
-              : "bg-gray-50 border-gray-200 text-gray-600"
+              : billing.status === "AWAITING_PAYMENT"
+                ? "bg-amber-50 border-amber-200 text-amber-800"
+                : "bg-gray-50 border-gray-200 text-gray-600"
           }`}
         >
-          {billing.status === "PAST_DUE" ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
-          {billing.status === "PAST_DUE" ? (
-            <span>
-              Payment failed for this listing&apos;s ${billing.monthlyFee.toFixed(2)}/month fee. It will be deactivated if not resolved soon.
+          {billing.status === "ACTIVE" ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+          {billing.status === "AWAITING_PAYMENT" ? (
+            <span className="flex-1">
+              Not published yet: pay the first month&apos;s listing fee (${billing.monthlyFee.toFixed(2)}) and it goes live straight away.
+            </span>
+          ) : billing.status === "PAST_DUE" ? (
+            <span className="flex-1">
+              This month&apos;s ${billing.monthlyFee.toFixed(2)} listing fee is unpaid. The listing is taken off the market 3 days after it falls due; paying puts it back.
             </span>
           ) : (
             <span>
               Listing fee: ${billing.monthlyFee.toFixed(2)}/month
-              {billing.currentPeriodEnd && ` · next charge ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`}
+              {billing.currentPeriodEnd && ` · paid until ${new Date(billing.currentPeriodEnd).toLocaleDateString()}`}
             </span>
+          )}
+          {billing.pendingPaymentId && (
+            <PayBill paymentId={billing.pendingPaymentId} amountLabel={`$${billing.monthlyFee.toFixed(2)}`} />
           )}
         </div>
       )}
@@ -291,6 +309,27 @@ export default function EditPropertyPage() {
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="lp-cat" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Property type</label>
+              <select id="lp-cat"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as PropertyCategory | "" }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              >
+                <option value="">Choose…</option>
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="lp-area" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Floor area (m²) <span className="text-gray-400 font-normal">optional</span></label>
+              <input id="lp-area" type="number" min={1} inputMode="numeric"
+                value={form.floorAreaM2}
+                onChange={(e) => setForm((f) => ({ ...f, floorAreaM2: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              />
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">

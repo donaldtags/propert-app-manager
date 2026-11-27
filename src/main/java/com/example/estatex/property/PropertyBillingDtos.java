@@ -11,7 +11,9 @@ public final class PropertyBillingDtos {
             PropertyBillingStatus status,
             Instant currentPeriodEnd,
             BigDecimal monthlyFee,
-            String currency
+            String currency,
+            /** The open bill to pay (checkout or wallet), or null when nothing is due. */
+            Long pendingPaymentId
     ) {
     }
 }

@@ -10,7 +10,10 @@
     "test:headed": "playwright test --project=desktop --headed",
     "test:ui": "playwright test --ui",
     "typecheck": "tsc -p .",
-    "report": "playwright show-report reports/html"
+    "report": "playwright show-report reports/html",
+    "test:edge": "PW_CHANNEL=msedge playwright test",
+    "test:edge:headed": "PW_CHANNEL=msedge playwright test --project=desktop --headed --workers=1",
+    "inventory": "node tools/inventory.mjs --md ../docs/qa/endpoint-coverage.md"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",

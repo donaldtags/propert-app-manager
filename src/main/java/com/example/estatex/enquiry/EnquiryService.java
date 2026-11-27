@@ -103,6 +103,9 @@ public class EnquiryService implements ContactActivitySource {
         Enquiry e = enquiries.findById(id)
                 .filter(x -> x.getOrganisationId().equals(ctx.organisation().getId()))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Enquiry not found"));
+        if (e.getStatus() == EnquiryStatus.NEW && status != EnquiryStatus.NEW && e.getFirstRespondedAt() == null) {
+            e.setFirstRespondedAt(java.time.Instant.now());
+        }
         e.setStatus(status);
         return e;
     }

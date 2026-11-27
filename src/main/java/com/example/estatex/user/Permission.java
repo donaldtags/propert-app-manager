@@ -26,5 +26,17 @@ public enum Permission {
     MESSAGES_ADMIN_VIEW,
     ORGANISATION_MANAGE,
     LOCATION_MANAGE,
-    ADMIN_OVERRIDE
+    ADMIN_OVERRIDE,
+    /** Market analytics: listings, prices, rentals, sales, map. */
+    ANALYTICS_MARKET_VIEW,
+    /** Demand analytics: views, searches, enquiries, funnels. */
+    ANALYTICS_DEMAND_VIEW,
+    /** Revenue and payment analytics. Sensitive: every access is audited. */
+    ANALYTICS_FINANCE_VIEW,
+    /** Engine status, data quality, verification queues. */
+    ANALYTICS_OPS_VIEW,
+    /** Thresholds, rebuilds and manual runs. */
+    ANALYTICS_CONFIGURE,
+    REPORTS_EXPORT,
+    REPORTS_SCHEDULE
 }

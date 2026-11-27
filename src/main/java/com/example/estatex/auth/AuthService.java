@@ -57,6 +57,7 @@ public class AuthService {
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final UserService users;
+    private final com.example.estatex.referral.ReferralService referrals;
     private final AuthSessionRepository sessions;
     private final PasswordResetTokenRepository resetTokens;
     private final PasswordEncoder passwordEncoder;
@@ -75,6 +76,7 @@ public class AuthService {
 
     public AuthService(
             UserService users,
+            com.example.estatex.referral.ReferralService referrals,
             AuthSessionRepository sessions,
             PasswordResetTokenRepository resetTokens,
             PasswordEncoder passwordEncoder,
@@ -90,6 +92,7 @@ public class AuthService {
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl
     ) {
         this.users = users;
+        this.referrals = referrals;
         this.sessions = sessions;
         this.resetTokens = resetTokens;
         this.passwordEncoder = passwordEncoder;
@@ -110,10 +113,11 @@ public class AuthService {
 
     @Transactional
     public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request, String userAgent) {
-        if (request.roles().contains(UserRole.ADMIN)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Admin role requires approval and cannot be self-registered");
+        if (request.roles().stream().anyMatch(UserRole::isStaff)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "EstateX staff roles are granted by an administrator and cannot be self-registered");
         }
         PasswordPolicy.validate(request.password());
+        referrals.requireValidCode(request.referralCode());
         AppUser user = users.create(new UserDtos.CreateUserRequest(
                 request.fullName(),
                 request.email(),
@@ -123,6 +127,7 @@ public class AuthService {
                 request.roles()
         ));
         rememberDevice(user, request.deviceId(), userAgent, false);
+        referrals.onRegistered(user, request.referralCode(), request.deviceId());
         return issue(adminBootstrap.apply(user));
     }
 
@@ -221,6 +226,7 @@ public class AuthService {
     // ---- New-device alerts --------------------------------------------------------------------
 
     private void rememberDevice(AppUser user, String deviceId, String userAgent, boolean alertIfNew) {
+        referrals.recordDevice(user.getId(), deviceId);
         String fingerprint = deviceId != null && !deviceId.isBlank() ? "id:" + deviceId : "ua:" + (userAgent == null ? "" : userAgent);
         String deviceHash = hash(user.getId() + ":" + fingerprint);
         Optional<KnownDevice> known = devices.findByUserIdAndDeviceHash(user.getId(), deviceHash);

@@ -7,10 +7,13 @@ import { useAuth } from "@/lib/auth";
 import { properties as propertiesApi, ai as aiApi } from "@/lib/api";
 import { Home, Plus, CheckCircle, AlertCircle, Image as ImageIcon, Upload, X, Sparkles } from "lucide-react";
 import { settingsRoleUrl } from "@/lib/roleGate";
-import type { UserRole } from "@/lib/types";
+import type { PropertyBilling, UserRole } from "@/lib/types";
+import PayBill from "@/components/PayBill";
 import { useZimbabweLocations } from "@/lib/locations";
 import PageLoader from "@/components/PageLoader";
 import LocationPicker from "@/components/LocationPicker";
+import { CATEGORY_OPTIONS } from "@/components/workspace/listingLabels";
+import type { PropertyCategory } from "@/lib/types";
 
 const LISTING_TYPES = [
   { value: "RENT", label: "For Rent", desc: "Monthly rental property" },
@@ -35,6 +38,8 @@ export default function NewPropertyPage() {
     country: "Zimbabwe",
     bedrooms: 2,
     bathrooms: 1,
+    category: "" as PropertyCategory | "",
+    floorAreaM2: "",
     price: "",
     currency: "USD",
     latitude: "",
@@ -90,6 +95,7 @@ export default function NewPropertyPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
+  const [createdBilling, setCreatedBilling] = useState<PropertyBilling | null>(null);
   const [photoUploadWarning, setPhotoUploadWarning] = useState("");
 
   const suburbs = ZIMBABWE_SUBURBS[form.city] ?? [];
@@ -160,6 +166,8 @@ export default function NewPropertyPage() {
           country: form.country,
           bedrooms: form.bedrooms,
           bathrooms: form.bathrooms,
+          category: form.category || undefined,
+          floorAreaM2: form.floorAreaM2 ? Number(form.floorAreaM2) : undefined,
           price: Number(form.price),
           currency: form.currency,
           latitude: form.latitude ? Number(form.latitude) : undefined,
@@ -196,6 +204,8 @@ export default function NewPropertyPage() {
       }
 
       setCreatedId(property.id);
+      // A private listing stays unpublished until its first month's fee is paid.
+      if (token) await propertiesApi.billing(property.id, token).then(setCreatedBilling).catch(() => setCreatedBilling(null));
       setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create listing.");
@@ -213,10 +223,22 @@ export default function NewPropertyPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-2xl border border-gray-200 p-10 shadow-sm text-center max-w-md">
           <CheckCircle className="w-16 h-16 text-brand-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Property Listed!</h2>
-          <p className="text-gray-500 mb-6">
-            Your property has been created. An agent or admin can verify it to give it a Verified badge.
-          </p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {createdBilling?.status === "AWAITING_PAYMENT" ? "Listing saved: one step left" : "Property Listed!"}
+          </h2>
+          {createdBilling?.status === "AWAITING_PAYMENT" && createdBilling.pendingPaymentId ? (
+            <div className="text-left bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 space-y-3">
+              <p className="text-sm text-amber-900">
+                Your listing goes live as soon as the first month&apos;s listing fee
+                (${createdBilling.monthlyFee.toFixed(2)}) is paid. You can also pay later from the listing&apos;s edit page or Payments.
+              </p>
+              <PayBill paymentId={createdBilling.pendingPaymentId} amountLabel={`$${createdBilling.monthlyFee.toFixed(2)}`} label="Pay and publish" />
+            </div>
+          ) : (
+            <p className="text-gray-500 mb-6">
+              Your property has been created. An agent or admin can verify it to give it a Verified badge.
+            </p>
+          )}
           {photoUploadWarning && (
             <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm mb-6 text-left flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {photoUploadWarning}
@@ -230,7 +252,7 @@ export default function NewPropertyPage() {
               View Listing
             </Link>
             <button
-              onClick={() => { setSuccess(false); setCreatedId(null); setPhotoFiles([]); setPhotoUploadWarning(""); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, solarInstalled: false, backupPower: false, waterSource: "", furnished: false, internetAvailable: false, securityFeatures: false, parkingAvailable: false, petsAllowed: false, virtualTourUrl: "", photoUrls: [] }); }}
+              onClick={() => { setSuccess(false); setCreatedId(null); setCreatedBilling(null); setPhotoFiles([]); setPhotoUploadWarning(""); setForm({ title: "", description: "", listingType: "RENT", city: "Harare", suburb: "", address: "", country: "Zimbabwe", bedrooms: 2, bathrooms: 1, category: "", floorAreaM2: "", price: "", currency: "USD", latitude: "", longitude: "", diasporaFriendly: false, escrowRequired: true, solarInstalled: false, backupPower: false, waterSource: "", furnished: false, internetAvailable: false, securityFeatures: false, parkingAvailable: false, petsAllowed: false, virtualTourUrl: "", photoUrls: [] }); }}
               className="border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold px-6 py-3 rounded-xl transition-colors"
             >
               List Another
@@ -345,6 +367,27 @@ export default function NewPropertyPage() {
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="lp-cat" className="block text-sm font-medium text-gray-700 mb-1.5">Property type</label>
+              <select id="lp-cat"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as PropertyCategory | "" }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              >
+                <option value="">Choose…</option>
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="lp-area" className="block text-sm font-medium text-gray-700 mb-1.5">Floor area (m²) <span className="text-gray-400 font-normal">optional</span></label>
+              <input id="lp-area" type="number" min={1} inputMode="numeric"
+                value={form.floorAreaM2}
+                onChange={(e) => setForm((f) => ({ ...f, floorAreaM2: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 bg-white"
+              />
             </div>
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-1.5">

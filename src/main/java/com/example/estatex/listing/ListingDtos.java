@@ -34,7 +34,9 @@ public final class ListingDtos {
             @Pattern(regexp = "^(USD|ZWG)$", message = "currency must be USD or ZWG") String currency,
             TitleType titleType,
             Division division,
-            Long negotiatorUserId
+            Long negotiatorUserId,
+            /** Optional; used for price per m2. The inspection's floor area fills it in later if left out. */
+            @Min(1) @Max(100_000) Integer floorAreaM2
     ) {
     }
 

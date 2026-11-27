@@ -34,6 +34,10 @@ public class PropertyBilling {
 
     private Instant currentPeriodEnd;
     private Instant pastDueSince;
+    /** The unpaid listing-fee payment the owner should pay (checkout or wallet), if any. */
+    private Long pendingPaymentId;
+    /** True when the billing sweep deactivated the listing; paying then puts it back on the market. */
+    private Boolean deactivatedForNonPayment;
     private Instant createdAt = Instant.now();
     private Instant updatedAt = Instant.now();
 }

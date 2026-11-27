@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import EstateXLogo from "@/components/EstateXLogo";
@@ -8,6 +8,8 @@ import { Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { dashboardPathFor } from "@/lib/dashboardRoute";
 import { safeRedirect } from "@/lib/safeRedirect";
+import { referralsApi } from "@/lib/api";
+import { cleanReferralCode } from "@/lib/referralCode";
 
 function passwordStrength(pw: string) {
   const checks = {
@@ -35,9 +37,22 @@ function RegisterForm() {
   const [confirmPw, setConfirmPw] = useState("");
   const [role, setRole] = useState<"TENANT" | "LANDLORD" | "AGENT" | "DEVELOPER" | "PRIVATE" | "INVESTOR" | "SERVICE_PROVIDER">("TENANT");
   const [showPw, setShowPw] = useState(false);
+  // From a friend's link (/r/CODE → ?ref=CODE), or typed in.
+  const [referralCode, setReferralCode] = useState(() => cleanReferralCode(searchParams.get("ref") ?? ""));
+  const [showReferral, setShowReferral] = useState(() => !!searchParams.get("ref"));
+  const [referralOffer, setReferralOffer] = useState<{ code: string; valid: boolean; discountPercent?: number | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (referralCode.length < 6) return;
+    const code = referralCode;
+    referralsApi.code(code)
+      .then((info) => setReferralOffer({ code, valid: info.valid, discountPercent: info.programmeActive ? info.discountPercent : null }))
+      .catch(() => setReferralOffer(null));
+  }, [referralCode]);
+  const offer = referralOffer && referralOffer.code === referralCode ? referralOffer : null;
 
   const { checks, score } = passwordStrength(password);
   const pwOk = score === 4;
@@ -66,6 +81,7 @@ function RegisterForm() {
         password,
         country,
         roles: [role],
+        referralCode: referralCode || undefined,
       });
       router.push(redirectParam ?? dashboardPathFor(registeredUser.roles));
     } catch (err: unknown) {
@@ -269,6 +285,28 @@ function RegisterForm() {
                 {confirmPw.length > 0 && !pwMatch ? "Passwords do not match." : ""}
               </p>
             </div>
+
+            {showReferral ? (
+              <div>
+                <label htmlFor="reg-referral" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Referral code <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input id="reg-referral" value={referralCode} onChange={(e) => setReferralCode(cleanReferralCode(e.target.value))}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 tracking-widest uppercase"
+                  placeholder="e.g. K7M2QX9A" aria-describedby="reg-referral-hint" />
+                <p id="reg-referral-hint" aria-live="polite" className="text-xs mt-1.5">
+                  {offer && !offer.valid && <span className="text-red-600">We can&apos;t find that code. Check it, or leave it empty.</span>}
+                  {offer?.valid && offer.discountPercent != null && (
+                    <span className="text-brand-700 font-medium">A friend invited you: {offer.discountPercent}% off your first subscription payment.</span>
+                  )}
+                  {offer?.valid && offer.discountPercent == null && <span className="text-gray-500">Code recognised.</span>}
+                </p>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setShowReferral(true)} className="text-sm text-brand-600 hover:underline">
+                Have a referral code?
+              </button>
+            )}
 
             <button
               type="submit"

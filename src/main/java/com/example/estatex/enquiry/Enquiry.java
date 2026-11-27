@@ -77,6 +77,11 @@ public class Enquiry {
     @Column(nullable = false)
     private Instant capturedAt;
     private Instant createdAt = Instant.now();
+    /**
+     * When the agency first acted on it (moved it on from NEW). Recorded from 2026-11-27; older
+     * enquiries have none. Feeds the "enquiries first answered" response time in analytics.
+     */
+    private Instant firstRespondedAt;
 
     public EnquiryChannel getChannel() {
         return EnquiryChannel.valueOf(channelCode);

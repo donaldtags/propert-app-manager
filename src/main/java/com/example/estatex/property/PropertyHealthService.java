@@ -118,10 +118,10 @@ public class PropertyHealthService {
 
     private int occupancyScore(PropertyStatus status) {
         return switch (status) {
-            case OCCUPIED, SOLD -> 100;
-            case RESERVED -> 80;
+            case OCCUPIED, REPORTED_SOLD -> 100;
+            case UNDER_OFFER -> 80;
             case AVAILABLE -> 50;
-            case INACTIVE -> 20;
+            case INACTIVE, WITHDRAWN, EXPIRED -> 20;
             case DRAFT -> 0;
         };
     }

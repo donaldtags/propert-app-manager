@@ -12,5 +12,7 @@ public enum NotificationType {
     /** Agent licence and company (agency) approval decisions. */
     ACCOUNT_VERIFICATION,
     /** Wallet withdrawals paid or rejected. */
-    WALLET
+    WALLET,
+    /** Analytics alerts for staff: market changes, failed or stale analytics runs. */
+    MARKET_ALERT
 }

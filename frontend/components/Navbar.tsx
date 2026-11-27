@@ -137,6 +137,7 @@ export default function Navbar() {
                     <Link href="/provider" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Service Provider Profile</Link>
                   )}
                   <Link href="/wallet" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Wallet</Link>
+                  <Link href="/referrals" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Invite friends</Link>
                   <Link href="/trips" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">My Trips</Link>
                   {(user.roles?.includes("LANDLORD") || user.roles?.includes("PRIVATE") || user.roles?.includes("AGENT")) && (
                     <Link href="/hosting" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Hosting (BnB)</Link>

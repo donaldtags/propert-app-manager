@@ -5,13 +5,13 @@ const SUCCESS = new Set([
 const WARNING = new Set([
   "PENDING", "DRAFT", "SENT", "ASSIGNED", "IN_PROGRESS", "REQUESTED",
   "INITIATED", "CREATED", "UNVERIFIED", "SUBMITTED", "VERIFICATION_REQUIRED",
-  "UNDER_REVIEW", "LEASE_PREPARATION", "RESERVED", "DELAYED", "PAUSED",
+  "UNDER_REVIEW", "LEASE_PREPARATION", "RESERVED", "UNDER_OFFER", "DELAYED", "PAUSED",
 ]);
 const DANGER = new Set([
-  "CANCELLED", "DISPUTED", "REJECTED", "FAILED", "ENDED", "DECLINED", "INACTIVE", "OPEN",
+  "CANCELLED", "DISPUTED", "REJECTED", "FAILED", "ENDED", "DECLINED", "INACTIVE", "OPEN", "WITHDRAWN",
 ]);
 // Resolved, but not via a straightforward success — kept visually distinct from both.
-const NOTABLE = new Set(["REFUNDED", "SOLD", "OCCUPIED", "EXITED"]);
+const NOTABLE = new Set(["REFUNDED", "SOLD", "REPORTED_SOLD", "OCCUPIED", "EXITED"]);
 
 const TONE_CLASSES = {
   success: "bg-brand-100 text-brand-700",

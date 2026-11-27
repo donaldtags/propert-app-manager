@@ -33,7 +33,7 @@ export const JOURNEY_STAGES: { stage: JourneyStage; label: string }[] = [
  * its own progress logic for.
  */
 export function stageForProperty(property: Property, escrow?: Escrow): JourneyStage {
-  if (property.status === "SOLD") return "SELL_EXIT";
+  if (property.status === "REPORTED_SOLD") return "SELL_EXIT";
   if (property.status === "OCCUPIED") return "MANAGE";
 
   if (escrow) {

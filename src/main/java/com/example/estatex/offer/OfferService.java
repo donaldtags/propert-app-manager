@@ -155,9 +155,9 @@ public class OfferService implements ContactActivitySource {
                 }
                 o.setStatus(OfferStatus.ACCEPTED);
                 if (p.getStatus() == PropertyStatus.AVAILABLE) {
-                    p.setStatus(PropertyStatus.RESERVED);
-                    audit.record(user, entry("LISTING_RESERVED", "Property", p.getId()).organisation(o.getOrganisationId())
-                            .transition(PropertyStatus.AVAILABLE, PropertyStatus.RESERVED)
+                    p.setStatus(PropertyStatus.UNDER_OFFER);
+                    audit.record(user, entry("LISTING_UNDER_OFFER", "Property", p.getId()).organisation(o.getOrganisationId())
+                            .transition(PropertyStatus.AVAILABLE, PropertyStatus.UNDER_OFFER)
                             .metadata(Map.of("offerId", o.getId())));
                 }
             }
@@ -207,7 +207,7 @@ public class OfferService implements ContactActivitySource {
                 .transition(before, OfferStatus.WITHDRAWN));
         if (before == OfferStatus.ACCEPTED) {
             Property p = properties.findById(o.getPropertyId()).orElseThrow();
-            if (p.getStatus() == PropertyStatus.RESERVED) {
+            if (p.getStatus() == PropertyStatus.UNDER_OFFER) {
                 listings.relistAfterFallThrough(p, user);
             }
         }

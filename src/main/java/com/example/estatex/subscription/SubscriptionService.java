@@ -42,13 +42,17 @@ public class SubscriptionService {
     private final PaymentService payments;
     private final PlatformAccountService platformAccountService;
 
+    private final com.example.estatex.referral.ReferralService referralService;
+
     public SubscriptionService(
             LandlordSubscriptionRepository subscriptions,
             SubscriptionPlanSettingsRepository planSettings,
             PropertyService properties,
             PaymentService payments,
-            PlatformAccountService platformAccountService
+            PlatformAccountService platformAccountService,
+            com.example.estatex.referral.ReferralService referralService
     ) {
+        this.referralService = referralService;
         this.subscriptions = subscriptions;
         this.planSettings = planSettings;
         this.properties = properties;
@@ -107,7 +111,8 @@ public class SubscriptionService {
                 subscription.getCurrentPeriodEnd(),
                 settings.getMaxProperties(),
                 activePropertyCount(user),
-                Arrays.stream(SubscriptionFeature.values()).filter(settings::supports).toList()
+                Arrays.stream(SubscriptionFeature.values()).filter(settings::supports).toList(),
+                subscription.getPendingPaymentId()
         );
     }
 
@@ -137,19 +142,26 @@ public class SubscriptionService {
         }
         SubscriptionPlanSettings settings = planSettings(targetPlan);
         AppUser platformAccount = platformAccountService.billingAccount();
+        // A friend's referral: a discount on the very first subscription payment only.
+        java.util.Optional<com.example.estatex.referral.ReferralService.Discount> discount =
+                referralService.discountFor(user, settings.getMonthlyPrice());
+        java.math.BigDecimal amount = discount.map(com.example.estatex.referral.ReferralService.Discount::payable)
+                .orElse(settings.getMonthlyPrice());
+        String metadata = "plan=" + targetPlan + discount.map(d -> ",referralId=" + d.referralId() + ",discountPercent=" + d.percent()
+                + ",discountCents=" + d.amount().movePointRight(2).longValueExact()).orElse("");
         Payment payment = payments.create(
                 new PaymentDtos.CreatePaymentRequest(
                         platformAccount.getId(),
                         null,
                         null,
-                        settings.getMonthlyPrice(),
+                        amount,
                         settings.getCurrency(),
                         provider,
-                        "Subscription: " + targetPlan + " plan"
+                        "Subscription: " + targetPlan + " plan" + discount.map(d -> " (" + d.percent() + "% referral discount)").orElse("")
                 ),
                 user,
                 PaymentPurpose.SUBSCRIPTION,
-                "plan=" + targetPlan,
+                metadata,
                 null
         );
         return payments.initiateCheckout(payment.getId(), provider, user);
@@ -171,6 +183,7 @@ public class SubscriptionService {
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setCurrentPeriodEnd(Instant.now().plus(BILLING_PERIOD_DAYS, ChronoUnit.DAYS));
         subscription.setPastDueSince(null);
+        subscription.setPendingPaymentId(null);
         subscription.setUpdatedAt(Instant.now());
     }
 
@@ -197,29 +210,28 @@ public class SubscriptionService {
      * separate feature from the checkout-redirect flow this integration adds. */
     @Transactional
     public void renewDuePaidSubscriptions() {
+        // Raises the next month's bill. Until it's paid the plan is PAST_DUE (still usable for the
+        // grace period), then it drops to Starter. Paying it (checkout or wallet) reactivates the
+        // plan through onPaymentSucceeded. Until 2026-11-27 renewals were self-confirmed without
+        // collecting money; analytics reports those as "charges recorded without payment".
         for (LandlordSubscription subscription : subscriptions.findByStatusAndCurrentPeriodEndBefore(SubscriptionStatus.ACTIVE, Instant.now())) {
             if (subscription.getPlan() == SubscriptionPlan.STARTER) {
                 continue;
             }
-            try {
-                SubscriptionPlanSettings settings = planSettings(subscription.getPlan());
-                AppUser platformAccount = platformAccountService.billingAccount();
-                Payment payment = payments.create(new PaymentDtos.CreatePaymentRequest(
-                        platformAccount.getId(),
-                        null,
-                        null,
-                        settings.getMonthlyPrice(),
-                        settings.getCurrency(),
-                        "platform",
-                        "Subscription renewal: " + subscription.getPlan() + " plan"
-                ), subscription.getUser());
-                payments.markSuccessful(payment.getId(), platformAccount);
-                subscription.setCurrentPeriodEnd(Instant.now().plus(BILLING_PERIOD_DAYS, ChronoUnit.DAYS));
-                subscription.setPastDueSince(null);
-            } catch (Exception e) {
-                subscription.setStatus(SubscriptionStatus.PAST_DUE);
-                subscription.setPastDueSince(Instant.now());
-            }
+            SubscriptionPlanSettings settings = planSettings(subscription.getPlan());
+            AppUser platformAccount = platformAccountService.billingAccount();
+            Payment payment = payments.create(new PaymentDtos.CreatePaymentRequest(
+                    platformAccount.getId(),
+                    null,
+                    null,
+                    settings.getMonthlyPrice(),
+                    settings.getCurrency(),
+                    "platform",
+                    "Subscription renewal: " + subscription.getPlan() + " plan"
+            ), subscription.getUser(), PaymentPurpose.SUBSCRIPTION, "plan=" + subscription.getPlan() + ",renewal=true", null);
+            subscription.setStatus(SubscriptionStatus.PAST_DUE);
+            subscription.setPastDueSince(Instant.now());
+            subscription.setPendingPaymentId(payment.getId());
             subscription.setUpdatedAt(Instant.now());
         }
     }

@@ -28,7 +28,8 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(allowedOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("X-Total-Count"));
+        // Content-Disposition: so a downloaded report keeps its file name in the browser.
+        config.setExposedHeaders(List.of("X-Total-Count", "Content-Disposition"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
@@ -39,6 +40,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             AuthService authService,
+            com.example.estatex.analytics.capture.UserActivityRecorder activity,
             RateLimitingFilter rateLimitingFilter,
             RestAuthEntryPoint authEntryPoint,
             RestAccessDeniedHandler accessDeniedHandler
@@ -64,6 +66,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/ai/affordability").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/inquiries").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/reports").permitAll()
+                        // Anonymous view/search counts for demand analytics (no personal data stored).
+                        .requestMatchers(HttpMethod.POST, "/api/v1/marketplace-events").permitAll()
+                        // What a referral link offers (no details about the referrer).
+                        .requestMatchers(HttpMethod.GET, "/api/v1/referrals/code/*").permitAll()
                         // Didit's result callback: authenticated by its HMAC signature, not a session.
                         .requestMatchers(HttpMethod.POST, "/api/v1/kyc/webhooks/didit").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/properties", "/api/v1/properties/*", "/api/v1/properties/*/passport").permitAll()
@@ -113,7 +119,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/messages/admin/**").hasAuthority("PERM_MESSAGES_ADMIN_VIEW")
                         .anyRequest().authenticated())
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new TokenAuthenticationFilter(authService), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new TokenAuthenticationFilter(authService, activity), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

@@ -154,6 +154,18 @@ export class Api {
     return listingId;
   }
 
+  /**
+   * A private listing stays unpublished until its first month's fee is paid (since 2026-11-27).
+   * Records the open bill as paid the way an admin does for money received offline; in production
+   * Paynow/Stripe or the wallet completes it through the same success path.
+   */
+  async payListingFee(propertyId: number, owner: Account): Promise<void> {
+    const billing = await this.ok<{ pendingPaymentId: number | null }>("GET", `/properties/${propertyId}/billing`, { token: owner.token });
+    if (billing.pendingPaymentId == null) return;
+    const admin = await this.platformAdmin();
+    await this.ok("PATCH", `/payments/${billing.pendingPaymentId}/success`, { token: admin.token });
+  }
+
   /** A published short-stay (BnB) listing owned by a fresh host, with its stay rules set. */
   async shortStay(opts: { nightly?: number; instantBook?: boolean; maxGuests?: number; minNights?: number; cleaningFee?: number } = {}): Promise<{ host: Account; id: number; title: string }> {
     const host = await this.register("QA Host " + uniqueId(), "LANDLORD");
@@ -166,6 +178,7 @@ export class Api {
         photoUrls: ["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200"],
       },
     });
+    await this.payListingFee(created.id, host);
     await this.ok("PUT", `/stays/${created.id}/settings`, {
       token: host.token,
       data: {

@@ -40,6 +40,7 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ListingComplianceTests {
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired private MockMvc mvc;
     @Autowired private UserService userService;
     @Autowired private ObjectMapper objectMapper;
@@ -206,7 +207,7 @@ class ListingComplianceTests {
         // The job running the morning after takes it down.
         mandateService.expireMandates(lastDay.plusDays(1));
         call(get(base + "/listings/" + id), negotiator, null)
-                .andExpect(jsonPath("$.property.status").value("DRAFT"))
+                .andExpect(jsonPath("$.property.status").value("EXPIRED"))
                 .andExpect(jsonPath("$.mandates[0].status").value("EXPIRED"));
         mvc.perform(get("/api/v1/properties/" + id)).andExpect(status().isNotFound());
         call(get("/api/v1/notifications/mine"), negotiator, null)
@@ -237,11 +238,23 @@ class ListingComplianceTests {
                 {"title": "Independent flat", "listingType": "RENT", "city": "Harare", "suburb": "Avondale",
                  "bedrooms": 2, "bathrooms": 1, "price": 650, "currency": "USD", "landlordId": %d}
                 """.formatted(outsider.id())).andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("AVAILABLE"))
+                // Not public until the first month's listing fee is paid (no more self-confirmed fees).
+                .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.organisationId").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
         long id = objectMapper.readTree(raw).path("id").asLong();
-        mvc.perform(get("/api/v1/properties/" + id)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/properties/" + id)).andExpect(status().isNotFound());
+        call(get("/api/v1/properties/" + id + "/billing"), outsider, null).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AWAITING_PAYMENT"))
+                .andExpect(jsonPath("$.pendingPaymentId").isNumber());
+        // The owner can't switch it on without paying.
+        call(patch("/api/v1/properties/" + id), outsider, "{\"status\": \"AVAILABLE\"}").andExpect(status().isPaymentRequired());
+        // Paying (here the same success path a Paynow confirmation takes) publishes it for 30 days.
+        fees.paid(id);
+        mvc.perform(get("/api/v1/properties/" + id)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("AVAILABLE"));
+        call(get("/api/v1/properties/" + id + "/billing"), outsider, null)
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.pendingPaymentId").doesNotExist());
         // Organisation members get no special rights over listings outside their organisation.
         call(patch("/api/v1/properties/" + id), negotiator, "{\"price\": 1}").andExpect(status().isForbidden());
         call(get(base + "/listings/" + id), negotiator, null).andExpect(status().isNotFound());

@@ -18,9 +18,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
     private final AuthService authService;
+    private final com.example.estatex.analytics.capture.UserActivityRecorder activity;
 
-    public TokenAuthenticationFilter(AuthService authService) {
+    public TokenAuthenticationFilter(AuthService authService, com.example.estatex.analytics.capture.UserActivityRecorder activity) {
         this.authService = authService;
+        this.activity = activity;
     }
 
     @Override
@@ -35,6 +37,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                 user.permissions().forEach(permission -> authorities.add(new SimpleGrantedAuthority("PERM_" + permission.name())));
                 Authentication authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (activity != null) activity.touch(user.getId());
             } catch (RuntimeException ex) {
                 SecurityContextHolder.clearContext();
             }

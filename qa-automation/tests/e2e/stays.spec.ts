@@ -58,7 +58,9 @@ test.describe("Short stays in the browser", () => {
     await page.goto("/properties?listingType=SHORT_STAY");
     const toggle = page.locator('[aria-controls="search-controls"]');
     if (await toggle.isVisible()) await toggle.click();
-    await expect(page.getByText("Check-in", { exact: true })).toBeVisible();
-    await expect(page.getByText("Guests", { exact: true })).toBeVisible();
+    // Scoped to the search controls: a stay card in the results can also say "Check-in".
+    const controls = page.locator("#search-controls");
+    await expect(controls.getByText("Check-in", { exact: true }).first()).toBeVisible();
+    await expect(controls.getByText("Guests", { exact: true }).first()).toBeVisible();
   });
 });

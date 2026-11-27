@@ -34,6 +34,7 @@ export default function NewOrgListingPage() {
     address: "",
     bedrooms: "3",
     bathrooms: "2",
+    floorAreaM2: "",
     price: "",
     currency: context.organisation.defaultCurrency,
     titleType: "" as TitleType | "",
@@ -85,6 +86,7 @@ export default function NewOrgListingPage() {
           address: form.address.trim() || undefined,
           bedrooms: Number(form.bedrooms),
           bathrooms: Number(form.bathrooms),
+          floorAreaM2: Number(form.floorAreaM2) > 0 ? Math.round(Number(form.floorAreaM2)) : undefined,
           priceCents,
           currency: form.currency,
           titleType: form.titleType || undefined,
@@ -229,6 +231,11 @@ export default function NewOrgListingPage() {
           <label className="block">
             <span className={ws.label}>Bathrooms</span>
             <input className={ws.input} type="number" min={0} max={50} value={form.bathrooms} onChange={(e) => set("bathrooms", e.target.value)} />
+          </label>
+          <label className="block">
+            <span className={ws.label}>Floor area (m², optional)</span>
+            <input className={ws.input} type="number" min={1} max={100000} inputMode="numeric" value={form.floorAreaM2}
+              onChange={(e) => set("floorAreaM2", e.target.value)} placeholder="e.g. 180" />
           </label>
           <label className="block">
             <span className={ws.label}>{form.listingType === "SALE" ? "Asking price" : "Monthly rent"}</span>

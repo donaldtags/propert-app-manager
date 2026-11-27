@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { subscriptions as subscriptionsApi } from "@/lib/api";
+import PayBill from "@/components/PayBill";
+import { subscriptions as subscriptionsApi, referralsApi } from "@/lib/api";
 import type { PlanSettings, SubscriptionInfo, SubscriptionFeature, SubscriptionPlan, CheckoutProvider } from "@/lib/types";
 import { settingsRoleUrl } from "@/lib/roleGate";
 import PaymentProviderPicker from "@/components/PaymentProviderPicker";
@@ -60,6 +61,8 @@ export default function SubscriptionPage() {
   const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null);
   const [checkoutProvider, setCheckoutProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // A friend's referral discount on the first paid subscription, if any.
+  const [referralDiscount, setReferralDiscount] = useState<number | null>(null);
   const [success, setSuccess] = useState("");
 
   const hasBusinessRole = (roles: string[] | undefined) =>
@@ -82,6 +85,9 @@ export default function SubscriptionPage() {
     subscriptionsApi.plans().then(setPlans).catch(() => {});
     if (token) {
       subscriptionsApi.mine(token).then(setMine).catch(() => {}).finally(() => setDataLoading(false));
+      referralsApi.mine(token)
+        .then((r) => setReferralDiscount(r.referredBy?.discountAvailable ? r.referredBy.discountPercent ?? null : null))
+        .catch(() => {}); // a failed check never hides a discount already shown
     }
   };
 
@@ -149,6 +155,13 @@ export default function SubscriptionPage() {
         <p className="text-gray-500 mt-1">Choose the plan that fits your portfolio. Prices are set by EstateX.</p>
       </div>
 
+      {referralDiscount != null && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl px-5 py-3 mb-6 text-sm" role="status">
+          <strong>{referralDiscount}% off your first payment.</strong> A friend invited you to EstateX, so your first paid plan is
+          discounted at checkout. Later months are at the normal price.
+        </div>
+      )}
+
       {mine && (
         <div className="bg-brand-50 border border-brand-100 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
@@ -160,8 +173,13 @@ export default function SubscriptionPage() {
               {mine.currentPeriodEnd && (
                 <p className="text-xs text-brand-700 mt-0.5">
                   Renews on {formatDate(mine.currentPeriodEnd)} · status {mine.status}
-                  {mine.status === "PAST_DUE" && " — renewal failed, will downgrade if not resolved"}
+                  {mine.status === "PAST_DUE" && " — renewal unpaid: pay within 3 days of the due date to keep your plan"}
                 </p>
+              )}
+              {mine.pendingPaymentId && (
+                <div className="mt-2">
+                  <PayBill paymentId={mine.pendingPaymentId} amountLabel="renewal" label="Pay renewal" />
+                </div>
               )}
             </div>
           </div>

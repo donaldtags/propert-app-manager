@@ -15,5 +15,5 @@ test("accepting an offer below the owner's minimum asks for the owner's written 
   await instruction.fill("WhatsApp from owner, QA");
   await card.getByRole("button", { name: "Confirm" }).click();
   await expect(card.getByText("Accepted", { exact: true })).toBeVisible();
-  expect((await api.ok("GET", `/properties/${id}`, { token: a.negotiator.token })).status).toBe("RESERVED");
+  expect((await api.ok("GET", `/properties/${id}`, { token: a.negotiator.token })).status).toBe("UNDER_OFFER");
 });

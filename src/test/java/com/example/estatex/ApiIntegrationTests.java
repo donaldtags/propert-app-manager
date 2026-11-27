@@ -39,6 +39,7 @@ import tools.jackson.databind.ObjectMapper;
 class ApiIntegrationTests {
     private static final String PASSWORD = "AfricaProp123!";
 
+    @Autowired private com.example.estatex.support.ListingFees fees;
     @Autowired
     private MockMvc mvc;
 
@@ -88,6 +89,14 @@ class ApiIntegrationTests {
                                 """.formatted(agent.id())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"));
+
+        // AI search (keyword fallback, no API key in tests) returns listings with their photos. It used
+        // to fail with a 500 because the photos were loaded after the database session had closed.
+        mvc.perform(post("/api/v1/ai/property-search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"query\": \"2 bedroom to rent in Borrowdale, Harare\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matches[?(@.id == %d)].photos[0]".formatted(propertyId)).exists());
 
         long leaseId = createLease(propertyId, tenant.id(), landlord.token());
         long escrowId = createEscrow(propertyId, leaseId, tenant.token());
@@ -505,6 +514,26 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.maintenanceResolutionRatePercent").value(100));
     }
 
+    /** QA finding F-3: malformed requests used to answer 500 and log an "Unhandled exception". */
+    @Test
+    void malformedRequestsGetA4xxNotA500() throws Exception {
+        Registered user = registerUser("Malformed Caller", "LANDLORD");
+        String bearer = "Bearer " + user.token();
+        // JSON sent to upload endpoints (they take multipart/form-data)
+        mvc.perform(post("/api/v1/kyc/submissions").header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnsupportedMediaType());
+        mvc.perform(post("/api/v1/maintenance/987654321/photos").header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().is4xxClientError());
+        // an address that doesn't exist
+        mvc.perform(get("/api/v1/no-such-endpoint").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isNotFound());
+        // the wrong HTTP method
+        mvc.perform(patch("/api/v1/version").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isMethodNotAllowed());
+    }
+
     @Test
     void configuredCorsOriginsAllowFrontendDevelopmentHosts() throws Exception {
         mvc.perform(options("/api/v1/users")
@@ -581,7 +610,7 @@ class ApiIntegrationTests {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        return extractLong(response, "id");
+        return fees.paid(extractLong(response, "id"));
     }
 
     private long createLease(long propertyId, long tenantId, String landlordToken) throws Exception {

@@ -1,10 +1,19 @@
 export type ListingType = "RENT" | "SALE" | "SHORT_STAY";
 export type TitleType = "TITLE_DEED" | "SECTIONAL_TITLE" | "CESSION";
 
-export type PropertyStatus = "DRAFT" | "AVAILABLE" | "RESERVED" | "OCCUPIED" | "SOLD" | "INACTIVE";
+export type PropertyStatus =
+  | "DRAFT" | "AVAILABLE" | "UNDER_OFFER" | "OCCUPIED" | "REPORTED_SOLD" | "WITHDRAWN" | "EXPIRED" | "INACTIVE";
+
+export type PropertyCategory =
+  | "HOUSE" | "FLAT" | "TOWNHOUSE" | "COTTAGE" | "ROOM" | "STAND" | "COMMERCIAL" | "INDUSTRIAL" | "FARM" | "OTHER";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 export type WaterSource = "MUNICIPAL" | "BOREHOLE" | "WELL" | "TANKER" | "OTHER";
-export type UserRole = "TENANT" | "LANDLORD" | "AGENT" | "DIASPORA" | "INVESTOR" | "ADMIN" | "DEVELOPER" | "PRIVATE" | "SERVICE_PROVIDER";
+export type UserRole =
+  | "TENANT" | "LANDLORD" | "AGENT" | "DIASPORA" | "INVESTOR" | "ADMIN" | "DEVELOPER" | "PRIVATE" | "SERVICE_PROVIDER"
+  | "FINANCE_ADMIN" | "MARKET_ANALYST" | "OPERATIONS_ADMIN" | "VERIFICATION_OFFICER";
+
+/** EstateX staff roles: granted by an admin, never self-registered. */
+export const STAFF_ROLES: UserRole[] = ["ADMIN", "FINANCE_ADMIN", "MARKET_ANALYST", "OPERATIONS_ADMIN", "VERIFICATION_OFFICER"];
 export type LeaseStatus = "DRAFT" | "SENT" | "SIGNED" | "ACTIVE" | "ENDED" | "CANCELLED";
 export type EscrowStatus = "CREATED" | "FUNDED" | "RELEASED" | "DISPUTED" | "REFUNDED" | "CANCELLED";
 export type FundingMethod =
@@ -70,6 +79,8 @@ export interface Property {
   parkingAvailable: boolean;
   petsAllowed: boolean;
   virtualTourUrl?: string;
+  category?: PropertyCategory;
+  floorAreaM2?: number;
   landlordId: number;
   agentId?: number;
   landlordName?: string;
@@ -143,13 +154,17 @@ export interface SubscriptionInfo {
   maxProperties: number | null;
   activePropertyCount: number;
   enabledFeatures: SubscriptionFeature[];
+  /** The open renewal bill to pay, or null when nothing is due. */
+  pendingPaymentId: number | null;
 }
 
 export interface PropertyBilling {
-  status: "ACTIVE" | "PAST_DUE";
+  status: "AWAITING_PAYMENT" | "ACTIVE" | "PAST_DUE";
   currentPeriodEnd: string | null;
   monthlyFee: number;
   currency: string;
+  /** The open listing-fee bill to pay, or null when nothing is due. */
+  pendingPaymentId: number | null;
 }
 
 export interface CheckoutResponse {
@@ -844,7 +859,9 @@ export interface LeaseActionRequest {
   resolvedAt?: string;
 }
 
-export type NotificationType = "RENT_REMINDER" | "LEASE_EXPIRY" | "MAINTENANCE_UPDATE" | "SECURITY_ALERT";
+export type NotificationType =
+  | "RENT_REMINDER" | "LEASE_EXPIRY" | "MAINTENANCE_UPDATE" | "SECURITY_ALERT" | "LISTING_COMPLIANCE" | "STAY_BOOKING"
+  | "ACCOUNT_VERIFICATION" | "WALLET" | "MARKET_ALERT";
 
 export interface AppNotification {
   id: number;
@@ -1256,6 +1273,8 @@ export interface CreateOrgListingRequest {
   priceCents: number;
   currency?: "USD" | "ZWG";
   titleType?: TitleType;
+  /** Optional; used for price per m². The inspection's measured floor area fills it in if left out. */
+  floorAreaM2?: number;
 }
 
 export interface CreateMandateRequest {

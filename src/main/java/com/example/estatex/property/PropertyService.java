@@ -101,10 +101,10 @@ public class PropertyService {
         property.setTitle(request.title());
         property.setDescription(request.description());
         property.setListingType(request.listingType());
-        // Agency listings go live via the workspace publish step; an agent's own listings wait as
-        // drafts until EstateX has approved their Estate Agents Council licence.
-        property.setStatus(organisationListing || com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(landlord)
-                ? PropertyStatus.DRAFT : PropertyStatus.AVAILABLE);
+        // Agency listings go live through the workspace publish step. A private listing waits
+        // unpublished until its first month's listing fee is paid (PropertyBillingService), and an
+        // agent's own listings also wait for their licence.
+        property.setStatus(PropertyStatus.DRAFT);
         property.setOrganisationId(organisationId);
         property.setTitleType(titleType);
         property.setCity(request.city());
@@ -130,6 +130,8 @@ public class PropertyService {
         property.setParkingAvailable(request.parkingAvailable());
         property.setPetsAllowed(request.petsAllowed());
         property.setVirtualTourUrl(request.virtualTourUrl());
+        property.setCategory(request.category());
+        property.setFloorAreaM2(request.floorAreaM2());
         property.setLandlord(landlord);
         if (request.agentId() != null) {
             AppUser agent = users.require(request.agentId());
@@ -160,6 +162,17 @@ public class PropertyService {
                 && com.example.estatex.agent.AgentLicenceService.mustWaitForLicence(property.getLandlord())) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Your listings go live once EstateX approves your agent licence. Upload it from your profile.");
+        }
+        if (!property.isOrganisationListing() && request.status() == PropertyStatus.AVAILABLE
+                && property.getStatus() != PropertyStatus.AVAILABLE
+                && !currentUser.hasPermission(Permission.ADMIN_OVERRIDE)
+                && !billing.feesAllowLive(property)) {
+            throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
+                    "This listing goes live once its listing fee is paid. Pay it from the listing's edit page or Payments.");
+        }
+        if (request.status() == PropertyStatus.EXPIRED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Listings expire automatically when their mandate ends. To take it off the market yourself, choose Withdrawn.");
         }
         boolean priceChanged = request.price() != null
                 && (property.getPrice() == null || request.price().compareTo(property.getPrice()) != 0);
@@ -203,6 +216,8 @@ public class PropertyService {
         if (request.petsAllowed() != null) property.setPetsAllowed(request.petsAllowed());
         if (request.virtualTourUrl() != null) property.setVirtualTourUrl(request.virtualTourUrl());
         if (request.status() != null) property.setStatus(request.status());
+        if (request.category() != null) property.setCategory(request.category());
+        if (request.floorAreaM2() != null) property.setFloorAreaM2(request.floorAreaM2());
         if (identityChanged || locationTextChanged) {
             requireRecheck(property, currentUser, "Title, type or location changed after verification");
         }
@@ -246,7 +261,7 @@ public class PropertyService {
         return billing.describe(property);
     }
 
-    private void requireOwnerOrAdmin(Property property, AppUser currentUser) {
+    public void requireOwnerOrAdmin(Property property, AppUser currentUser) {
         if (currentUser == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Sign in to edit listings");
         }
@@ -313,7 +328,7 @@ public class PropertyService {
     @Transactional(readOnly = true)
     public Property requireVisible(Long id, AppUser viewer) {
         Property property = require(id);
-        if (!property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT) {
+        if (!property.isOrganisationListing() && property.getStatus().isHiddenFromPublic()) {
             boolean ownerOrStaff = viewer != null && (viewer.getId().equals(property.getLandlord().getId())
                     || (property.getAgent() != null && viewer.getId().equals(property.getAgent().getId()))
                     || viewer.hasPermission(Permission.ADMIN_OVERRIDE));
@@ -321,7 +336,7 @@ public class PropertyService {
                 throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");
             }
         }
-        if (property.isOrganisationListing() && property.getStatus() == PropertyStatus.DRAFT
+        if (property.isOrganisationListing() && property.getStatus().isHiddenFromPublic()
                 && !orgAccess.can(viewer, property.getOrganisationId(), OrgPermission.ORG_VIEW)
                 && (viewer == null || !viewer.hasPermission(Permission.ADMIN_OVERRIDE))) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Property not found");
@@ -341,6 +356,7 @@ public class PropertyService {
     private static final int INTERNAL_SEARCH_LIMIT = 50;
     private static final int MAX_PAGE_SIZE = 500;
 
+    @Transactional(readOnly = true)
     public List<Property> search(
             ListingType listingType,
             String city,
@@ -355,6 +371,7 @@ public class PropertyService {
                 null, null, null, null, null, null, null, null, null, null);
     }
 
+    @Transactional(readOnly = true)
     public List<Property> search(
             ListingType listingType,
             String city,

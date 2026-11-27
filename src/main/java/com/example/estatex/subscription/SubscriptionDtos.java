@@ -61,7 +61,9 @@ public final class SubscriptionDtos {
             Instant currentPeriodEnd,
             Integer maxProperties,
             int activePropertyCount,
-            List<SubscriptionFeature> enabledFeatures
+            List<SubscriptionFeature> enabledFeatures,
+            /** The open renewal bill to pay, or null when nothing is due. */
+            Long pendingPaymentId
     ) {
     }
 }

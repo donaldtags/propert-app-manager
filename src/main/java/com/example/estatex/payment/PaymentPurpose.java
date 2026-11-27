@@ -12,5 +12,7 @@ public enum PaymentPurpose {
     STAY_BOOKING,
     /** Money added to the payer's own EstateX wallet; credited only once a gateway confirms it. */
     WALLET_TOP_UP,
+    /** EstateX's monthly fee for a private listing; metadata "propertyId=<id>". */
+    LISTING_FEE,
     OTHER
 }

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { cache } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/api/v1";
@@ -27,12 +26,19 @@ type Props = { params: Promise<{ id: string }>; children: React.ReactNode };
 
 export async function generateMetadata({ params }: Omit<Props, "children">): Promise<Metadata> {
   const found = await lookup((await params).id);
+  // Not visible to the public: missing, or hidden (draft, unpaid listing fee, withdrawn). Keep it out
+  // of search engines, but still render the page: its owner, signed in, can open and pay for it.
+  if (found?.found === false) return { title: "Property", robots: { index: false, follow: false } };
   if (!found?.found || !found.title) return { title: "Property" };
   return { title: found.city ? `${found.title}, ${found.city}` : found.title };
 }
 
-export default async function PropertyLayout({ params, children }: Props) {
-  // A listing that doesn't exist answers 404, so search engines and uptime checks see it as missing.
-  if ((await lookup((await params).id))?.found === false) notFound();
+/**
+ * This lookup runs on the server without the visitor's sign-in, so a 404 here can't tell "doesn't
+ * exist" from "hidden from the public but yours". Calling notFound() on it locked owners out of their
+ * own unpublished listings (including every new listing waiting for its fee), so the page itself
+ * decides, with the visitor's token, and shows "Property not found" when it really is.
+ */
+export default async function PropertyLayout({ children }: Props) {
   return children;
 }
